@@ -17,9 +17,13 @@ export const Sidebar = () => {
   return (
     <aside className="fixed left-0 top-0 h-screen w-48 gradient-sidebar flex flex-col p-6 shadow-xl z-50">
       <div className="mb-10 flex items-center gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
-          <img src={logo} alt="ConnectIT Logo" className="w-12 h-12 rounded-lg" />
-        </div>
+        {/* MODIFICATION START: Removed 'p-1' class */}
+        <img 
+          src={logo} 
+          alt="ConnectIT Logo" 
+          className="w-14 h-14 rounded-2xl border border-white/50 object-contain" 
+        />
+        {/* MODIFICATION END */}
         <img src={whiteTextLogo} alt="ConnectIT" className="h-12" />
       </div>
 

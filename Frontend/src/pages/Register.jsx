@@ -38,13 +38,22 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/20 to-background">
       <div className="w-full max-w-md p-8">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-24 h-24 rounded-3xl gradient-primary flex items-center justify-center mb-4 shadow-xl">
-            <img src={logo} alt="ConnectIT Logo" className="w-20 h-20 rounded-2xl" />
-          </div>
-          <img src={textLogo} alt="ConnectIT" className="h-20" />
+          {/* MODIFICATION: Replicating Main Logo styles from Login.jsx */}
+          <img 
+            src={logo} 
+            alt="ConnectIT Logo" 
+            className="w-40 h-40 object-contain -mt-12 -mb-12" 
+          />
+          
+          {/* MODIFICATION: Replicating Text Logo styles from Login.jsx */}
+          <img 
+            src={textLogo} 
+            alt="ConnectIT" 
+            className="h-[17rem] -mt-20 -mb-20" 
+          />
         </div>
 
-        <div className="bg-card rounded-2xl shadow-2xl p-8 border border-border">
+        <div className="bg-card rounded-2xl shadow-2xl p-8 border border-border -mt-10">
           <h2 className="text-2xl font-bold text-center mb-6 text-foreground">Create Account</h2>
 
           <form onSubmit={handleRegister} className="space-y-4">
