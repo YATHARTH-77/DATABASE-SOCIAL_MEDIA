@@ -153,21 +153,6 @@ export default function Create() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-semibold mb-2 block">Background Theme</label>
-                    <div className="grid grid-cols-6 gap-3">
-                      {momentColors.map((color, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setMomentColor(color)}
-                          className={`w-full aspect-square rounded-xl ${color} transition-all hover:scale-110 ${
-                            momentColor === color ? "ring-4 ring-primary ring-offset-2" : ""
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
                     <label className="text-sm font-semibold mb-2 block">Preview</label>
                     <div className="flex justify-center">
                       <div className={`w-48 aspect-[9/16] ${momentColor} rounded-2xl flex items-center justify-center shadow-lg`}>
