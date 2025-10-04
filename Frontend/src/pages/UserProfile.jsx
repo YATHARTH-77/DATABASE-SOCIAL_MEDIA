@@ -50,7 +50,7 @@ const mockUsers = {
 
 const mockPosts = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
-  gradient: `from-${["blue", "purple", "green", "pink", "yellow", "cyan", "orange", "red", "indigo", "teal", "rose", "violet"][i]}-400 to-${["cyan", "pink", "emerald", "red", "amber", "blue", "yellow", "pink", "purple", "blue", "orange", "fuchsia"][i]}-400`,
+  gradient: `from-${["sky", "blue", "cyan", "indigo", "teal", "blue", "sky", "blue", "cyan", "indigo", "teal", "blue"][i]}-400 via-${["green", "emerald", "lime", "green", "green", "emerald", "green", "emerald", "lime", "green", "green", "emerald"][i]}-400 to-${["yellow", "amber", "gold", "yellow", "yellow", "amber", "yellow", "amber", "gold", "yellow", "yellow", "amber"][i]}-400`,
 }));
 
 export default function UserProfile() {

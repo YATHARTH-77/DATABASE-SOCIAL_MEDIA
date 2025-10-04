@@ -1,6 +1,8 @@
 import { Home, Search, MessageCircle, Bell, PlusCircle, User } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import logo from "@/assets/logo.png";
+import whiteTextLogo from "@/assets/white_text_logo.png";
 
 export const Sidebar = () => {
   const navItems = [
@@ -14,11 +16,11 @@ export const Sidebar = () => {
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-48 gradient-sidebar flex flex-col p-6 shadow-xl z-50">
-      <div className="mb-10 flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-          <div className="w-8 h-8 rounded-lg bg-white/40" />
+      <div className="mb-10 flex items-center gap-4">
+        <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+          <img src={logo} alt="ConnectIT Logo" className="w-12 h-12 rounded-lg" />
         </div>
-        <span className="text-2xl font-bold text-white">ConnectIT</span>
+        <img src={whiteTextLogo} alt="ConnectIT" className="h-12" />
       </div>
 
       <nav className="flex-1 space-y-2">

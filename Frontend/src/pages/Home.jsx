@@ -8,11 +8,11 @@ import { Heart, MessageCircle, Bookmark, MoreHorizontal } from "lucide-react";
 import { StoryViewer } from "@/components/StoryViewer";
 
 const moments = [
-  { id: 1, username: "User1", color: "bg-gradient-to-br from-purple-400 to-pink-400", timestamp: "2h ago", views: 45, isOwn: true },
-  { id: 2, username: "User2", color: "bg-gradient-to-br from-blue-400 to-cyan-400", timestamp: "5h ago", views: 23 },
-  { id: 3, username: "User3", color: "bg-gradient-to-br from-green-400 to-emerald-400", timestamp: "8h ago", views: 67 },
-  { id: 4, username: "User4", color: "bg-gradient-to-br from-orange-400 to-red-400", timestamp: "12h ago", views: 89 },
-  { id: 5, username: "User5", color: "bg-gradient-to-br from-yellow-400 to-amber-400", timestamp: "1d ago", views: 34 },
+  { id: 1, username: "User1", color: "bg-gradient-to-br from-sky-400 via-green-400 to-yellow-400", timestamp: "2h ago", views: 45, isOwn: true },
+  { id: 2, username: "User2", color: "bg-gradient-to-br from-blue-400 via-emerald-400 to-amber-400", timestamp: "5h ago", views: 23 },
+  { id: 3, username: "User3", color: "bg-gradient-to-br from-cyan-400 via-lime-400 to-gold-400", timestamp: "8h ago", views: 67 },
+  { id: 4, username: "User4", color: "bg-gradient-to-br from-indigo-400 via-green-400 to-yellow-400", timestamp: "12h ago", views: 89 },
+  { id: 5, username: "User5", color: "bg-gradient-to-br from-blue-500 via-green-500 to-yellow-500", timestamp: "1d ago", views: 34 },
 ];
 
 const posts = [

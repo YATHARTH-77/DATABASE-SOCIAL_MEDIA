@@ -13,7 +13,7 @@ const profileStats = [
 
 const mockPosts = Array.from({ length: 6 }, (_, i) => ({
   id: i + 1,
-  gradient: `from-${["blue", "purple", "green", "pink", "yellow", "cyan"][i]}-400 to-${["cyan", "pink", "emerald", "red", "amber", "blue"][i]}-400`,
+  gradient: `from-${["sky", "blue", "cyan", "indigo", "teal", "blue"][i]}-400 via-${["green", "emerald", "lime", "green", "green", "emerald"][i]}-400 to-${["yellow", "amber", "gold", "yellow", "yellow", "amber"][i]}-400`,
 }));
 
 export default function Profile() {

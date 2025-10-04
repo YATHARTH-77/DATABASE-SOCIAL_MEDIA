@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import logo from "@/assets/logo.png";
+import textLogo from "@/assets/text_logo_dbis.png";
 
 export default function Register() {
   const [username, setUsername] = useState("");
@@ -36,10 +38,10 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/20 to-background">
       <div className="w-full max-w-md p-8">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-20 h-20 rounded-3xl gradient-primary flex items-center justify-center mb-4 shadow-xl">
-            <div className="w-12 h-12 rounded-2xl bg-white/40" />
+          <div className="w-24 h-24 rounded-3xl gradient-primary flex items-center justify-center mb-4 shadow-xl">
+            <img src={logo} alt="ConnectIT Logo" className="w-20 h-20 rounded-2xl" />
           </div>
-          <h1 className="text-4xl font-bold text-gradient">ConnectIT</h1>
+          <img src={textLogo} alt="ConnectIT" className="h-20" />
         </div>
 
         <div className="bg-card rounded-2xl shadow-2xl p-8 border border-border">

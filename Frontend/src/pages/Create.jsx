@@ -11,7 +11,7 @@ import { Image, Film, Smile } from "lucide-react";
 export default function Create() {
   const [caption, setCaption] = useState("");
   const [hashtags, setHashtags] = useState("");
-  const [momentColor, setMomentColor] = useState("bg-gradient-to-br from-purple-400 to-pink-400");
+  const [momentColor, setMomentColor] = useState("bg-gradient-to-br from-sky-400 via-green-400 to-yellow-400");
   const { toast } = useToast();
 
   const handlePost = () => {
@@ -40,12 +40,12 @@ export default function Create() {
   };
 
   const momentColors = [
-    "bg-gradient-to-br from-purple-400 to-pink-400",
-    "bg-gradient-to-br from-blue-400 to-cyan-400",
-    "bg-gradient-to-br from-green-400 to-emerald-400",
-    "bg-gradient-to-br from-orange-400 to-red-400",
-    "bg-gradient-to-br from-yellow-400 to-amber-400",
-    "bg-gradient-to-br from-indigo-400 to-purple-400",
+    "bg-gradient-to-br from-sky-400 via-green-400 to-yellow-400",
+    "bg-gradient-to-br from-blue-400 via-emerald-400 to-amber-400",
+    "bg-gradient-to-br from-cyan-400 via-lime-400 to-gold-400",
+    "bg-gradient-to-br from-indigo-400 via-green-400 to-yellow-400",
+    "bg-gradient-to-br from-blue-500 via-green-500 to-yellow-500",
+    "bg-gradient-to-br from-teal-400 via-green-400 to-yellow-400",
   ];
 
   return (
