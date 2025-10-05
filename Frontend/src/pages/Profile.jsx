@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; // Import useEffect
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -8,29 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Grid, Bookmark } from "lucide-react";
 import { PostDetailModal } from "@/components/PostDetailModal";
 
-const profileStats = [
-  { label: "posts", value: 42 },
-  { label: "followers", value: 1234 },
-  { label: "following", value: 567 },
-];
+const profileStats = [ { label: "posts", value: 42 }, { label: "followers", value: 1234 }, { label: "following", value: 567 }];
 
-const mockPosts = Array.from({ length: 6 }, (_, i) => ({
-  id: i + 1,
-  username: "Username",
-  avatar: "",
-  caption: `This is post number ${i + 1}. Here's some amazing content I wanted to share with everyone! 🎨✨`,
-  hashtags: ["#post", "#creative", "#inspiration"],
-  gradient: `from-${["sky", "blue", "cyan", "indigo", "teal", "blue"][i]}-400 via-${["green", "emerald", "lime", "green", "green", "emerald"][i]}-400 to-${["yellow", "amber", "gold", "yellow", "yellow", "amber"][i]}-400`,
-  comments: [
-    {
-      id: 1,
-      username: "friend_user",
-      avatar: "",
-      text: "Amazing post! Love this content 🔥",
-      timestamp: "2h ago"
-    }
-  ]
-}));
+const mockPosts = Array.from({ length: 6 }, (_, i) => ({ id: i + 1, username: "Username", avatar: "", caption: `This is post number ${i + 1}. Here's some amazing content I wanted to share with everyone! 🎨✨`, hashtags: ["#post", "#creative", "#inspiration"], gradient: `from-${["sky", "blue", "cyan", "indigo", "teal", "blue"][i]}-400 via-${["green", "emerald", "lime", "green", "green", "emerald"][i]}-400 to-${["yellow", "amber", "gold", "yellow", "yellow", "amber"][i]}-400`, comments: [ { id: 1, username: "friend_user", avatar: "", text: "Amazing post! Love this content 🔥", timestamp: "2h ago" } ] }));
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -40,19 +20,14 @@ export default function Profile() {
     navigate(`/user/${username}`);
   };
 
-  // --- MODIFICATION START: Added useEffect to handle body scroll ---
   useEffect(() => {
-    // When the modal is open (selectedPost is not null), disable body scroll
     if (selectedPost) {
       document.body.style.overflow = 'hidden';
     }
-
-    // Cleanup function: This runs when the modal is closed
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [selectedPost]); // This effect runs whenever selectedPost changes
-  // --- MODIFICATION END ---
+  }, [selectedPost]);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -63,6 +38,9 @@ export default function Profile() {
           post={selectedPost}
           onClose={() => setSelectedPost(null)}
           onUserClick={handleUserClick}
+          // --- MODIFICATION START: Specify the "owner" variant ---
+          variant="owner"
+          // --- MODIFICATION END ---
         />
       )}
       
@@ -118,7 +96,6 @@ export default function Profile() {
                       onClick={() => setSelectedPost(post)}
                       className={`aspect-square bg-gradient-to-br ${post.gradient} rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-md relative group`}
                     >
-                      {/* Hover overlay with post info */}
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
                         <p className="text-white text-sm font-semibold">View Post</p>
                       </div>

@@ -35,21 +35,25 @@ export default function Search() {
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       
-      <main className="ml-48 flex-1 p-8">
+      {/* --- MODIFICATION START --- */}
+      <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
+      {/* --- MODIFICATION END --- */}
         <div className="max-w-4xl mx-auto space-y-6">
-          <Card className="p-6 shadow-lg">
+          {/* --- MODIFICATION START: Added responsive padding --- */}
+          <Card className="p-4 sm:p-6 shadow-lg">
+          {/* --- MODIFICATION END --- */}
             <div className="relative">
               <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 placeholder="Search for users, posts, hashtags..."
-                className="pl-12 h-12 text-lg rounded-xl"
+                className="pl-12 h-12 text-md sm:text-lg rounded-xl"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </Card>
 
-          <Card className="p-6 shadow-lg">
+          <Card className="p-4 sm:p-6 shadow-lg">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="w-5 h-5 text-primary" />
               <h2 className="text-lg font-bold">Trending Hashtags</h2>
@@ -62,11 +66,13 @@ export default function Search() {
                   className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors"
                   onClick={() => navigate(`/hashtag/${item.tag.slice(1)}`)}
                 >
-                  <div>
-                    <p className="font-semibold text-primary">{item.tag}</p>
+                  {/* --- MODIFICATION START: Added min-w-0 for robust text wrapping --- */}
+                  <div className="min-w-0">
+                    <p className="font-semibold text-primary truncate">{item.tag}</p>
+                  {/* --- MODIFICATION END --- */}
                     <p className="text-sm text-muted-foreground">{item.posts}</p>
                   </div>
-                  <div className="w-12 h-12 rounded-lg gradient-primary" />
+                  <div className="w-12 h-12 rounded-lg gradient-primary flex-shrink-0 ml-2" />
                 </div>
               ))
               ) : (
@@ -75,17 +81,17 @@ export default function Search() {
             </div>
           </Card>
 
-          <Card className="p-6 shadow-lg">
+          <Card className="p-4 sm:p-6 shadow-lg">
             <h2 className="text-lg font-bold mb-4">Suggested Users</h2>
             <div className="space-y-3">
               {filteredUsers.length > 0 ? (
                 filteredUsers.map((user, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg transition-colors"
+                  className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg transition-colors gap-2"
                 >
                   <div 
-                    className="flex items-center gap-3 cursor-pointer flex-1"
+                    className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
                     onClick={() => navigate(`/user/${user.username}`)}
                   >
                     <Avatar>
@@ -93,12 +99,14 @@ export default function Search() {
                         {user.username[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <p className="font-semibold">{user.username}</p>
+                    {/* --- MODIFICATION START: Added min-w-0 for robust text wrapping --- */}
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">{user.username}</p>
+                    {/* --- MODIFICATION END --- */}
                       <p className="text-sm text-muted-foreground">{user.followers} followers</p>
                     </div>
                   </div>
-                  <button className="px-4 py-1.5 gradient-primary text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity">
+                  <button className="px-4 py-1.5 gradient-primary text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity flex-shrink-0">
                     Follow
                   </button>
                 </div>
