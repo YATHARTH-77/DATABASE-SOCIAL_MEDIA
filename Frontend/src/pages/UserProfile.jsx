@@ -12,11 +12,11 @@ const mockFollowers = Array.from({ length: 15 }, (_, i) => ({ id: i + 1, usernam
 const mockFollowing = Array.from({ length: 12 }, (_, i) => ({ id: i + 1, username: `following_${i + 1}`, displayName: `Following ${i + 1}`, avatar: "" }));
 
 const mockUsers = {
-  adventurer: { displayName: "Adventure Seeker", bio: "Exploring the world one trail at a time 🌲🏔️", posts: 42, followers: mockFollowers, following: mockFollowing, postCount: 6 },
-  foodie: { displayName: "Food Lover", bio: "Home chef | Recipe creator | Food photography 🍝✨", posts: 89, followers: mockFollowers, following: mockFollowing, postCount: 8 },
-  photographer_pro: { displayName: "Pro Photographer", bio: "Professional photographer | Available for bookings 📸", posts: 156, followers: mockFollowers, following: mockFollowing, postCount: 9 },
-  tech_guru: { displayName: "Tech Enthusiast", bio: "Tech reviews & tutorials | DM for collabs 💻", posts: 234, followers: mockFollowers, following: mockFollowing, postCount: 12 },
-  artist_life: { displayName: "Digital Artist", bio: "Creating art daily | Commissions open 🎨", posts: 301, followers: mockFollowers, following: mockFollowing, postCount: 15 },
+  adventurer: { displayName: "Adventure Seeker", bio: "Exploring the world one trail at a time 🌲🏔️", posts: 42, followers: mockFollowers.slice(0, 10), following: mockFollowing.slice(0, 5), postCount: 6 },
+  foodie: { displayName: "Food Lover", bio: "Home chef | Recipe creator | Food photography 🍝✨", posts: 89, followers: mockFollowers.slice(0, 8), following: mockFollowing.slice(0, 12), postCount: 8 },
+  photographer_pro: { displayName: "Pro Photographer", bio: "Professional photographer | Available for bookings 📸", posts: 156, followers: mockFollowers.slice(0, 15), following: mockFollowing.slice(0, 2), postCount: 9 },
+  tech_guru: { displayName: "Tech Enthusiast", bio: "Tech reviews & tutorials | DM for collabs 💻", posts: 234, followers: mockFollowers.slice(0, 7), following: mockFollowing.slice(0, 7), postCount: 12 },
+  artist_life: { displayName: "Digital Artist", bio: "Creating art daily | Commissions open 🎨", posts: 301, followers: mockFollowers.slice(0, 11), following: mockFollowing.slice(0, 9), postCount: 15 },
 };
 
 const mockPosts = Array.from({ length: 15 }, (_, i) => ({ id: i + 1, username: "Username", avatar: "", caption: `This is post number ${i + 1}. Here's some amazing content!`, hashtags: ["#sample", "#post"], gradient: `from-${["sky", "blue", "cyan", "indigo", "teal", "blue", "sky", "blue", "cyan", "indigo", "teal", "blue", "sky", "blue", "cyan"][i]}-400 via-green-400 to-yellow-400`, comments: [] }));
@@ -28,20 +28,33 @@ export default function UserProfile() {
   const [likedPosts, setLikedPosts] = useState([]);
   const [savedPosts, setSavedPosts] = useState([]);
   const [modalType, setModalType] = useState(null);
-
-  const handleLike = (postId) => {
-    setLikedPosts((prev) =>
-      prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]
-    );
-  };
-
-  const handleSave = (postId) => {
-    setSavedPosts((prev) =>
-      prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]
-    );
-  };
   
   const user = mockUsers[username?.toLowerCase()];
+
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(user ? user.followers.length : 0);
+
+  // --- MODIFICATION START: Added useEffect to reset state when username changes ---
+  useEffect(() => {
+    // This effect runs when the component mounts AND whenever the `username` in the URL changes.
+    // This ensures the follow status and count are fresh for the user being viewed.
+    const currentUser = mockUsers[username?.toLowerCase()];
+    if (currentUser) {
+      setIsFollowing(false); // Reset follow state for the new user
+      setFollowerCount(currentUser.followers.length); // Reset follower count
+    }
+  }, [username]);
+  // --- MODIFICATION END ---
+
+  const handleFollowToggle = () => {
+    const newFollowingState = !isFollowing;
+    setIsFollowing(newFollowingState);
+    setFollowerCount(currentCount => newFollowingState ? currentCount + 1 : currentCount - 1);
+    // In a real app, you would make an API call here.
+  };
+
+  const handleLike = (postId) => { /* ... */ };
+  const handleSave = (postId) => { /* ... */ };
 
   const handleUserClick = (navUsername) => {
     if (navUsername && username && navUsername.toLowerCase() !== username.toLowerCase()) {
@@ -97,7 +110,6 @@ export default function UserProfile() {
           onRemoveFollower={() => {}}
           onUnfollow={() => {}}
           onUserClick={handleUserClick}
-          // --- MODIFICATION: Pass isOwnProfile={false} to hide buttons ---
           isOwnProfile={false}
         />
       )}
@@ -120,19 +132,22 @@ export default function UserProfile() {
                 <div className="flex justify-center sm:justify-start gap-4 sm:gap-8 text-sm mb-4">
                   <div><span className="font-bold text-md sm:text-lg">{user.posts}</span>{" "}<span className="text-muted-foreground">posts</span></div>
                   
-                  {/* --- MODIFICATION START: Darkened hover effect --- */}
                   <button onClick={() => setModalType("followers")} className="hover:bg-muted/80 px-2 py-1 rounded-md transition-colors cursor-pointer">
-                    <span className="font-bold text-md sm:text-lg">{user.followers.length}</span>{" "}
+                    <span className="font-bold text-md sm:text-lg">{followerCount}</span>{" "}
                     <span className="text-muted-foreground hover:text-foreground transition-colors">followers</span>
                   </button>
                   <button onClick={() => setModalType("following")} className="hover:bg-muted/80 px-2 py-1 rounded-md transition-colors cursor-pointer">
                     <span className="font-bold text-md sm:text-lg">{user.following.length}</span>{" "}
                     <span className="text-muted-foreground hover:text-foreground transition-colors">following</span>
                   </button>
-                  {/* --- MODIFICATION END --- */}
-
                 </div>
-                <Button className="gradient-primary text-white">Follow</Button>
+                <Button
+                  onClick={handleFollowToggle}
+                  variant={isFollowing ? "outline" : "default"}
+                  className={!isFollowing ? "gradient-primary text-white" : ""}
+                >
+                  {isFollowing ? "Unfollow" : "Follow"}
+                </Button>
               </div>
             </div>
 
