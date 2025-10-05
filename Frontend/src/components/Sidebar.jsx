@@ -1,18 +1,19 @@
 import { Home, Search, MessageCircle, Bell, PlusCircle, User } from "lucide-react";
 import { NavLink } from "react-router-dom";
+// Export navItems so other components can reuse icons/paths
+export const navItems = [
+  { icon: Home, label: "HOME", path: "/home" },
+  { icon: Search, label: "SEARCH", path: "/search" },
+  { icon: MessageCircle, label: "MESSAGES", path: "/messages" },
+  { icon: Bell, label: "ACTIVITY", path: "/activity", hasNew: true },
+  { icon: PlusCircle, label: "CREATE", path: "/create" },
+  { icon: User, label: "PROFILE", path: "/profile" },
+];
 import { Badge } from "@/components/ui/badge";
 import logo from "@/assets/logo.png";
 import whiteTextLogo from "@/assets/white_text_logo.png";
 
 export const Sidebar = () => {
-  const navItems = [
-    { icon: Home, label: "HOME", path: "/home" },
-    { icon: Search, label: "SEARCH", path: "/search" },
-    { icon: MessageCircle, label: "MESSAGES", path: "/messages" },
-    { icon: Bell, label: "ACTIVITY", path: "/activity", hasNew: true },
-    { icon: PlusCircle, label: "CREATE", path: "/create" },
-    { icon: User, label: "PROFILE", path: "/profile" },
-  ];
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-20 bg-green-500 p-4 transition-all duration-300 md:w-64 md:p-6 gradient-sidebar flex flex-col shadow-xl z-50">

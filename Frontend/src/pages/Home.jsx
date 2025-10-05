@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { navItems } from "@/components/Sidebar";
 import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -160,10 +161,32 @@ export default function Home() {
               </h2>
             </div>
             <div className="flex gap-4 overflow-x-auto pb-2">
+               <div>
+                {(() => {
+                  const createItem = navItems.find((n) => n.label === "CREATE");
+                  const Icon = createItem ? createItem.icon : null;
+                  const to = createItem ? `${createItem.path}?tab=moment` : "/create?tab=moment";
+                  return (
+                    <Link to={to} onClick={(e) => e.stopPropagation()} className="flex flex-col items-center gap-2">
+                      <div className={`w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-emerald-500 via-emerald-400 to-lime-400 cursor-pointer transition-shadow hover:shadow-xl flex items-center justify-center`}>
+                        <div className="w-14 h-14 rounded-full bg-white/75 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                          <button
+                            aria-label="Create Story"
+                            className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md"
+                          >
+                            {Icon ? <Icon className="w-4 h-4" /> : <span className="text-white font-extrabold">+</span>}
+                          </button>
+                        </div>
+                      </div>
+                      <span className="text-xs text-muted-foreground">Your Story</span>
+                    </Link>
+                  );
+                })()}
+               </div>
               {moments.map((moment, index) => (
                 <div key={moment.id} className="flex flex-col items-center gap-2 flex-shrink-0">
                   <div
-                    className={`w-16 h-16 rounded-full ${moment.color} p-1 cursor-pointer hover:scale-105 transition-transform`}
+                    className={`w-16 h-16 rounded-full ${moment.color} p-1 cursor-pointer transition-shadow hover:shadow-xl`}
                     onClick={() => handleMomentClick(index)}
                   >
                     <div className="w-full h-full rounded-full bg-background" />

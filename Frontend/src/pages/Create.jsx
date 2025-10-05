@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import { Image, Film, Smile } from "lucide-react";
 export default function Create() {
   const [caption, setCaption] = useState("");
   const [hashtags, setHashtags] = useState("");
-  const [momentColor, setMomentColor] = useState("bg-gradient-to-br from-sky-400 via-green-400 to-yellow-400");
+  // momentColor removed — preview will use a neutral placeholder
   const { toast } = useToast();
 
   const handlePost = () => {
@@ -39,14 +40,10 @@ export default function Create() {
     });
   };
 
-  const momentColors = [
-    "bg-gradient-to-br from-sky-400 via-green-400 to-yellow-400",
-    "bg-gradient-to-br from-blue-400 via-emerald-400 to-amber-400",
-    "bg-gradient-to-br from-cyan-400 via-lime-400 to-gold-400",
-    "bg-gradient-to-br from-indigo-400 via-green-400 to-yellow-400",
-    "bg-gradient-to-br from-blue-500 via-green-500 to-yellow-500",
-    "bg-gradient-to-br from-teal-400 via-green-400 to-yellow-400",
-  ];
+
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const tabParam = params.get("tab") || "post";
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -56,7 +53,7 @@ export default function Create() {
       <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
       {/* --- MODIFICATION END --- */}
         <div className="max-w-2xl mx-auto">
-          <Tabs defaultValue="post" className="w-full">
+          <Tabs defaultValue={tabParam} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="post">Create Post</TabsTrigger>
               <TabsTrigger value="moment">Create Moment</TabsTrigger>
@@ -160,25 +157,11 @@ export default function Create() {
                     </p>
                   </div>
 
-                  <div>
-                    <label className="text-sm font-semibold mb-2 block">Background Theme</label>
-                    <div className="grid grid-cols-6 gap-3">
-                      {momentColors.map((color, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setMomentColor(color)}
-                          className={`w-full aspect-square rounded-xl ${color} transition-all hover:scale-110 ${
-                            momentColor === color ? "ring-4 ring-primary ring-offset-2" : ""
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
+                  {/* Preview (neutral placeholder) */}
                   <div>
                     <label className="text-sm font-semibold mb-2 block">Preview</label>
                     <div className="flex justify-center">
-                      <div className={`w-48 aspect-[9/16] ${momentColor} rounded-2xl flex items-center justify-center shadow-lg`}>
+                      <div className={`w-48 aspect-[9/16] bg-gradient-to-br from-emerald-400 via-green-500 to-lime-400 rounded-2xl flex items-center justify-center shadow-lg`}>
                         <span className="text-white text-4xl font-bold opacity-30">MOMENT</span>
                       </div>
                     </div>
