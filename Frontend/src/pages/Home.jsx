@@ -4,8 +4,9 @@ import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, ThumbsUp } from "lucide-react"; // Import ThumbsUp
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, ThumbsUp } from "lucide-react";
 import { StoryViewer } from "@/components/StoryViewer";
+import { CommentSection } from "@/components/CommentSection";
 
 const moments = [
   { id: 1, username: "User1", color: "bg-gradient-to-br from-sky-400 via-green-400 to-yellow-400", timestamp: "2h ago", views: 45, isOwn: true },
@@ -38,11 +39,56 @@ const posts = [
   },
 ];
 
+// Initial sample comments data
+const initialComments = {
+  1: [
+    {
+      id: 1,
+      username: "nature_lover",
+      avatar: "",
+      text: "Wow! This looks absolutely stunning! Which trail is this?",
+      timestamp: "1h ago"
+    },
+    {
+      id: 2,
+      username: "hiker_pro",
+      avatar: "",
+      text: "Amazing view! I need to add this to my bucket list 🏔️",
+      timestamp: "45m ago"
+    }
+  ],
+  2: [
+    {
+      id: 1,
+      username: "pasta_enthusiast",
+      avatar: "",
+      text: "This looks delicious! What type of pasta did you use?",
+      timestamp: "3h ago"
+    },
+    {
+      id: 2,
+      username: "chef_mike",
+      avatar: "",
+      text: "Perfect al dente! Share the recipe please! 😍",
+      timestamp: "2h ago"
+    },
+    {
+      id: 3,
+      username: "foodie_sam",
+      avatar: "",
+      text: "I'm drooling! Making this tonight for sure",
+      timestamp: "1h ago"
+    }
+  ]
+};
+
 export default function Home() {
   const navigate = useNavigate();
   const [likedPosts, setLikedPosts] = useState([]);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
+  const [openCommentPostId, setOpenCommentPostId] = useState(null);
+  const [commentsData, setCommentsData] = useState(initialComments);
 
   const handleLike = (postId) => {
     setLikedPosts((prev) =>
@@ -61,6 +107,29 @@ export default function Home() {
 
   const handleHashtagClick = (tag) => {
     navigate(`/hashtag/${tag.slice(1)}`);
+  };
+
+  const toggleComments = (postId) => {
+    setOpenCommentPostId(openCommentPostId === postId ? null : postId);
+  };
+
+  const handleAddComment = (postId, commentText) => {
+    const newComment = {
+      id: Date.now(),
+      username: "current_user", // In real app, this would be the logged-in user
+      avatar: "",
+      text: commentText,
+      timestamp: "Just now"
+    };
+
+    setCommentsData((prev) => ({
+      ...prev,
+      [postId]: [...(prev[postId] || []), newComment]
+    }));
+  };
+
+  const getCommentCount = (postId) => {
+    return commentsData[postId]?.length || 0;
   };
 
   return (
@@ -105,40 +174,37 @@ export default function Home() {
 
             {posts.map((post) => (
               <Card key={post.id} className="overflow-hidden shadow-lg border">
-                {/* Header (Username & Avatar) - Styled to match image */}
-                <div className="flex items-center justify-between p-3 bg-yellow-300/80 border-b border-yellow-400"> {/* Added background and border */}
+                {/* Header (Username & Avatar) */}
+                <div className="flex items-center justify-between p-3 bg-yellow-300/80 border-b border-yellow-400">
                   <div 
                     className="flex items-center gap-3 cursor-pointer hover:opacity-80 min-w-0"
                     onClick={() => handleUserClick(post.username)}
                   >
-                    <Avatar className="w-8 h-8"> {/* Smaller avatar */}
+                    <Avatar className="w-8 h-8">
                       <AvatarImage src={post.avatar} />
-                      <AvatarFallback className="bg-blue-500 text-white"> {/* Blue icon color */}
-                        {/* You can use a specific icon here if desired, e.g., <User /> */}
+                      <AvatarFallback className="bg-blue-500 text-white">
                         {post.username[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <p className="font-semibold truncate text-blue-800">{post.username}</p> {/* Blue text */}
-                      {/* Removed time here as per image */}
+                      <p className="font-semibold truncate text-blue-800">{post.username}</p>
                     </div>
                   </div>
-                  {/* Removed MoreHorizontal button as per image */}
                 </div>
 
                 {/* Media Section */}
-                <div className="bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 aspect-square flex items-center justify-center border-b"> {/* Added border-b */}
+                <div className="bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 aspect-square flex items-center justify-center border-b">
                   <span className="text-6xl font-bold text-muted-foreground/20">MEDIA</span>
                 </div>
 
-                {/* New layout for Caption, Actions, Hashtags */}
-                <div className="p-4 space-y-3 bg-gray-100"> {/* Gray background for this section */}
+                {/* Caption, Actions, Hashtags */}
+                <div className="p-4 space-y-3 bg-gray-100">
                   {/* Caption and Actions */}
                   <div className="flex items-center justify-between">
-                    <p className="text-sm break-words flex-1 pr-4"> {/* Caption on left, actions on right */}
+                    <p className="text-sm break-words flex-1 pr-4">
                       {post.caption}
                     </p>
-                    <div className="flex items-center gap-3 text-gray-600 flex-shrink-0"> {/* Action buttons */}
+                    <div className="flex items-center gap-3 text-gray-600 flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -147,8 +213,18 @@ export default function Home() {
                       >
                         <ThumbsUp className={`w-5 h-5 ${likedPosts.includes(post.id) ? "fill-current" : ""}`} />
                       </Button>
-                      <Button variant="ghost" size="icon" className="w-auto h-auto p-1 hover:text-blue-500">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={`w-auto h-auto p-1 relative ${openCommentPostId === post.id ? "text-blue-500" : "hover:text-blue-500"}`}
+                        onClick={() => toggleComments(post.id)}
+                      >
                         <MessageCircle className="w-5 h-5" />
+                        {getCommentCount(post.id) > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                            {getCommentCount(post.id)}
+                          </span>
+                        )}
                       </Button>
                       <Button variant="ghost" size="icon" className="w-auto h-auto p-1 hover:text-blue-500">
                         <Bookmark className="w-5 h-5" />
@@ -157,7 +233,7 @@ export default function Home() {
                   </div>
 
                   {/* Hashtags */}
-                  <div className="border-t pt-3 mt-3"> {/* Separator line and top padding */}
+                  <div className="border-t pt-3 mt-3">
                     <p className="font-semibold text-sm mb-1 text-gray-700">#Hashtags:</p>
                     <div className="flex flex-wrap gap-2">
                       {post.hashtags.map((tag, idx) => (
@@ -172,6 +248,17 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
+
+                {/* Comment Section - Inline */}
+                {openCommentPostId === post.id && (
+                  <CommentSection
+                    postId={post.id}
+                    comments={commentsData[post.id] || []}
+                    onAddComment={handleAddComment}
+                    onClose={() => setOpenCommentPostId(null)}
+                    onUserClick={(username) => navigate(`/user/${username}`)}
+                  />
+                )}
               </Card>
             ))}
           </div>

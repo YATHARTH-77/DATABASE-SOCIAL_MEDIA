@@ -36,7 +36,7 @@ export const Sidebar = () => {
       </div>
       {/* MODIFICATION END */}
 
-      <nav className="flex-1 space-y-2">
+      <nav className="flex-1 space-y-2 -mt-12">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
