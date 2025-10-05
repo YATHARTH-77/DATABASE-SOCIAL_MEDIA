@@ -87,7 +87,12 @@ export default function ChatWindow() {
               <Button variant="ghost" size="icon" onClick={() => navigate("/messages")} className="text-white hover:bg-white/20">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
-              <Avatar className="w-8 h-8 md:w-10 md:h-10" onClick={() => navigate(`/user/${encodeURIComponent(conversation.name)}`)} title={`View ${conversation.name}`} aria-label={`Open profile for ${conversation.name}`}>
+              <Avatar
+                className="w-8 h-8 md:w-10 md:h-10 cursor-pointer transition-transform duration-150 transform hover:-translate-y-0.5 hover:shadow-md hover:ring-1 hover:ring-primary/10"
+                onClick={() => navigate(`/user/${encodeURIComponent(conversation.name)}`)}
+                title={`View ${conversation.name}`}
+                aria-label={`Open profile for ${conversation.name}`}
+              >
                 <AvatarFallback className="bg-white text-primary">
                   {conversation.name[0]}
                 </AvatarFallback>

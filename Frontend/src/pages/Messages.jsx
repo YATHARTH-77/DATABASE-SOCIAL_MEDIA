@@ -62,7 +62,7 @@ export default function Messages() {
 
       <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
         <div className="max-w-2xl mx-auto">
-          <Card className="shadow-lg">
+          <Card className="shadow-lg rounded-lg">
             <div className="p-4 border-b gradient-primary flex items-center gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white" />
@@ -132,9 +132,9 @@ export default function Messages() {
                 filteredConversations.map((conversation) => (
                   <div
                     key={conversation.id}
-                    className={`p-4 flex items-center gap-4 hover:bg-muted/50 cursor-pointer transition-colors ${
-                      conversation.unread ? "bg-primary/5" : ""
-                    }`}
+                    className={`p-4 flex items-center gap-4 cursor-pointer transition-transform duration-150 transform rounded-lg ${
+                        conversation.unread ? "bg-primary/5" : ""
+                      } hover:-translate-y-0.5 hover:shadow-md hover:ring-1 hover:ring-primary/10`}
                     onClick={() => navigate(`/messages/${conversation.id}`)}
                   >
                     <Avatar
