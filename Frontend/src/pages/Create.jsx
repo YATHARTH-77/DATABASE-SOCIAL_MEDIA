@@ -52,7 +52,9 @@ export default function Create() {
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       
-      <main className="ml-48 flex-1 p-8">
+      {/* --- MODIFICATION START --- */}
+      <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
+      {/* --- MODIFICATION END --- */}
         <div className="max-w-2xl mx-auto">
           <Tabs defaultValue="post" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -67,7 +69,9 @@ export default function Create() {
                 </div>
 
                 <div className="p-6 space-y-6">
-                  <div className="border-2 border-dashed border-border rounded-xl p-12 text-center hover:border-primary transition-colors cursor-pointer bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
+                  {/* --- MODIFICATION START --- */}
+                  <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary transition-colors cursor-pointer bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 md:p-12">
+                  {/* --- MODIFICATION END --- */}
                     <div className="flex justify-center gap-4 mb-4">
                       <Image className="w-12 h-12 text-muted-foreground" />
                       <Film className="w-12 h-12 text-muted-foreground" />
@@ -109,7 +113,9 @@ export default function Create() {
                     />
                   </div>
 
-                  <div className="flex gap-3 pt-4">
+                  {/* --- MODIFICATION START --- */}
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  {/* --- MODIFICATION END --- */}
                     <Button
                       onClick={handlePost}
                       className="flex-1 gradient-primary text-white font-semibold rounded-xl h-12"
@@ -138,7 +144,9 @@ export default function Create() {
                 </div>
 
                 <div className="p-6 space-y-6">
-                  <div className="border-2 border-dashed border-border rounded-xl p-12 text-center hover:border-primary transition-colors cursor-pointer bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
+                  {/* --- MODIFICATION START --- */}
+                  <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary transition-colors cursor-pointer bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 md:p-12">
+                  {/* --- MODIFICATION END --- */}
                     <div className="flex justify-center gap-4 mb-4">
                       <Image className="w-12 h-12 text-muted-foreground" />
                       <Film className="w-12 h-12 text-muted-foreground" />
@@ -153,6 +161,21 @@ export default function Create() {
                   </div>
 
                   <div>
+                    <label className="text-sm font-semibold mb-2 block">Background Theme</label>
+                    <div className="grid grid-cols-6 gap-3">
+                      {momentColors.map((color, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setMomentColor(color)}
+                          className={`w-full aspect-square rounded-xl ${color} transition-all hover:scale-110 ${
+                            momentColor === color ? "ring-4 ring-primary ring-offset-2" : ""
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
                     <label className="text-sm font-semibold mb-2 block">Preview</label>
                     <div className="flex justify-center">
                       <div className={`w-48 aspect-[9/16] ${momentColor} rounded-2xl flex items-center justify-center shadow-lg`}>
@@ -160,8 +183,10 @@ export default function Create() {
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex gap-3 pt-4">
+                  
+                  {/* --- MODIFICATION START --- */}
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  {/* --- MODIFICATION END --- */}
                     <Button
                       onClick={handleMomentCreate}
                       className="flex-1 gradient-primary text-white font-semibold rounded-xl h-12"
