@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, MoveHorizontal as MoreHorizontal, Loader as Loader2 } from "lucide-react";
 import { StoryViewer } from "@/components/StoryViewer";
 import { postsService } from "@/services/postsService";
 import { storiesService } from "@/services/storiesService";
