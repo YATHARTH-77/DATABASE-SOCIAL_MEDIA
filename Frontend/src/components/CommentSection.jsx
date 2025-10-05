@@ -29,9 +29,9 @@ export function CommentSection({ postId, comments, onAddComment, onClose, onUser
   };
 
   return (
-    <div className="bg-white border-t border-gray-300 animate-in slide-in-from-top duration-300">
+    <div className="bg-white border-t border-gray-300 animate-in slide-in-from-top duration-300 flex flex-col max-h-[500px]">
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gray-50">
+      <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
         <h3 className="font-semibold text-gray-800">Comments ({comments.length})</h3>
         <Button
           variant="ghost"
@@ -44,7 +44,7 @@ export function CommentSection({ postId, comments, onAddComment, onClose, onUser
       </div>
 
       {/* Comments List */}
-      <div className="max-h-96 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {comments.length === 0 ? (
           <p className="text-center text-gray-500 py-8">No comments yet. Be the first to comment!</p>
         ) : (
@@ -79,7 +79,7 @@ export function CommentSection({ postId, comments, onAddComment, onClose, onUser
       </div>
 
       {/* Comment Input */}
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
+      <div className="p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
         <div className="flex gap-2">
           <Avatar className="w-8 h-8 flex-shrink-0">
             <AvatarFallback className="bg-blue-500 text-white text-xs">
