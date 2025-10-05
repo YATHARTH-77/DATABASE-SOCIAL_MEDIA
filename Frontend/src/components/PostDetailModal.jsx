@@ -41,8 +41,6 @@ export function PostDetailModal({ post, onClose, onUserClick }) {
               </Button>
               {showMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-2 z-10">
-                  <button className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm">Report</button>
-                  <button className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm">Share</button>
                   <button className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-red-600">Delete</button>
                 </div>
               )}
