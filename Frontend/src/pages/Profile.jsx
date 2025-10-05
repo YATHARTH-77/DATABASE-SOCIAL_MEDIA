@@ -7,27 +7,73 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Grid, Bookmark } from "lucide-react";
 import { PostDetailModal } from "@/components/PostDetailModal";
+import { FollowerModal } from "@/components/FollowerModal";
 
-const profileStats = [ { label: "posts", value: 42 }, { label: "followers", value: 1234 }, { label: "following", value: 567 }];
+const profileStats = [
+  { label: "posts", value: 42 },
+  { label: "followers", value: 1234 },
+  { label: "following", value: 567 }
+];
 
-const mockPosts = Array.from({ length: 6 }, (_, i) => ({ id: i + 1, username: "Username", avatar: "", caption: `This is post number ${i + 1}. Here's some amazing content I wanted to share with everyone! 🎨✨`, hashtags: ["#post", "#creative", "#inspiration"], gradient: `from-${["sky", "blue", "cyan", "indigo", "teal", "blue"][i]}-400 via-${["green", "emerald", "lime", "green", "green", "emerald"][i]}-400 to-${["yellow", "amber", "gold", "yellow", "yellow", "amber"][i]}-400`, comments: [ { id: 1, username: "friend_user", avatar: "", text: "Amazing post! Love this content 🔥", timestamp: "2h ago" } ] }));
+const mockPosts = Array.from({ length: 6 }, (_, i) => ({
+  id: i + 1,
+  username: "Username",
+  avatar: "",
+  caption: `This is post number ${i + 1}. Here's some amazing content I wanted to share with everyone! 🎨✨`,
+  hashtags: ["#post", "#creative", "#inspiration"],
+  gradient: `from-${["sky", "blue", "cyan", "indigo", "teal", "blue"][i]}-400 via-${["green", "emerald", "lime", "green", "green", "emerald"][i]}-400 to-${["yellow", "amber", "gold", "yellow", "yellow", "amber"][i]}-400`,
+  comments: [
+    {
+      id: 1,
+      username: "friend_user",
+      avatar: "",
+      text: "Amazing post! Love this content 🔥",
+      timestamp: "2h ago"
+    }
+  ]
+}));
+
+const mockFollowers = Array.from({ length: 15 }, (_, i) => ({
+  id: i + 1,
+  username: `follower_${i + 1}`,
+  displayName: `Follower ${i + 1}`,
+  avatar: ""
+}));
+
+const mockFollowing = Array.from({ length: 12 }, (_, i) => ({
+  id: i + 1,
+  username: `following_${i + 1}`,
+  displayName: `Following ${i + 1}`,
+  avatar: ""
+}));
 
 export default function Profile() {
   const navigate = useNavigate();
   const [selectedPost, setSelectedPost] = useState(null);
+  const [modalType, setModalType] = useState(null);
+  const [followers, setFollowers] = useState(mockFollowers);
+  const [following, setFollowing] = useState(mockFollowing);
 
   const handleUserClick = (username) => {
     navigate(`/user/${username}`);
   };
 
+  const handleRemoveFollower = (userId) => {
+    setFollowers(prev => prev.filter(user => user.id !== userId));
+  };
+
+  const handleUnfollow = (userId) => {
+    setFollowing(prev => prev.filter(user => user.id !== userId));
+  };
+
   useEffect(() => {
-    if (selectedPost) {
+    if (selectedPost || modalType) {
       document.body.style.overflow = 'hidden';
     }
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [selectedPost]);
+  }, [selectedPost, modalType]);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -38,9 +84,20 @@ export default function Profile() {
           post={selectedPost}
           onClose={() => setSelectedPost(null)}
           onUserClick={handleUserClick}
-          // --- MODIFICATION START: Specify the "owner" variant ---
           variant="owner"
-          // --- MODIFICATION END ---
+        />
+      )}
+
+      {modalType && (
+        <FollowerModal
+          type={modalType}
+          users={modalType === "followers" ? followers : following}
+          onClose={() => setModalType(null)}
+          onRemoveFollower={handleRemoveFollower}
+          onUnfollow={handleUnfollow}
+          onUserClick={handleUserClick}
+          // --- MODIFICATION: Added the isOwnProfile prop ---
+          isOwnProfile={true}
         />
       )}
       
@@ -55,12 +112,25 @@ export default function Profile() {
                 <div className="text-center sm:text-left">
                   <h1 className="text-2xl sm:text-3xl font-bold mb-2">Username</h1>
                   <div className="flex justify-center sm:justify-start gap-4 sm:gap-8 text-sm">
-                    {profileStats.map((stat) => (
-                      <div key={stat.label}>
-                        <span className="font-bold text-md sm:text-lg">{stat.value}</span>{" "}
-                        <span className="text-muted-foreground">{stat.label}</span>
-                      </div>
-                    ))}
+                    <div>
+                      <span className="font-bold text-md sm:text-lg">{profileStats[0].value}</span>{" "}
+                      <span className="text-muted-foreground">{profileStats[0].label}</span>
+                    </div>
+                    {/* --- MODIFICATION: Corrected hover:bg-muted/500 to hover:bg-muted/50 --- */}
+                    <button 
+                      onClick={() => setModalType("followers")}
+                      className="hover:bg-muted/50 px-2 py-1 rounded-md transition-colors cursor-pointer"
+                    >
+                      <span className="font-bold text-md sm:text-lg">{followers.length}</span>{" "}
+                      <span className="text-muted-foreground hover:text-foreground transition-colors">followers</span>
+                    </button>
+                    <button 
+                      onClick={() => setModalType("following")}
+                      className="hover:bg-muted/50 px-2 py-1 rounded-md transition-colors cursor-pointer"
+                    >
+                      <span className="font-bold text-md sm:text-lg">{following.length}</span>{" "}
+                      <span className="text-muted-foreground hover:text-foreground transition-colors">following</span>
+                    </button>
                   </div>
                 </div>
               </div>

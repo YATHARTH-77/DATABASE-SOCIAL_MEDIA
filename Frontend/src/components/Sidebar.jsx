@@ -24,7 +24,7 @@ export const Sidebar = () => {
         <img 
           src={logo} 
           alt="ConnectIT Logo" 
-          className="w-12 h-12 rounded-2xl md:w-28 md:h-28" 
+          className="w-12 h-12 rounded-2xl  md:w-28 md:h-28" 
         />
         
         {/* MODIFICATION START: Increased size (h-16) and added a negative margin (-ml-4) on medium screens */}
@@ -37,7 +37,7 @@ export const Sidebar = () => {
       </div>
       {/* MODIFICATION END */}
 
-      <nav className="flex-1 space-y-2 -mt-12">
+      <nav className="flex-1 space-y-2 -mt-5">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
