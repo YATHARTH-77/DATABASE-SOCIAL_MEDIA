@@ -7,11 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, ThumbsUp } from "lucide-react";
 import { StoryViewer } from "@/components/StoryViewer";
+import beachImg from "@/assets/b.jpg";
+import beachVideo from "@/assets/bv.mp4";
 import { CommentSection } from "@/components/CommentSection";
 
-const moments = [
-  { id: 1, username: "User1", color: "bg-gradient-to-br from-sky-400 via-green-400 to-yellow-400", timestamp: "2h ago", views: 45, isOwn: true },
-  { id: 2, username: "User2", color: "bg-gradient-to-br from-blue-400 via-emerald-400 to-amber-400", timestamp: "5h ago", views: 23 },
+const initialMoments = [
+  // Example photo moment (beach image from Unsplash). duration is in ms.
+  { id: 1, username: "User1", color: "bg-gradient-to-br from-sky-400 via-green-400 to-yellow-400", timestamp: "2h ago", views: 45, isOwn: true, type: "photo", src: beachImg, duration: 5000 },
+  // Local beach video moment (assets/bv.mp4)
+  { id: 2, username: "User2", color: "bg-gradient-to-br from-blue-400 via-emerald-400 to-amber-400", timestamp: "5h ago", views: 23, type: "video", src: beachVideo },
   { id: 3, username: "User3", color: "bg-gradient-to-br from-cyan-400 via-lime-400 to-gold-400", timestamp: "8h ago", views: 67 },
   { id: 4, username: "User4", color: "bg-gradient-to-br from-indigo-400 via-green-400 to-yellow-400", timestamp: "12h ago", views: 89 },
   { id: 5, username: "User5", color: "bg-gradient-to-br from-blue-500 via-green-500 to-yellow-500", timestamp: "1d ago", views: 34 },
@@ -85,6 +89,7 @@ const initialComments = {
 
 export default function Home() {
   const navigate = useNavigate();
+  const [moments, setMoments] = useState(initialMoments);
   const [likedPosts, setLikedPosts] = useState([]);
   const [savedPosts, setSavedPosts] = useState([]);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
@@ -105,6 +110,10 @@ export default function Home() {
   };
 
   const handleMomentClick = (index) => {
+    // increment view count for this moment
+    setMoments((prev) =>
+      prev.map((m, i) => (i === index ? { ...m, views: (m.views || 0) + 1 } : m))
+    );
     setSelectedStoryIndex(index);
     setShowStoryViewer(true);
   };
@@ -191,7 +200,9 @@ export default function Home() {
                   >
                     <div className="w-full h-full rounded-full bg-background" />
                   </div>
-                  <span className="text-xs text-muted-foreground">{moment.username}</span>
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs text-muted-foreground">{moment.username}</span>
+                  </div>
                 </div>
               ))}
             </div>
