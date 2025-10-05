@@ -15,7 +15,7 @@ export default function Register() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleRegister = (e) => {
+  const handleRegister = async(e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       toast({
@@ -25,12 +25,23 @@ export default function Register() {
       });
       return;
     }
-    if (username && email && password) {
+    else{
+      const res = await fetch("http://localhost:5000/api/register", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ username,email,password }),
+         });
+      const data = await res.json();
+      if (data.success){
       toast({
         title: "Welcome to ConnectIT!",
         description: "Your account has been created successfully.",
       });
       navigate("/home");
+    }
+    else{
+      alert(data.message);
+    }
     }
   };
 

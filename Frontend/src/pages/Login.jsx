@@ -13,14 +13,24 @@ export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (username && password) {
+      const res = await fetch("http://localhost:5000/api/login", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ username, password }),
+         });
+
+     const data = await res.json();
+      if (data.success){
       toast({
         title: "Welcome back!",
         description: "You've successfully logged in.",
       });
       navigate("/home");
+    }
+    else{
+      alert(data.message);
     }
   };
 
