@@ -85,6 +85,7 @@ const initialComments = {
 export default function Home() {
   const navigate = useNavigate();
   const [likedPosts, setLikedPosts] = useState([]);
+  const [savedPosts, setSavedPosts] = useState([]);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
   const [openCommentPostId, setOpenCommentPostId] = useState(null);
@@ -92,6 +93,12 @@ export default function Home() {
 
   const handleLike = (postId) => {
     setLikedPosts((prev) =>
+      prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]
+    );
+  };
+
+  const handleSave = (postId) => {
+    setSavedPosts((prev) =>
       prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]
     );
   };
@@ -226,8 +233,13 @@ export default function Home() {
                           </span>
                         )}
                       </Button>
-                      <Button variant="ghost" size="icon" className="w-auto h-auto p-1 hover:text-blue-500">
-                        <Bookmark className="w-5 h-5" />
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleSave(post.id)}
+                        className={`w-auto h-auto p-1 ${savedPosts.includes(post.id) ? "text-blue-500" : "hover:text-blue-500"}`}
+                      >
+                        <Bookmark className={`w-5 h-5 ${savedPosts.includes(post.id) ? "fill-current" : ""}`} />
                       </Button>
                     </div>
                   </div>
