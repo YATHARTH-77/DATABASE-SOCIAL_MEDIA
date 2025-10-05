@@ -19,33 +19,25 @@ const mockPosts = Array.from({ length: 6 }, (_, i) => ({
   id: i + 1,
   username: "Username",
   avatar: "",
-  caption: `This is post number ${i + 1}. Here's some amazing content I wanted to share with everyone! 🎨✨`,
+  caption: `This is my post number ${i + 1}.`,
   hashtags: ["#post", "#creative", "#inspiration"],
-  gradient: `from-${["sky", "blue", "cyan", "indigo", "teal", "blue"][i]}-400 via-${["green", "emerald", "lime", "green", "green", "emerald"][i]}-400 to-${["yellow", "amber", "gold", "yellow", "yellow", "amber"][i]}-400`,
-  comments: [
-    {
-      id: 1,
-      username: "friend_user",
-      avatar: "",
-      text: "Amazing post! Love this content 🔥",
-      timestamp: "2h ago"
-    }
-  ]
+  gradient: `from-${["sky", "blue", "cyan", "indigo", "teal", "blue"][i]}-400 via-green-400 to-yellow-400`,
+  comments: [{ id: 1, username: "friend_user", avatar: "", text: "Amazing post!", timestamp: "2h ago" }]
 }));
 
-const mockFollowers = Array.from({ length: 15 }, (_, i) => ({
-  id: i + 1,
-  username: `follower_${i + 1}`,
-  displayName: `Follower ${i + 1}`,
-  avatar: ""
+const initialSavedPosts = Array.from({ length: 4 }, (_, i) => ({
+  id: i + 100,
+  username: `user_${i}`,
+  avatar: "",
+  caption: `This is a saved post about travel, number ${i + 1}.`,
+  hashtags: ["#travel", "#saved", "#bucketlist"],
+  gradient: `from-${["pink", "purple", "fuchsia", "violet"][i]}-400 via-orange-500 to-red-500`,
+  comments: [{ id: 1, username: "another_user", avatar: "", text: "Great find!", timestamp: "3d ago" }],
+  timestamp: `${i + 2}d ago`
 }));
 
-const mockFollowing = Array.from({ length: 12 }, (_, i) => ({
-  id: i + 1,
-  username: `following_${i + 1}`,
-  displayName: `Following ${i + 1}`,
-  avatar: ""
-}));
+const mockFollowers = Array.from({ length: 15 }, (_, i) => ({ id: i + 1, username: `follower_${i + 1}`, displayName: `Follower ${i + 1}`, avatar: "" }));
+const mockFollowing = Array.from({ length: 12 }, (_, i) => ({ id: i + 1, username: `following_${i + 1}`, displayName: `Following ${i + 1}`, avatar: "" }));
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -53,6 +45,15 @@ export default function Profile() {
   const [modalType, setModalType] = useState(null);
   const [followers, setFollowers] = useState(mockFollowers);
   const [following, setFollowing] = useState(mockFollowing);
+  
+  // --- MODIFICATION START: Manage saved posts in state and add un-save handler ---
+  const [savedPosts, setSavedPosts] = useState(initialSavedPosts);
+
+  const handleUnsavePost = (postId) => {
+    setSavedPosts(prev => prev.filter(post => post.id !== postId));
+    setSelectedPost(null); // Also close the modal after un-saving
+  };
+  // --- MODIFICATION END ---
 
   const handleUserClick = (username) => {
     navigate(`/user/${username}`);
@@ -85,6 +86,10 @@ export default function Profile() {
           onClose={() => setSelectedPost(null)}
           onUserClick={handleUserClick}
           variant="owner"
+          // --- MODIFICATION: Pass new props for the saved post view ---
+          isSavedPostView={selectedPost.isSavedView}
+          isSaved={true} // The button is always ticked in this view
+          onSave={() => handleUnsavePost(selectedPost.id)}
         />
       )}
 
@@ -96,7 +101,6 @@ export default function Profile() {
           onRemoveFollower={handleRemoveFollower}
           onUnfollow={handleUnfollow}
           onUserClick={handleUserClick}
-          // --- MODIFICATION: Added the isOwnProfile prop ---
           isOwnProfile={true}
         />
       )}
@@ -116,7 +120,6 @@ export default function Profile() {
                       <span className="font-bold text-md sm:text-lg">{profileStats[0].value}</span>{" "}
                       <span className="text-muted-foreground">{profileStats[0].label}</span>
                     </div>
-                    {/* --- MODIFICATION: Corrected hover:bg-muted/500 to hover:bg-muted/50 --- */}
                     <button 
                       onClick={() => setModalType("followers")}
                       className="hover:bg-muted/50 px-2 py-1 rounded-md transition-colors cursor-pointer"
@@ -175,10 +178,25 @@ export default function Profile() {
               </TabsContent>
 
               <TabsContent value="saved" className="mt-0">
-                <div className="text-center py-12 text-muted-foreground">
-                  <Bookmark className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No saved posts yet</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+                  {savedPosts.map((post) => (
+                    <div
+                      key={post.id}
+                      onClick={() => setSelectedPost({ ...post, isSavedView: true })}
+                      className={`aspect-square bg-gradient-to-br ${post.gradient} rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-md relative group`}
+                    >
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                        <p className="text-white text-sm font-semibold">View Post</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+                {savedPosts.length === 0 && (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Bookmark className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No saved posts yet</p>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </Card>
