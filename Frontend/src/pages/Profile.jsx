@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Grid, Bookmark } from "lucide-react";
+import { Settings, Grid, Bookmark, UserPen, LogOut, Trash2 } from "lucide-react";
 import { PostDetailModal } from "@/components/PostDetailModal";
 import { FollowerModal } from "@/components/FollowerModal";
 
@@ -45,6 +45,8 @@ export default function Profile() {
   const [modalType, setModalType] = useState(null);
   const [followers, setFollowers] = useState(mockFollowers);
   const [following, setFollowing] = useState(mockFollowing);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const settingsMenuRef = useRef(null);
   
   // --- MODIFICATION START: Manage saved posts in state and add un-save handler ---
   const [savedPosts, setSavedPosts] = useState(initialSavedPosts);
@@ -66,6 +68,42 @@ export default function Profile() {
   const handleUnfollow = (userId) => {
     setFollowing(prev => prev.filter(user => user.id !== userId));
   };
+
+  const handleEditProfile = () => {
+    setShowSettingsMenu(false);
+    // Navigate to edit profile page or open edit modal
+    console.log("Edit Profile clicked");
+  };
+
+  const handleLogout = () => {
+    setShowSettingsMenu(false);
+    // Add logout logic here
+    console.log("Logout clicked");
+    // navigate("/login");
+  };
+
+  const handleDeleteAccount = () => {
+    setShowSettingsMenu(false);
+    // Add delete account confirmation and logic here
+    console.log("Delete Account clicked");
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
+        setShowSettingsMenu(false);
+      }
+    };
+
+    if (showSettingsMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSettingsMenu]);
 
   useEffect(() => {
     if (selectedPost || modalType) {
@@ -137,9 +175,41 @@ export default function Profile() {
                   </div>
                 </div>
               </div>
-              <Button variant="ghost" size="icon">
-                <Settings className="w-5 h-5" />
-              </Button>
+              <div className="relative" ref={settingsMenuRef}>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                >
+                  <Settings className="w-5 h-5" />
+                </Button>
+                
+                {showSettingsMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-background border border-border rounded-lg shadow-lg py-1 z-50">
+                    <button
+                      onClick={handleEditProfile}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 transition-colors"
+                    >
+                      <UserPen className="w-4 h-4" />
+                      Edit Profile
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                    <button
+                      onClick={handleDeleteAccount}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 text-red-600 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete Account
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="mb-6 p-4 bg-muted/30 rounded-xl">

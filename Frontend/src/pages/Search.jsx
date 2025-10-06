@@ -106,9 +106,9 @@ export default function Search() {
                       <p className="text-sm text-muted-foreground">{user.followers} followers</p>
                     </div>
                   </div>
-                  <button className="px-4 py-1.5 gradient-primary text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity flex-shrink-0">
+                  {/* <button className="px-4 py-1.5 gradient-primary text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity flex-shrink-0">
                     Follow
-                  </button>
+                  </button> */}
                 </div>
               ))
               ) : (

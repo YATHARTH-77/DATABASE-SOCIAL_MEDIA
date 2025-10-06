@@ -165,7 +165,7 @@ export default function Home() {
         <div className="max-w-2xl mx-auto space-y-6">
           <div className="bg-secondary/10 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-secondary/20">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold gradient-primary px-4 py-1 rounded-full inline-block">
+              <h2 className="text-white font-bold gradient-primary px-4 py-1 rounded-full inline-block">
                 MOMENTS
               </h2>
             </div>
@@ -209,7 +209,7 @@ export default function Home() {
           </div>
 
           <div className="space-y-6">
-            <h2 className="text-lg font-bold gradient-primary px-4 py-1 rounded-full inline-block">
+            <h2 className="text-white font-bold gradient-primary px-4 py-1 rounded-full inline-block">
               FEED
             </h2>
 
