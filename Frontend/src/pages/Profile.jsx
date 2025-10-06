@@ -79,7 +79,7 @@ export default function Profile() {
     setShowSettingsMenu(false);
     // Add logout logic here
     console.log("Logout clicked");
-    // navigate("/login");
+    navigate("/login");
   };
 
   const handleDeleteAccount = () => {
