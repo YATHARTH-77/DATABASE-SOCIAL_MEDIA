@@ -28,8 +28,8 @@ app.use('/uploads', express.static(uploadsDir));
 const db = mysql.createPool({ // Using a Pool is better for handling multiple connections
   host: 'localhost',
   user: 'root',
-  password: 'Sam@1234', // Your password
-  database: 'social_media_db',
+  password: 'ym@123@ym', // Your password
+  database: 'S_M',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -547,6 +547,115 @@ app.get("/api/hashtag/:hashtag_text", async (req, res) => {
   } catch (err) {
     console.error("Get Posts by Hashtag DB error:", err);
     res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+app.get("/api/activity/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const [activities] = await db.query(
+      `
+      (
+        -- New Likes
+        SELECT 'like' AS type, pl.post_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, pl.created_at, pl.user_id AS actor_id
+        FROM POST_LIKE pl
+        JOIN POST p ON pl.post_id = p.post_id
+        JOIN USER u ON pl.user_id = u.user_id
+        WHERE p.user_id = ? AND pl.user_id != ?
+      )
+      UNION
+      (
+        -- New Comments
+        SELECT 'comment' AS type, c.post_id, c.comment_text AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, c.created_at, c.user_id AS actor_id
+        FROM COMMENT c
+        JOIN POST p ON c.post_id = p.post_id
+        JOIN USER u ON c.user_id = u.user_id
+        WHERE p.user_id = ? AND c.user_id != ?
+      )
+      UNION
+      (
+        -- New Followers
+        SELECT 'follow' AS type, NULL AS post_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, f.created_at, f.follower_id AS actor_id
+        FROM FOLLOW f
+        JOIN USER u ON f.follower_id = u.user_id
+        WHERE f.following_id = ?
+      )
+      UNION
+      (
+        -- New Saves
+        SELECT 'save' AS type, sp.post_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, sp.created_at, sp.user_id AS actor_id
+        FROM Saved_posts sp
+        JOIN POST p ON sp.post_id = p.post_id
+        JOIN USER u ON sp.user_id = u.user_id
+        WHERE p.user_id = ? AND sp.user_id != ?
+      )
+      ORDER BY created_at DESC
+      LIMIT 50
+    `,
+      // --- THIS IS THE FIX ---
+      // The array now has 7 items to match the 7 '?' placeholders
+      [userId, userId, userId, userId, userId, userId, userId]
+    );
+    res.json({ success: true, activities });
+  } catch (err) {
+    console.error("Get Activity DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- 2. FOLLOW/UNFOLLOW A USER (TOGGLE) ---
+app.post("/api/follow", async (req, res) => {
+  const { followerId, followingId } = req.body; // followerId = logged-in user
+
+  if (!followerId || !followingId) {
+    return res.status(400).json({ success: false, message: "followerId and followingId are required" });
+  }
+
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    const [existing] = await conn.query(
+      "SELECT * FROM FOLLOW WHERE follower_id = ? AND following_id = ?",
+      [followerId, followingId]
+    );
+
+    if (existing.length > 0) {
+      // --- UNFOLLOW ---
+      await conn.query(
+        "DELETE FROM FOLLOW WHERE follower_id = ? AND following_id = ?",
+        [followerId, followingId]
+      );
+      await conn.query(
+        "UPDATE USER SET follower_count = follower_count - 1 WHERE user_id = ?",
+        [followingId]
+      );
+      
+      await conn.commit();
+      res.json({ success: true, action: 'unfollowed' });
+
+    } else {
+      // --- FOLLOW ---
+      await conn.query(
+        "INSERT INTO FOLLOW (follower_id, following_id) VALUES (?, ?)",
+        [followerId, followingId]
+      );
+      await conn.query(
+        "UPDATE USER SET follower_count = follower_count + 1 WHERE user_id = ?",
+        [followingId]
+      );
+
+      await conn.commit();
+      res.json({ success: true, action: 'followed' });
+    }
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error("Follow/Unfollow DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  } finally {
+    if (conn) conn.release();
   }
 });
 

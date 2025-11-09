@@ -1,5 +1,5 @@
-create database Social_media_db;
-use  social_media_db;
+create database S_M;
+use S_M;
 CREATE TABLE USER (
     user_id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(255) NOT NULL UNIQUE,
