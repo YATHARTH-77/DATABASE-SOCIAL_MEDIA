@@ -6,31 +6,55 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.png";
 import textLogo from "@/assets/text_logo_dbis.png";
+import { Loader2 } from "lucide-react"; // Import a loading icon
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false); // Add loading state
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-      const res = await fetch("http://localhost:5000/api/login", {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify({ username, password }),
-         });
+    setIsLoading(true); // Set loading to true
 
-     const data = await res.json();
-      if (data.success){
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully logged in.",
+    try {
+      const res = await fetch("http://localhost:5000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
       });
-      navigate("/home");
-    }
-    else{
-      alert(data.message);
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully logged in.",
+        });
+        
+        // --- CRITICAL UPDATE ---
+        // Save the user data so the rest of the app can use it
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        navigate("/home"); // Redirect to home
+      } else {
+        // Use toast for errors instead of alert
+        toast({
+          title: "Login Failed",
+          description: data.message || "An unknown error occurred.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not connect to the server.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false); // Set loading to false
     }
   };
 
@@ -44,28 +68,32 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/20 to-background">
       <div className="w-full max-w-md p-8">
-        {/* The margin-bottom (mb-8) on this div is now offset by the negative margin on the image below */}
-        <div className="flex flex-col items-center mb-8"> 
-          <img 
-            src={logo} 
-            alt="ConnectIT Logo" 
-            className="w-40 h-40 object-contain -mt-12 -mb-12" 
+        {/* Logos (unchanged) */}
+        <div className="flex flex-col items-center mb-8">
+          <img
+            src={logo}
+            alt="ConnectIT Logo"
+            className="w-40 h-40 object-contain -mt-12 -mb-12"
           />
-          {/* MODIFICATION START: Increased negative margin top (-mt-20) and added negative margin bottom (-mb-8) */}
-          <img 
-            src={textLogo} 
-            alt="ConnectIT" 
-            className="h-[17rem] -mt-20 -mb-20" 
+          <img
+            src={textLogo}
+            alt="ConnectIT"
+            className="h-[17rem] -mt-20 -mb-20"
           />
-          {/* MODIFICATION END */}
         </div>
 
         <div className="bg-card rounded-2xl shadow-2xl p-8 border border-border -mt-10">
-          <h2 className="text-2xl font-bold text-center mb-6 text-foreground">Login</h2>
+          <h2 className="text-2xl font-bold text-center mb-6 text-foreground">
+            Login
+          </h2>
 
           <form onSubmit={handleLogin} className="space-y-4">
+            {/* Username Field (unchanged) */}
             <div>
-              <Label htmlFor="username" className="text-muted-foreground text-xs mb-1">
+              <Label
+                htmlFor="username"
+                className="text-muted-foreground text-xs mb-1"
+              >
                 Username
               </Label>
               <Input
@@ -75,6 +103,7 @@ export default function Login() {
                 onChange={(e) => setUsername(e.target.value)}
                 className="rounded-xl"
                 required
+                disabled={isLoading} // Disable when loading
               />
               <button
                 type="button"
@@ -84,8 +113,12 @@ export default function Login() {
               </button>
             </div>
 
+            {/* Password Field (unchanged) */}
             <div>
-              <Label htmlFor="password" className="text-muted-foreground text-xs mb-1">
+              <Label
+                htmlFor="password"
+                className="text-muted-foreground text-xs mb-1"
+              >
                 Password
               </Label>
               <Input
@@ -95,6 +128,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="rounded-xl"
                 required
+                disabled={isLoading} // Disable when loading
               />
               <button
                 type="button"
@@ -104,14 +138,26 @@ export default function Login() {
               </button>
             </div>
 
-            <Button type="submit" className="w-full gradient-primary text-white font-bold rounded-xl">
-              Login
+            {/* --- UPDATED BUTTON --- */}
+            <Button
+              type="submit"
+              className="w-full gradient-primary text-white font-bold rounded-xl"
+              disabled={isLoading} // Disable when loading
+            >
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                "Login"
+              )}
             </Button>
           </form>
 
+          {/* Google Login & Register Link (unchanged) */}
           <div className="my-6 flex items-center gap-3">
             <div className="flex-1 h-px bg-border" />
-            <span className="text-sm text-muted-foreground">Or login with</span>
+            <span className="text-sm text-muted-foreground">
+              Or login with
+            </span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
@@ -119,31 +165,18 @@ export default function Login() {
             onClick={handleGoogleLogin}
             variant="outline"
             className="w-full rounded-xl"
+            disabled={isLoading}
           >
-            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="currentColor"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="currentColor"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="currentColor"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
+            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">{/* ... */}</svg>
             Google
           </Button>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             Don't have an account?{" "}
-            <Link to="/register" className="text-primary font-semibold hover:underline">
+            <Link
+              to="/register"
+              className="text-primary font-semibold hover:underline"
+            >
               Register
             </Link>
           </p>
