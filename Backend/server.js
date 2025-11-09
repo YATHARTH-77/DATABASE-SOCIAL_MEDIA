@@ -203,7 +203,7 @@ app.post("/api/posts/create", uploadPost.array('media', 10), async (req, res) =>
         await conn.query(insertHashtagsSql, tagList);
 
         // B. Get the IDs of all the hashtags
-        const [hashtagRows] = await conn.query(
+        const [hashtagRows] = await db.query(
           `SELECT hashtag_id FROM HASHTAG WHERE hashtag_text IN (?)`,
           [tagList]
         );
@@ -273,6 +273,282 @@ app.post("/api/stories/create", uploadStory.single('media'), async (req, res) =>
   }
 });
 
+// =================================================================
+//                 SEARCH ROUTES
+// =================================================================
+// (These routes are unchanged)
+
+// 1. GET Trending Hashtags
+app.get("/api/search/trending-hashtags", async (req, res) => {
+  try {
+    const sql = `
+      SELECT h.hashtag_text, COUNT(ph.hashtag_id) as post_count
+      FROM POST_HASHTAG ph
+      JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id
+      GROUP BY ph.hashtag_id, h.hashtag_text
+      ORDER BY post_count DESC
+      LIMIT 10
+    `;
+    const [hashtags] = await db.query(sql);
+    res.json({ success: true, hashtags });
+  } catch (err) {
+    console.error("Get Trending DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// 2. GET Suggested Users (Top followers)
+app.get("/api/search/suggested-users", async (req, res) => {
+  try {
+    const sql = `
+      SELECT user_id, username, full_name, profile_pic_url, follower_count
+      FROM USER
+      WHERE is_deleted = FALSE
+      ORDER BY follower_count DESC
+      LIMIT 5
+    `;
+    const [users] = await db.query(sql);
+    res.json({ success: true, users });
+  } catch (err) {
+    console.error("Get Suggested Users DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// 3. GET User Search (by query)
+app.get("/api/search/users", async (req, res) => {
+  const { q } = req.query; // Search query from ?q=...
+
+  if (!q) {
+    return res.status(400).json({ success: false, message: "Query 'q' is required." });
+  }
+  
+  try {
+    const query = `%${q}%`; // Add wildcards for LIKE search
+    const sql = `
+      SELECT user_id, username, full_name, profile_pic_url, follower_count
+      FROM USER
+      WHERE (username LIKE ? OR full_name LIKE ?) AND is_deleted = FALSE
+    `;
+    const [users] = await db.query(sql, [query, query]);
+    res.json({ success: true, users });
+  } catch (err) {
+    console.error("User Search DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// =================================================================
+//                 *** NEW HASHTAG ROUTES ***
+// =================================================================
+
+// 1. GET Posts by Hashtag
+app.get("/api/hashtag/:hashtag_text", async (req, res) => {
+  const { hashtag_text } = req.params;
+
+  try {
+    // 1. Find the hashtag_id
+    const [hashtagRow] = await db.query(
+      "SELECT hashtag_id FROM HASHTAG WHERE hashtag_text = ?",
+      [hashtag_text]
+    );
+
+    if (hashtagRow.length === 0) {
+      return res.json({ success: true, posts: [] }); // No posts for this tag
+    }
+    const hashtagId = hashtagRow[0].hashtag_id;
+
+    // 2. Find all posts associated with this hashtag_id
+    const [posts] = await db.query(
+      `SELECT 
+        p.post_id, p.user_id, p.caption, p.created_at,
+        u.username, u.profile_pic_url,
+        (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count,
+        (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count
+      FROM POST p
+      JOIN USER u ON p.user_id = u.user_id
+      JOIN POST_HASHTAG ph ON p.post_id = ph.post_id
+      WHERE ph.hashtag_id = ?
+      ORDER BY p.created_at DESC`,
+      [hashtagId]
+    );
+
+    // 3. Get media for each post (similar to the home page feed)
+    const postsWithDetails = await Promise.all(posts.map(async (post) => {
+      const [media] = await db.query(
+        "SELECT media_url, media_type FROM MEDIA WHERE post_id = ?", 
+        [post.post_id]
+      );
+      
+      // We already know the one hashtag, but we'll fetch them all for consistency
+      const [hashtags] = await db.query(
+        `SELECT h.hashtag_text FROM POST_HASHTAG ph 
+         JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id 
+         WHERE ph.post_id = ?`,
+        [post.post_id]
+      );
+
+      return {
+        ...post,
+        media,
+        hashtags: hashtags.map(h => h.hashtag_text),
+      };
+    }));
+
+    res.json({ success: true, posts: postsWithDetails });
+
+  } catch (err) {
+    console.error("Get Posts by Hashtag DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+app.post("/api/posts/like", async (req, res) => {
+  const { userId, postId } = req.body;
+  if (!userId || !postId) {
+    return res.status(400).json({ success: false, message: "userId and postId are required" });
+  }
+  try {
+    const [existing] = await db.query("SELECT * FROM POST_LIKE WHERE user_id = ? AND post_id = ?", [userId, postId]);
+    if (existing.length > 0) {
+      await db.query("DELETE FROM POST_LIKE WHERE user_id = ? AND post_id = ?", [userId, postId]);
+      res.json({ success: true, action: 'unliked' });
+    } else {
+      await db.query("INSERT INTO POST_LIKE (user_id, post_id) VALUES (?, ?)", [userId, postId]);
+      res.json({ success: true, action: 'liked' });
+    }
+  } catch (err) { res.status(500).json({ success: false, message: "Internal server error" }); }
+});
+
+// --- SAVE/UNSAVE A POST (TOGGLE) ---
+app.post("/api/posts/save", async (req, res) => {
+  const { userId, postId } = req.body;
+  if (!userId || !postId) {
+    return res.status(400).json({ success: false, message: "userId and postId are required" });
+  }
+  try {
+    const [existing] = await db.query("SELECT * FROM Saved_posts WHERE user_id = ? AND post_id = ?", [userId, postId]);
+    if (existing.length > 0) {
+      await db.query("DELETE FROM Saved_posts WHERE user_id = ? AND post_id = ?", [userId, postId]);
+      res.json({ success: true, action: 'unsaved' });
+    } else {
+      await db.query("INSERT INTO Saved_posts (user_id, post_id) VALUES (?, ?)", [userId, postId]);
+      res.json({ success: true, action: 'saved' });
+    }
+  } catch (err) { res.status(500).json({ success: false, message: "Internal server error" }); }
+});
+
+// --- GET COMMENTS FOR A POST ---
+app.get("/api/posts/:postId/comments", async (req, res) => {
+  const { postId } = req.params;
+  try {
+    const [comments] = await db.query(
+      `SELECT c.comment_id, c.comment_text, c.created_at, u.user_id, u.username, u.profile_pic_url
+       FROM COMMENT c
+       JOIN USER u ON c.user_id = u.user_id
+       WHERE c.post_id = ?
+       ORDER BY c.created_at ASC`,
+      [postId]
+    );
+    res.json({ success: true, comments });
+  } catch (err) { res.status(500).json({ success: false, message: "Internal server error" }); }
+});
+
+// --- ADD A COMMENT TO A POST ---
+app.post("/api/posts/:postId/comments", async (req, res) => {
+  const { postId } = req.params;
+  const { userId, commentText } = req.body;
+  if (!userId || !commentText) {
+    return res.status(400).json({ success: false, message: "userId and commentText are required" });
+  }
+  try {
+    const [result] = await db.query("INSERT INTO COMMENT (user_id, post_id, comment_text) VALUES (?, ?, ?)", [userId, postId, commentText]);
+    const newCommentId = result.insertId;
+    const [newComment] = await db.query(
+      `SELECT c.comment_id, c.comment_text, c.created_at, u.user_id, u.username, u.profile_pic_url
+       FROM COMMENT c
+       JOIN USER u ON c.user_id = u.user_id
+       WHERE c.comment_id = ?`,
+      [newCommentId]
+    );
+    res.status(201).json({ success: true, comment: newComment[0] });
+  } catch (err) { res.status(500).json({ success: false, message: "Internal server error" }); }
+});
+
+
+// =================================================================
+//                 HASHTAG ROUTES
+// =================================================================
+
+// --- GET Posts by Hashtag (UPDATED) ---
+app.get("/api/hashtag/:hashtag_text", async (req, res) => {
+  const { hashtag_text } = req.params;
+  const { userId } = req.query; // Get userId from query string
+
+  if (!userId) {
+    return res.status(400).json({ success: false, message: "userId query parameter is required" });
+  }
+
+  try {
+    // 1. Find the hashtag_id
+    const [hashtagRow] = await db.query(
+      "SELECT hashtag_id FROM HASHTAG WHERE hashtag_text = ?",
+      [hashtag_text]
+    );
+
+    if (hashtagRow.length === 0) {
+      return res.json({ success: true, posts: [] }); // No posts for this tag
+    }
+    const hashtagId = hashtagRow[0].hashtag_id;
+
+    // 2. Find all posts associated with this hashtag_id (NOW INCLUDES LIKE/SAVE STATUS)
+    const [posts] = await db.query(
+      `SELECT 
+        p.post_id, p.user_id, p.caption, p.created_at,
+        u.username, u.profile_pic_url,
+        (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count,
+        (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count,
+        EXISTS(SELECT 1 FROM POST_LIKE pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_has_liked,
+        EXISTS(SELECT 1 FROM Saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?) AS user_has_saved
+      FROM POST p
+      JOIN USER u ON p.user_id = u.user_id
+      JOIN POST_HASHTAG ph ON p.post_id = ph.post_id
+      WHERE ph.hashtag_id = ?
+      ORDER BY p.created_at DESC`,
+      [userId, userId, hashtagId] // Pass userId twice
+    );
+
+    // 3. Get media for each post
+    const postsWithDetails = await Promise.all(posts.map(async (post) => {
+      const [media] = await db.query(
+        "SELECT media_url, media_type FROM MEDIA WHERE post_id = ?", 
+        [post.post_id]
+      );
+      
+      const [hashtags] = await db.query(
+        `SELECT h.hashtag_text FROM POST_HASHTAG ph 
+         JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id 
+         WHERE ph.post_id = ?`,
+        [post.post_id]
+      );
+
+      return {
+        ...post,
+        media,
+        hashtags: hashtags.map(h => h.hashtag_text),
+        // Convert 0/1 from EXISTS to boolean
+        user_has_liked: !!post.user_has_liked,
+        user_has_saved: !!post.user_has_saved
+      };
+    }));
+
+    res.json({ success: true, posts: postsWithDetails });
+
+  } catch (err) {
+    console.error("Get Posts by Hashtag DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
 
 // =================================================================
 //                 START SERVER
