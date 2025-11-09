@@ -1,119 +1,204 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { navItems } from "@/components/Sidebar";
 import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, ThumbsUp } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, ThumbsUp, Loader2 } from "lucide-react";
 import { StoryViewer } from "@/components/StoryViewer";
-import beachImg from "@/assets/b.jpg";
-import beachVideo from "@/assets/bv.mp4";
 import { CommentSection } from "@/components/CommentSection";
 
-const initialMoments = [
-  // Example photo moment (beach image from Unsplash). duration is in ms.
-  { id: 1, username: "User1", color: "bg-gradient-to-br from-sky-400 via-green-400 to-yellow-400", timestamp: "2h ago", views: 45, isOwn: true, type: "photo", src: beachImg, duration: 5000 },
-  // Local beach video moment (assets/bv.mp4)
-  { id: 2, username: "User2", color: "bg-gradient-to-br from-blue-400 via-emerald-400 to-amber-400", timestamp: "5h ago", views: 23, type: "video", src: beachVideo },
-  { id: 3, username: "User3", color: "bg-gradient-to-br from-cyan-400 via-lime-400 to-gold-400", timestamp: "8h ago", views: 67 },
-  { id: 4, username: "User4", color: "bg-gradient-to-br from-indigo-400 via-green-400 to-yellow-400", timestamp: "12h ago", views: 89 },
-  { id: 5, username: "User5", color: "bg-gradient-to-br from-blue-500 via-green-500 to-yellow-500", timestamp: "1d ago", views: 34 },
-];
+// --- Base URL for our API ---
+const API_URL = "http://localhost:5000";
 
-const posts = [
-  {
-    id: 1,
-    username: "adventurer_with_a_very_long_name",
-    avatar: "",
-    time: "2h ago",
-    caption: "Just discovered this amazing trail! Nature never disappoints 🌲✨ What an absolutelystunningviewfromthetop!kvbhjvhjvjhvhjvhhvhhhh\nygygygiugiug\niugiu",
-    hashtags: ["#nature", "#hiking", "#adventure"],
-    likes: 234,
-    comments: 18,
-  },
-  {
-    id: 2,
-    username: "foodie",
-    avatar: "",
-    time: "5h ago",
-    caption: "Homemade pasta perfection 🍝 Recipe in comments!",
-    hashtags: ["#cooking", "#homemade", "#foodporn"],
-    likes: 567,
-    comments: 42,
-  },
-];
+// --- Helper: Format timestamp (e.g., "5m ago") ---
+function formatTimeAgo(dateString) {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-// Initial sample comments data
-const initialComments = {
-  1: [
-    {
-      id: 1,
-      username: "nature_lover",
-      avatar: "",
-      text: "Wow! This looks absolutely stunning! Which trail is this?",
-      timestamp: "1h ago"
-    },
-    {
-      id: 2,
-      username: "hiker_pro",
-      avatar: "",
-      text: "Amazing view! I need to add this to my bucket list 🏔️",
-      timestamp: "45m ago"
-    }
-  ],
-  2: [
-    {
-      id: 1,
-      username: "pasta_enthusiast",
-      avatar: "",
-      text: "This looks delicious! What type of pasta did you use?",
-      timestamp: "3h ago"
-    },
-    {
-      id: 2,
-      username: "chef_mike",
-      avatar: "",
-      text: "Perfect al dente! Share the recipe please! 😍",
-      timestamp: "2h ago"
-    },
-    {
-      id: 3,
-      username: "foodie_sam",
-      avatar: "",
-      text: "I'm drooling! Making this tonight for sure",
-      timestamp: "1h ago"
-    }
-  ]
-};
+  let interval = seconds / 31536000; // years
+  if (interval > 1) return Math.floor(interval) + "y ago";
+  interval = seconds / 2592000; // months
+  if (interval > 1) return Math.floor(interval) + "mo ago";
+  interval = seconds / 86400; // days
+  if (interval > 1) return Math.floor(interval) + "d ago";
+  interval = seconds / 3600; // hours
+  if (interval > 1) return Math.floor(interval) + "h ago";
+  interval = seconds / 60; // minutes
+  if (interval > 1) return Math.floor(interval) + "m ago";
+  return "Just now";
+}
 
 export default function Home() {
   const navigate = useNavigate();
-  const [moments, setMoments] = useState(initialMoments);
+
+  // --- Dynamic State ---
+  const [user, setUser] = useState(null);
+  const [moments, setMoments] = useState([]);
+  const [posts, setPosts] = useState([]);
   const [likedPosts, setLikedPosts] = useState([]);
   const [savedPosts, setSavedPosts] = useState([]);
+  const [openCommentPostId, setOpenCommentPostId] = useState(null);
+  const [commentsData, setCommentsData] = useState({});
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
-  const [openCommentPostId, setOpenCommentPostId] = useState(null);
-  const [commentsData, setCommentsData] = useState(initialComments);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handleLike = (postId) => {
-    setLikedPosts((prev) =>
-      prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]
-    );
+  // --- 1. Get Logged-in User ---
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    } else {
+      navigate("/login"); // Not logged in, redirect
+    }
+  }, [navigate]);
+
+  // --- 2. Fetch Feed Data (Moments & Posts) on Load ---
+  useEffect(() => {
+    if (!user) return; // Don't fetch if user isn't loaded yet
+
+    const fetchFeedData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // --- Fetch Moments ---
+        const momentsRes = await fetch(`${API_URL}/api/feed/stories?userId=${user.id}`);
+        const momentsData = await momentsRes.json();
+        if (momentsData.success) {
+          // Map server data to frontend StoryViewer structure
+          setMoments(momentsData.stories.map(s => ({
+            id: s.story_id,
+            username: s.username,
+            avatar: s.profile_pic_url,
+            src: `${API_URL}${s.media_url}`,
+            type: s.media_url.endsWith('.mp4') ? 'video' : 'photo',
+            timestamp: s.created_at,
+          })));
+        }
+
+        // --- Fetch Posts ---
+        const postsRes = await fetch(`${API_URL}/api/feed/posts?userId=${user.id}`);
+        const postsData = await postsRes.json();
+        
+        if (postsData.success) {
+          setPosts(postsData.posts);
+          // Initialize liked/saved state from the fetched data
+          setLikedPosts(postsData.posts.filter(p => p.user_has_liked).map(p => p.post_id));
+          setSavedPosts(postsData.posts.filter(p => p.user_has_saved).map(p => p.post_id));
+        } else {
+          throw new Error(postsData.message);
+        }
+        
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeedData();
+  }, [user]); // Re-run when user is available
+
+  // --- 3. API-Driven Action Handlers ---
+
+  const handleLike = async (postId) => {
+    if (!user) return;
+    const isLiked = likedPosts.includes(postId);
+
+    // Optimistic UI Update
+    setLikedPosts(prev => isLiked ? prev.filter(id => id !== postId) : [...prev, postId]);
+    setPosts(prevPosts => prevPosts.map(p => 
+      p.post_id === postId 
+        ? { ...p, like_count: isLiked ? p.like_count - 1 : p.like_count + 1 }
+        : p
+    ));
+
+    // API Call
+    try {
+      await fetch(`${API_URL}/api/posts/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, postId }),
+      });
+    } catch (err) {
+      console.error("Failed to like post:", err);
+      // Revert on error
+      setLikedPosts(prev => isLiked ? [...prev, postId] : prev.filter(id => id !== postId));
+       setPosts(prevPosts => prevPosts.map(p => 
+        p.post_id === postId 
+          ? { ...p, like_count: isLiked ? p.like_count + 1 : p.like_count - 1 }
+          : p
+      ));
+    }
   };
 
-  const handleSave = (postId) => {
-    setSavedPosts((prev) =>
-      prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]
+  const handleSave = async (postId) => {
+    if (!user) return;
+    // Optimistic UI Update
+    setSavedPosts(prev =>
+      prev.includes(postId) ? prev.filter(id => id !== postId) : [...prev, postId]
     );
+    // API Call
+    try {
+      await fetch(`${API_URL}/api/posts/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, postId }),
+      });
+    } catch (err) {
+      console.error("Failed to save post:", err);
+      // Revert on error
+      setSavedPosts(prev =>
+        prev.includes(postId) ? prev.filter(id => id !== postId) : [...prev, postId]
+      );
+    }
+  };
+  
+  const fetchComments = async (postId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/posts/${postId}/comments`);
+      const data = await res.json();
+      if (data.success) {
+        setCommentsData(prev => ({ ...prev, [postId]: data.comments }));
+      }
+    } catch (err) { console.error("Failed to fetch comments:", err); }
+  };
+
+  const toggleComments = (postId) => {
+    const newOpenId = openCommentPostId === postId ? null : postId;
+    setOpenCommentPostId(newOpenId);
+    if (newOpenId && !commentsData[postId]) {
+      fetchComments(postId);
+    }
+  };
+
+  const handleAddComment = async (postId, commentText) => {
+    if (!user) return;
+    try {
+      const res = await fetch(`${API_URL}/api/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, commentText }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCommentsData(prev => ({
+          ...prev,
+          [postId]: [...(prev[postId] || []), data.comment]
+        }));
+        setPosts(prevPosts => prevPosts.map(p =>
+          p.post_id === postId ? { ...p, comment_count: p.comment_count + 1 } : p
+        ));
+      }
+    } catch (err) { console.error("Failed to add comment:", err); }
   };
 
   const handleMomentClick = (index) => {
-    // increment view count for this moment
-    setMoments((prev) =>
-      prev.map((m, i) => (i === index ? { ...m, views: (m.views || 0) + 1 } : m))
-    );
     setSelectedStoryIndex(index);
     setShowStoryViewer(true);
   };
@@ -123,31 +208,35 @@ export default function Home() {
   };
 
   const handleHashtagClick = (tag) => {
-    navigate(`/hashtag/${tag.slice(1)}`);
+    navigate(`/hashtag/${tag}`); // Tag already comes without '#' from server
   };
+  
+  // --- 4. Render Loading/Error/Content ---
 
-  const toggleComments = (postId) => {
-    setOpenCommentPostId(openCommentPostId === postId ? null : postId);
-  };
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <Sidebar />
+        <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 flex items-center justify-center">
+          <Loader2 className="w-12 h-12 text-primary animate-spin" />
+        </main>
+      </div>
+    );
+  }
 
-  const handleAddComment = (postId, commentText) => {
-    const newComment = {
-      id: Date.now(),
-      username: "current_user", // In real app, this would be the logged-in user
-      avatar: "",
-      text: commentText,
-      timestamp: "Just now"
-    };
-
-    setCommentsData((prev) => ({
-      ...prev,
-      [postId]: [...(prev[postId] || []), newComment]
-    }));
-  };
-
-  const getCommentCount = (postId) => {
-    return commentsData[postId]?.length || 0;
-  };
+  if (error) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <Sidebar />
+        <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 flex items-center justify-center">
+          <p className="text-red-500 text-center">
+            Error fetching feed: {error}<br/>
+            (Please make sure you have followed some users)
+          </p>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -163,14 +252,15 @@ export default function Home() {
       
       <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
         <div className="max-w-2xl mx-auto space-y-6">
+          
+          {/* --- MOMENTS --- */}
           <div className="bg-secondary/10 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-secondary/20">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-bold gradient-primary px-4 py-1 rounded-full inline-block">
-                MOMENTS
-              </h2>
-            </div>
+            <h2 className="text-white font-bold gradient-primary px-4 py-1 rounded-full inline-block mb-4">
+              MOMENTS
+            </h2>
             <div className="flex gap-4 overflow-x-auto pb-2">
-               <div>
+              {/* "Your Story" button (Unchanged) */}
+              <div>
                 {(() => {
                   const createItem = navItems.find((n) => n.label === "CREATE");
                   const Icon = createItem ? createItem.icon : null;
@@ -191,30 +281,43 @@ export default function Home() {
                     </Link>
                   );
                 })()}
-               </div>
+              </div>
+              
+              {/* DYNAMIC MOMENTS */}
               {moments.map((moment, index) => (
                 <div key={moment.id} className="flex flex-col items-center gap-2 flex-shrink-0">
                   <div
-                    className={`w-16 h-16 rounded-full ${moment.color} p-1 cursor-pointer transition-shadow hover:shadow-xl`}
+                    className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 via-emerald-400 to-amber-400 p-1 cursor-pointer"
                     onClick={() => handleMomentClick(index)}
                   >
-                    <div className="w-full h-full rounded-full bg-background" />
+                    <div className="w-full h-full rounded-full bg-background p-1">
+                      <Avatar className="w-full h-full">
+                        <AvatarImage src={moment.avatar ? `${API_URL}${moment.avatar}` : ''} />
+                        <AvatarFallback>{moment.username[0].toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-center">
-                    <span className="text-xs text-muted-foreground">{moment.username}</span>
-                  </div>
+                  <span className="text-xs text-muted-foreground">{moment.username}</span>
                 </div>
               ))}
             </div>
           </div>
 
+          {/* --- FEED --- */}
           <div className="space-y-6">
             <h2 className="text-white font-bold gradient-primary px-4 py-1 rounded-full inline-block">
               FEED
             </h2>
 
+            {posts.length === 0 && (
+              <Card className="p-10 text-center text-muted-foreground">
+                <p>Your feed is empty.</p>
+                <p className="text-sm">Follow some users to see their posts here!</p>
+              </Card>
+            )}
+
             {posts.map((post) => (
-              <Card key={post.id} className="overflow-hidden shadow-lg border">
+              <Card key={post.post_id} className="overflow-hidden shadow-lg border">
                 {/* Header (Username & Avatar) */}
                 <div className="flex items-center justify-between p-3 bg-yellow-300/80 border-b border-yellow-400">
                   <div 
@@ -222,7 +325,7 @@ export default function Home() {
                     onClick={() => handleUserClick(post.username)}
                   >
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={post.avatar} />
+                      <AvatarImage src={post.profile_pic_url ? `${API_URL}${post.profile_pic_url}` : ''} />
                       <AvatarFallback className="bg-blue-500 text-white">
                         {post.username[0].toUpperCase()}
                       </AvatarFallback>
@@ -233,53 +336,72 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Media Section */}
-                <div className="bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 aspect-square flex items-center justify-center border-b">
-                  <span className="text-6xl font-bold text-muted-foreground/20">MEDIA</span>
+                {/* --- DYNAMIC MEDIA --- */}
+                <div className="bg-black aspect-square flex items-center justify-center border-b">
+                  {post.media && post.media.length > 0 ? (
+                    post.media[0].media_type.startsWith('video') ? (
+                      <video 
+                        src={`${API_URL}${post.media[0].media_url}`} 
+                        controls 
+                        className="w-full h-full object-contain" 
+                      />
+                    ) : (
+                      <img 
+                        src={`${API_URL}${post.media[0].media_url}`} 
+                        alt="Post media" 
+                        className="w-full h-full object-cover" 
+                      />
+                    )
+                  ) : (
+                    <span className="text-6xl font-bold text-muted-foreground/20">MEDIA</span>
+                  )}
                 </div>
 
                 {/* Caption, Actions, Hashtags */}
                 <div className="p-4 space-y-3 bg-gray-100">
-                  {/* Caption and Actions */}
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm break-words flex-1 pr-4">
+                  <div className="flex items-start justify-between">
+                    <p className="text-sm break-words flex-1 pr-4 min-w-0">
+                      <span className="font-semibold cursor-pointer" onClick={() => handleUserClick(post.username)}>
+                        {post.username}
+                      </span>{" "}
                       {post.caption}
                     </p>
                     <div className="flex items-center gap-3 text-gray-600 flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleLike(post.id)}
-                        className={`w-auto h-auto p-1 ${likedPosts.includes(post.id) ? "text-blue-500" : "hover:text-blue-500"}`}
+                        onClick={() => handleLike(post.post_id)}
+                        className={`w-auto h-auto p-1 ${likedPosts.includes(post.post_id) ? "text-blue-500" : "hover:text-blue-500"}`}
                       >
-                        <ThumbsUp className={`w-5 h-5 ${likedPosts.includes(post.id) ? "fill-current" : ""}`} />
+                        <ThumbsUp className={`w-5 h-5 ${likedPosts.includes(post.post_id) ? "fill-current" : ""}`} />
+                        <span className="text-sm ml-1">{post.like_count}</span>
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className={`w-auto h-auto p-1 relative ${openCommentPostId === post.id ? "text-blue-500" : "hover:text-blue-500"}`}
-                        onClick={() => toggleComments(post.id)}
+                        className={`w-auto h-auto p-1 relative ${openCommentPostId === post.post_id ? "text-blue-500" : "hover:text-blue-500"}`}
+                        onClick={() => toggleComments(post.post_id)}
                       >
                         <MessageCircle className="w-5 h-5" />
-                        {getCommentCount(post.id) > 0 && (
+                        {post.comment_count > 0 && (
                           <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                            {getCommentCount(post.id)}
+                            {post.comment_count}
                           </span>
                         )}
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        onClick={() => handleSave(post.id)}
-                        className={`w-auto h-auto p-1 ${savedPosts.includes(post.id) ? "text-blue-500" : "hover:text-blue-500"}`}
+                        onClick={() => handleSave(post.post_id)}
+                        className={`w-auto h-auto p-1 ${savedPosts.includes(post.post_id) ? "text-blue-500" : "hover:text-blue-500"}`}
                       >
-                        <Bookmark className={`w-5 h-5 ${savedPosts.includes(post.id) ? "fill-current" : ""}`} />
+                        <Bookmark className={`w-5 h-5 ${savedPosts.includes(post.post_id) ? "fill-current" : ""}`} />
                       </Button>
                     </div>
                   </div>
 
                   {/* Hashtags */}
-                  <div className="border-t pt-3 mt-3">
+                  <div className="border-t pt-3">
                     <p className="font-semibold text-sm mb-1 text-gray-700">#Hashtags:</p>
                     <div className="flex flex-wrap gap-2">
                       {post.hashtags.map((tag, idx) => (
@@ -288,21 +410,23 @@ export default function Home() {
                           className="text-sm text-blue-600 hover:underline cursor-pointer"
                           onClick={() => handleHashtagClick(tag)}
                         >
-                          {tag}
+                          #{tag}
                         </span>
                       ))}
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground">{formatTimeAgo(post.created_at)}</p>
                 </div>
 
                 {/* Comment Section - Inline */}
-                {openCommentPostId === post.id && (
+                {openCommentPostId === post.post_id && (
                   <CommentSection
-                    postId={post.id}
-                    comments={commentsData[post.id] || []}
+                    postId={post.post_id}
+                    comments={commentsData[post.post_id] || []}
                     onAddComment={handleAddComment}
                     onClose={() => setOpenCommentPostId(null)}
                     onUserClick={(username) => navigate(`/user/${username}`)}
+                    currentUser={user}
                   />
                 )}
               </Card>

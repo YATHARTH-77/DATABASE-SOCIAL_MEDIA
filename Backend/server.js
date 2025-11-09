@@ -660,6 +660,90 @@ app.post("/api/follow", async (req, res) => {
 });
 
 // =================================================================
+//                 *** NEW HOME FEED ROUTES ***
+// =================================================================
+
+// --- 1. GET STORIES FOR THE FEED (FOLLOWING ONLY) ---
+app.get("/api/feed/stories", async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) {
+    return res.status(400).json({ success: false, message: "userId query parameter is required" });
+  }
+  
+  try {
+    const [stories] = await db.query(`
+      SELECT s.story_id, s.media_url, s.created_at, s.user_id, u.username, u.profile_pic_url
+      FROM STORY s
+      JOIN USER u ON s.user_id = u.user_id
+      JOIN FOLLOW f ON s.user_id = f.following_id
+      WHERE s.expires_at > NOW() AND f.follower_id = ?
+      ORDER BY s.created_at DESC
+    `, [userId]);
+    res.json({ success: true, stories });
+  } catch (err) {
+    console.error("Get Feed Stories DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- 2. GET POSTS FOR THE FEED (FOLLOWING ONLY) ---
+app.get("/api/feed/posts", async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) {
+    return res.status(400).json({ success: false, message: "userId query parameter is required" });
+  }
+
+  try {
+    // This query gets posts ONLY from users the logged-in user follows
+    const [posts] = await db.query(
+      `SELECT 
+        p.post_id, p.user_id, p.caption, p.created_at,
+        u.username, u.profile_pic_url,
+        (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count,
+        (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count,
+        EXISTS(SELECT 1 FROM POST_LIKE pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_has_liked,
+        EXISTS(SELECT 1 FROM Saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?) AS user_has_saved
+      FROM POST p
+      JOIN USER u ON p.user_id = u.user_id
+      JOIN FOLLOW f ON p.user_id = f.following_id
+      WHERE f.follower_id = ?
+      ORDER BY p.created_at DESC
+      LIMIT 20`,
+      [userId, userId, userId]
+    );
+
+    // Get media and hashtags for each post
+    const postsWithDetails = await Promise.all(posts.map(async (post) => {
+      const [media] = await db.query(
+        "SELECT media_url, media_type FROM MEDIA WHERE post_id = ?", 
+        [post.post_id]
+      );
+      
+      const [hashtags] = await db.query(
+        `SELECT h.hashtag_text FROM POST_HASHTAG ph 
+         JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id 
+         WHERE ph.post_id = ?`,
+        [post.post_id]
+      );
+
+      return {
+        ...post,
+        media,
+        hashtags: hashtags.map(h => h.hashtag_text),
+        user_has_liked: !!post.user_has_liked,
+        user_has_saved: !!post.user_has_saved
+      };
+    }));
+
+    res.json({ success: true, posts: postsWithDetails });
+
+  } catch (err) {
+    console.error("Get Feed Posts DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// =================================================================
 //                 START SERVER
 // =================================================================
 
