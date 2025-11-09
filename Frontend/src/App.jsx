@@ -14,7 +14,7 @@ import Create from "./pages/Create";
 import NotFound from "./pages/NotFound";
 import HashtagPosts from "./pages/HashtagPosts";
 import UserProfile from "./pages/UserProfile";
-import ChatWindow from "./pages/ChatWindow";
+import Conversation from "./pages/Conversation"; // <--- IMPORT THE NEW FILE
 
 const queryClient = new QueryClient();
 
@@ -31,7 +31,7 @@ const App = () => (
           <Route path="/home" element={<Home />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/messages" element={<Messages />} />
-          <Route path="/messages/:conversationId" element={<ChatWindow />} />
+          <Route path="/messages/:chatId" element={<Conversation />} /> {/* <--- ADD THIS LINE */}
           <Route path="/search" element={<Search />} />
           <Route path="/hashtag/:tag" element={<HashtagPosts />} />
           <Route path="/user/:username" element={<UserProfile />} />

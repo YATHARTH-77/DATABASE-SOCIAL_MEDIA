@@ -743,6 +743,159 @@ app.get("/api/feed/posts", async (req, res) => {
   }
 });
 
+// --- 1. GET ALL CONVERSATIONS FOR A USER ---
+app.get("/api/conversations", async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) {
+    return res.status(400).json({ success: false, message: "userId is required" });
+  }
+
+  try {
+    // This query finds all chats the user is in,
+    // then joins to find the *other* user in that chat.
+    const [conversations] = await db.query(
+      `
+      SELECT 
+        c.chat_id,
+        u.user_id AS other_user_id,
+        u.username AS name,
+        u.profile_pic_url,
+        (SELECT message_text FROM DIRECT_MESSAGE 
+         WHERE chat_id = c.chat_id ORDER BY created_at DESC LIMIT 1) AS lastMessage,
+        (SELECT created_at FROM DIRECT_MESSAGE 
+         WHERE chat_id = c.chat_id ORDER BY created_at DESC LIMIT 1) AS time
+      FROM CHAT c
+      JOIN USER_CHAT uc ON c.chat_id = uc.chat_id
+      JOIN USER_CHAT uc2 ON c.chat_id = uc2.chat_id AND uc2.user_id != ?
+      JOIN USER u ON uc2.user_id = u.user_id
+      WHERE uc.user_id = ?
+      GROUP BY c.chat_id, u.user_id, u.username, u.profile_pic_url
+      ORDER BY time DESC
+    `, [userId, userId]
+    );
+    res.json({ success: true, conversations });
+  } catch (err) {
+    console.error("Get Conversations DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- 2. GET ALL MESSAGES FOR A SINGLE CONVERSATION ---
+app.get("/api/conversations/:chatId", async (req, res) => {
+  const { chatId } = req.params;
+  const { userId } = req.query; // To find out who the "other user" is
+
+  try {
+    // Get all messages
+    const [messages] = await db.query(
+      `SELECT message_id, chat_id, sender_id, message_text, media_url, created_at 
+       FROM DIRECT_MESSAGE 
+       WHERE chat_id = ? 
+       ORDER BY created_at ASC`,
+      [chatId]
+    );
+
+    // Get info on the *other* user in the chat
+    const [otherUser] = await db.query(
+      `SELECT u.user_id, u.username, u.profile_pic_url 
+       FROM USER u
+       JOIN USER_CHAT uc ON u.user_id = uc.user_id
+       WHERE uc.chat_id = ? AND uc.user_id != ?`,
+       [chatId, userId]
+    );
+
+    res.json({ success: true, messages, otherUser: otherUser[0] || null });
+  } catch (err) {
+    console.error("Get Messages DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- 3. SEND A NEW MESSAGE ---
+app.post("/api/messages", async (req, res) => {
+  const { chatId, senderId, messageText } = req.body;
+  if (!chatId || !senderId || !messageText) {
+    return res.status(400).json({ success: false, message: "chatId, senderId, and messageText are required" });
+  }
+
+  try {
+    const [result] = await db.query(
+      "INSERT INTO DIRECT_MESSAGE (chat_id, sender_id, message_text) VALUES (?, ?, ?)",
+      [chatId, senderId, messageText]
+    );
+    
+    // Fetch the newly created message to send back
+    const [newMessage] = await db.query(
+      "SELECT * FROM DIRECT_MESSAGE WHERE message_id = ?",
+      [result.insertId]
+    );
+
+    res.status(201).json({ success: true, message: newMessage[0] });
+  } catch (err) {
+    console.error("Send Message DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- 4. START A NEW CONVERSATION ---
+// --- 4. START A NEW CONVERSATION (*** MODIFIED ***) ---
+app.post("/api/conversations/start", async (req, res) => {
+  const { userId1, username2 } = req.body; 
+
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // 1. Find the user_id for the target username
+    const [user2Rows] = await conn.query("SELECT user_id FROM USER WHERE username = ?", [username2]);
+    
+    if (user2Rows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    const userId2 = user2Rows[0].user_id;
+
+    if (userId1 == userId2) {
+      await conn.rollback();
+      return res.status(400).json({ success: false, message: "Cannot start a chat with yourself" });
+    }
+
+    // 2. Check if a 1-on-1 chat already exists (*** THIS IS THE FIX ***)
+    const [existingChat] = await conn.query(
+      // --- Changed 'SELECT chat_id' to 'SELECT uc1.chat_id' ---
+      `SELECT uc1.chat_id FROM USER_CHAT uc1
+       JOIN USER_CHAT uc2 ON uc1.chat_id = uc2.chat_id
+       WHERE uc1.user_id = ? AND uc2.user_id = ?`,
+       [userId1, userId2]
+    );
+
+    if (existingChat.length > 0) {
+      // Chat already exists
+      await conn.commit();
+      res.json({ success: true, chatId: existingChat[0].chat_id, isNew: false });
+    } else {
+      // 3. Create a new chat
+      const [chatResult] = await conn.query("INSERT INTO CHAT () VALUES ()");
+      const newChatId = chatResult.insertId;
+
+      // 4. Link both users to the new chat
+      await conn.query("INSERT INTO USER_CHAT (user_id, chat_id) VALUES (?, ?), (?, ?)", [
+        userId1, newChatId, userId2, newChatId
+      ]);
+
+      await conn.commit();
+      res.status(201).json({ success: true, chatId: newChatId, isNew: true });
+    }
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error("Start Conversation DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
 // =================================================================
 //                 START SERVER
 // =================================================================
