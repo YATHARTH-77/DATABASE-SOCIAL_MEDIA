@@ -28,8 +28,8 @@ app.use('/uploads', express.static(uploadsDir));
 const db = mysql.createPool({ // Using a Pool is better for handling multiple connections
   host: 'localhost',
   user: 'root',
-  password: 'ym@123@ym', // Your password
-  database: 'S_M',
+  password: 'Sam@1234', // Your password
+  database: 'social_media_db',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
