@@ -241,11 +241,11 @@ app.post("/api/posts/create", uploadPost.array('media', 10), async (req, res) =>
 //                 CREATE STORY ROUTE
 // =================================================================
 
+// --- CREATE STORY (*** MODIFIED ***) ---
 app.post("/api/stories/create", uploadStory.single('media'), async (req, res) => {
   const { user_id } = req.body;
   const file = req.file;
 
-  // --- Validation ---
   if (!user_id) {
     return res.status(400).json({ success: false, message: "user_id is required." });
   }
@@ -254,16 +254,15 @@ app.post("/api/stories/create", uploadStory.single('media'), async (req, res) =>
   }
   
   try {
-    // Construct the URL
     const mediaUrl = `/uploads/stories/${file.filename}`;
-
-    // Your STORY table has expires_at, so we set it for 24 hours
+    
+    // --- FIX: Added media_type to the INSERT ---
     const sql = `
-      INSERT INTO STORY (user_id, media_url, expires_at) 
-      VALUES (?, ?, NOW() + INTERVAL 1 DAY)
+      INSERT INTO STORY (user_id, media_url, media_type, expires_at) 
+      VALUES (?, ?, ?, NOW() + INTERVAL 1 DAY)
     `;
     
-    await db.query(sql, [user_id, mediaUrl]);
+    await db.query(sql, [user_id, mediaUrl, file.mimetype]); // Pass file.mimetype
     
     res.status(201).json({ success: true, message: "Story created successfully!" });
 
@@ -1084,6 +1083,112 @@ app.delete("/api/profile/:userId", async (req, res) => {
   } catch (err) {
     console.error("Delete Account DB error:", err);
     res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+//                 *** NEW HIGHLIGHTS ROUTES ***
+// =================================================================
+
+// --- 1. GET ALL STORIES FOR A USER (for creating highlights) ---
+app.get("/api/stories/archived", async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) {
+    return res.status(400).json({ success: false, message: "userId is required" });
+  }
+  try {
+    // Fetches all stories from a user
+    const [stories] = await db.query(
+      `SELECT story_id, media_url, media_type, created_at 
+       FROM STORY 
+       WHERE user_id = ? 
+       ORDER BY created_at DESC`,
+      [userId]
+    );
+    res.json({ success: true, stories });
+  } catch (err) {
+    console.error("Get Archived Stories DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- 2. GET ALL HIGHLIGHTS FOR A PROFILE ---
+app.get("/api/profile/:username/highlights", async (req, res) => {
+  const { username } = req.params;
+  try {
+    // Gets all highlight "groups" and their cover image URL
+    const [highlights] = await db.query(
+      `SELECT h.highlight_id, h.title, s.media_url AS cover_media_url
+       FROM HIGHLIGHT h
+       JOIN USER u ON h.user_id = u.user_id
+       LEFT JOIN STORY s ON h.cover_story_id = s.story_id
+       WHERE u.username = ?
+       ORDER BY h.created_at ASC`,
+      [username]
+    );
+    res.json({ success: true, highlights });
+  } catch (err) {
+    console.error("Get Highlights DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- 3. GET ALL STORIES INSIDE A SINGLE HIGHLIGHT ---
+app.get("/api/highlight/:highlightId/stories", async (req, res) => {
+  const { highlightId } = req.params;
+  try {
+    const [stories] = await db.query(
+      `SELECT s.story_id, s.media_url, s.media_type, s.created_at, 
+              u.username, u.profile_pic_url
+       FROM STORY s
+       JOIN HIGHLIGHT_STORY hs ON s.story_id = hs.story_id
+       JOIN USER u ON s.user_id = u.user_id
+       WHERE hs.highlight_id = ?
+       ORDER BY s.created_at ASC`,
+      [highlightId]
+    );
+    res.json({ success: true, stories });
+  } catch (err) {
+    console.error("Get Highlight Stories DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- 4. CREATE A NEW HIGHLIGHT ---
+app.post("/api/highlights/create", async (req, res) => {
+  const { userId, title, storyIds } = req.body; // storyIds is an array
+
+  if (!userId || !title || !storyIds || storyIds.length === 0) {
+    return res.status(400).json({ success: false, message: "userId, title, and at least one storyId are required" });
+  }
+
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // 1. Create the Highlight group
+    const coverStoryId = storyIds[0]; // Use the first story as the cover
+    const [highlightResult] = await conn.query(
+      "INSERT INTO HIGHLIGHT (user_id, title, cover_story_id) VALUES (?, ?, ?)",
+      [userId, title, coverStoryId]
+    );
+    const highlightId = highlightResult.insertId;
+
+    // 2. Link all stories to this highlight
+    const highlightStoryValues = storyIds.map(storyId => [highlightId, storyId]);
+    await conn.query(
+      "INSERT INTO HIGHLIGHT_STORY (highlight_id, story_id) VALUES ?",
+      [highlightStoryValues]
+    );
+
+    await conn.commit();
+    res.status(201).json({ success: true, message: "Highlight created!", highlightId });
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error("Create Highlight DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  } finally {
+    if (conn) conn.release();
   }
 });
 // =================================================================

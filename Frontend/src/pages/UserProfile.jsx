@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, Grid, Loader2 } from "lucide-react";
 import { PostDetailModal } from "@/components/PostDetailModal";
 import { FollowerModal } from "@/components/FollowerModal";
+import { StoryViewer } from "@/components/StoryViewer"; // *** NEW IMPORT ***
 import { useToast } from "@/hooks/use-toast";
 
 const API_URL = "http://localhost:5000";
@@ -16,37 +17,34 @@ export default function UserProfile() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // --- Logged in user ---
   const [user, setUser] = useState(null);
-
-  // --- Profile Data State ---
   const [profileData, setProfileData] = useState(null);
   const [posts, setPosts] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
-
-  // --- UI State ---
+  
+  // --- NEW HIGHLIGHT STATE ---
+  const [highlights, setHighlights] = useState([]);
+  const [showHighlightViewer, setShowHighlightViewer] = useState(false);
+  const [selectedHighlightStories, setSelectedHighlightStories] = useState([]);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState(null);
-  const [likedPosts, setLikedPosts] = useState([]); // Mocked, needs API
-  const [savedPosts, setSavedPosts] = useState([]); // Mocked, needs API
+  const [likedPosts, setLikedPosts] = useState([]); 
+  const [savedPosts, setSavedPosts] = useState([]); 
   const [modalType, setModalType] = useState(null);
 
-  // --- 1. Get Logged-in User ---
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     } else {
-      navigate("/login"); // Not logged in, redirect
+      navigate("/login");
     }
   }, [navigate]);
 
-  // --- 2. Fetch Profile Data (for the user in URL) ---
   useEffect(() => {
-    if (!user || !username) return; // Wait for logged-in user and URL param
-
-    // Don't reload if viewing own profile (redirect to /profile)
+    if (!user || !username) return; 
     if (user.username === username) {
       navigate("/profile");
       return;
@@ -55,36 +53,42 @@ export default function UserProfile() {
     const fetchProfile = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`${API_URL}/api/profile/${username}?loggedInUserId=${user.id}`);
-        const data = await res.json();
+        const [profileRes, highlightsRes] = await Promise.all([
+          fetch(`${API_URL}/api/profile/${username}?loggedInUserId=${user.id}`),
+          fetch(`${API_URL}/api/profile/${username}/highlights`)
+        ]);
         
-        if (data.success) {
-          setProfileData(data.user);
-          setPosts(data.posts);
-          // Note: Saved posts are private, so we don't get them here.
+        const profileJson = await profileRes.json();
+        const highlightsJson = await highlightsRes.json();
+        
+        if (profileJson.success) {
+          setProfileData(profileJson.user);
+          setPosts(profileJson.posts);
         } else {
-          throw new Error(data.message);
+          throw new Error(profileJson.message);
         }
+
+        if (highlightsJson.success) {
+          setHighlights(highlightsJson.highlights);
+        }
+        
       } catch (err) {
         console.error(err);
         toast({ title: "Error", description: err.message, variant: "destructive" });
         if (err.message === "User not found") {
-          navigate("/home"); // or a 404 page
+          navigate("/home");
         }
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchProfile();
   }, [user, username, navigate, toast]);
 
-  // --- 3. Fetch Followers/Following (on demand) ---
   const openFollowModal = async (type) => {
     if (!profileData) return;
     setModalType(type);
     
-    // Clear old data
     if (type === 'followers') setFollowers([]);
     else setFollowing([]);
     
@@ -101,20 +105,14 @@ export default function UserProfile() {
     }
   };
   
-  // --- 4. Action Handlers ---
-
   const handleFollowToggle = async () => {
     if (!user || !profileData) return;
-    
     const isCurrentlyFollowing = profileData.isFollowing;
-
-    // Optimistic Update
     setProfileData(prev => ({
       ...prev,
       isFollowing: !isCurrentlyFollowing,
       follower_count: isCurrentlyFollowing ? prev.follower_count - 1 : prev.follower_count + 1
     }));
-
     try {
       const res = await fetch(`${API_URL}/api/follow`, {
         method: 'POST',
@@ -124,7 +122,6 @@ export default function UserProfile() {
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
     } catch (err) {
-      // Revert on error
       setProfileData(prev => ({
         ...prev,
         isFollowing: isCurrentlyFollowing,
@@ -134,7 +131,6 @@ export default function UserProfile() {
     }
   };
   
-  // These need to be implemented fully if you want to like/save from this page
   const handleLike = (postId) => { /* ... API call to /api/posts/like ... */ };
   const handleSave = (postId) => { /* ... API call to /api/posts/save ... */ };
 
@@ -144,14 +140,38 @@ export default function UserProfile() {
       navigate(`/user/${navUsername}`);
     }
   };
+  
+  // --- NEW: Open Highlight Story Viewer ---
+  const handleHighlightClick = async (highlight) => {
+    try {
+      const res = await fetch(`${API_URL}/api/highlight/${highlight.highlight_id}/stories`);
+      const data = await res.json();
+      if (data.success) {
+        const storiesForViewer = data.stories.map(s => ({
+          id: s.story_id,
+          username: s.username,
+          avatar: s.profile_pic_url,
+          src: `${API_URL}${s.media_url}`,
+          type: s.media_type && s.media_type.startsWith('video') ? 'video' : 'photo',
+          timestamp: s.created_at,
+        }));
+        setSelectedHighlightStories(storiesForViewer);
+        setShowHighlightViewer(true);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Could not load highlight.", variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
-    if (selectedPost || modalType) document.body.style.overflow = 'hidden';
+    if (selectedPost || modalType || showHighlightViewer) {
+      document.body.style.overflow = 'hidden';
+    }
     return () => { document.body.style.overflow = 'unset'; };
-  }, [selectedPost, modalType]);
+  }, [selectedPost, modalType, showHighlightViewer]);
 
-  // --- 5. Render ---
-  
   if (isLoading || !profileData) {
     return (
       <div className="flex min-h-screen bg-background">
@@ -185,10 +205,18 @@ export default function UserProfile() {
           type={modalType}
           users={modalType === "followers" ? followers : following}
           onClose={() => setModalType(null)}
-          onRemoveFollower={() => {}} // Not own profile
-          onUnfollow={() => {}}      // Not own profile
+          onRemoveFollower={() => {}} 
+          onUnfollow={() => {}}      
           onUserClick={handleUserClick}
-          isOwnProfile={false} // This hides remove/unfollow buttons
+          isOwnProfile={false} 
+        />
+      )}
+      
+      {showHighlightViewer && (
+        <StoryViewer
+          stories={selectedHighlightStories}
+          initialIndex={0}
+          onClose={() => setShowHighlightViewer(false)}
         />
       )}
       
@@ -199,6 +227,7 @@ export default function UserProfile() {
           </Button>
 
           <Card className="p-4 sm:p-8 shadow-lg">
+            {/* --- Profile Header (Unchanged) --- */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-6">
               <Avatar className="w-24 h-24 flex-shrink-0">
                 <AvatarImage src={profileData.profile_pic_url ? `${API_URL}${profileData.profile_pic_url}` : ''} />
@@ -232,11 +261,39 @@ export default function UserProfile() {
               </div>
             </div>
 
+            {/* --- Bio (Unchanged) --- */}
             <div className="mb-6 p-4 bg-muted/30 rounded-xl">
               <p className="font-semibold mb-1">{profileData.full_name}</p>
               <p className="text-sm text-muted-foreground break-words">{profileData.bio || "No bio available."}</p>
             </div>
+            
+            {/* --- *** NEW HIGHLIGHTS SECTION *** --- */}
+            {highlights.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-sm font-semibold text-muted-foreground mb-3">Highlights</h2>
+                <div className="flex gap-4 overflow-x-auto pb-2">
+                  {highlights.map((highlight) => (
+                    <div 
+                      key={highlight.highlight_id} 
+                      className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer"
+                      onClick={() => handleHighlightClick(highlight)}
+                    >
+                      <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-br from-blue-400 via-emerald-400 to-amber-400">
+                        <div className="w-full h-full rounded-full bg-background p-1">
+                          <Avatar className="w-full h-full">
+                            <AvatarImage src={highlight.cover_media_url ? `${API_URL}${highlight.cover_media_url}` : ''} />
+                            <AvatarFallback>{highlight.title[0]}</AvatarFallback>
+                          </Avatar>
+                        </div>
+                      </div>
+                      <span className="text-xs font-medium">{highlight.title}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
+            {/* --- Posts Grid (Unchanged) --- */}
             <div className="border-t pt-6">
               <h2 className="text-lg font-bold mb-4 flex items-center">
                 <Grid className="w-4 h-4 mr-2" /> Posts

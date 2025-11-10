@@ -19,7 +19,7 @@ export const Sidebar = () => {
     <aside className="fixed left-0 top-0 h-screen w-20 bg-green-500 p-4 transition-all duration-300 md:w-64 md:p-6 gradient-sidebar flex flex-col shadow-xl z-50">
       
       {/* MODIFICATION START: Changed flex-col to flex, removed gap, and centered the items */}
-      <div className="mb-10 flex items-center justify-center -mb-10">
+      <div className="mb-10 flex items-center justify-center">
         
         <img 
           src={logo} 

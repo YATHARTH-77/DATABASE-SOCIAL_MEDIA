@@ -5,9 +5,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Grid, Bookmark, UserPen, LogOut, Trash2, Loader2 } from "lucide-react";
+import { Settings, Grid, Bookmark, UserPen, LogOut, Trash2, Loader2, Plus } from "lucide-react";
 import { PostDetailModal } from "@/components/PostDetailModal";
 import { FollowerModal } from "@/components/FollowerModal";
+import { CreateHighlightModal } from "@/components/CreateHighlightModal"; // *** NEW IMPORT ***
+import { StoryViewer } from "@/components/StoryViewer"; // *** NEW IMPORT ***
 import { useToast } from "@/hooks/use-toast";
 
 const API_URL = "http://localhost:5000";
@@ -16,50 +18,62 @@ export default function Profile() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // --- Logged in user ---
   const [user, setUser] = useState(null);
-
-  // --- Profile Data State ---
   const [profileData, setProfileData] = useState(null);
   const [posts, setPosts] = useState([]);
   const [savedPosts, setSavedPosts] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
   
-  // --- UI State ---
+  // --- NEW HIGHLIGHT STATE ---
+  const [highlights, setHighlights] = useState([]);
+  const [showCreateHighlight, setShowCreateHighlight] = useState(false);
+  const [showHighlightViewer, setShowHighlightViewer] = useState(false);
+  const [selectedHighlightStories, setSelectedHighlightStories] = useState([]);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState(null);
   const [modalType, setModalType] = useState(null);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const settingsMenuRef = useRef(null);
 
-  // --- 1. Get Logged-in User ---
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     } else {
-      navigate("/login"); // Not logged in, redirect
+      navigate("/login");
     }
   }, [navigate]);
 
-  // --- 2. Fetch All Profile Data ---
+  // --- Fetch All Profile Data (Highlights added) ---
   useEffect(() => {
-    if (!user) return; // Wait for user info
+    if (!user) return; 
 
     const fetchProfile = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`${API_URL}/api/profile/${user.username}?loggedInUserId=${user.id}`);
-        const data = await res.json();
-        
-        if (data.success) {
-          setProfileData(data.user);
-          setPosts(data.posts);
-          setSavedPosts(data.savedPosts);
+        // Fetch profile, posts, and highlights in parallel
+        const [profileRes, highlightsRes] = await Promise.all([
+          fetch(`${API_URL}/api/profile/${user.username}?loggedInUserId=${user.id}`),
+          fetch(`${API_URL}/api/profile/${user.username}/highlights`)
+        ]);
+
+        const profileJson = await profileRes.json();
+        const highlightsJson = await highlightsRes.json();
+
+        if (profileJson.success) {
+          setProfileData(profileJson.user);
+          setPosts(profileJson.posts);
+          setSavedPosts(profileJson.savedPosts);
         } else {
-          throw new Error(data.message);
+          throw new Error(profileJson.message);
         }
+        
+        if (highlightsJson.success) {
+          setHighlights(highlightsJson.highlights);
+        }
+
       } catch (err) {
         console.error(err);
         toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -67,16 +81,13 @@ export default function Profile() {
         setIsLoading(false);
       }
     };
-
     fetchProfile();
   }, [user, toast]);
   
-  // --- 3. Fetch Followers/Following (on demand) ---
   const openFollowModal = async (type) => {
     if (!user) return;
     setModalType(type);
     
-    // Clear old data
     if (type === 'followers') setFollowers([]);
     else setFollowing([]);
 
@@ -92,12 +103,42 @@ export default function Profile() {
       console.error(`Failed to fetch ${type}`, err);
     }
   };
+  
+  // --- NEW: Open Highlight Story Viewer ---
+  const handleHighlightClick = async (highlight) => {
+    try {
+      const res = await fetch(`${API_URL}/api/highlight/${highlight.highlight_id}/stories`);
+      const data = await res.json();
+      if (data.success) {
+        // Map stories to the format StoryViewer expects
+        const storiesForViewer = data.stories.map(s => ({
+          id: s.story_id,
+          username: s.username,
+          avatar: s.profile_pic_url,
+          src: `${API_URL}${s.media_url}`,
+          type: s.media_type && s.media_type.startsWith('video') ? 'video' : 'photo',
+          timestamp: s.created_at,
+        }));
+        setSelectedHighlightStories(storiesForViewer);
+        setShowHighlightViewer(true);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Could not load highlight.", variant: "destructive" });
+    }
+  };
 
-  // --- 4. Modal/Settings Handlers ---
-
+  const handleHighlightCreated = (newHighlight) => {
+    // This function will be passed to the modal to refresh the list
+    setHighlights(prev => [...prev, newHighlight]); // Simplified, ideally re-fetch
+    setShowCreateHighlight(false);
+    toast({ title: "Success", description: "Highlight created!" });
+  };
+  
+  // (All other handlers: handleUserClick, handleRemoveFollower, handleUnfollow, etc. are unchanged)
   const handleUserClick = (username) => {
     setModalType(null);
-    // Don't navigate if clicking own username
     if (username === user.username) return; 
     navigate(`/user/${username}`);
   };
@@ -113,7 +154,6 @@ export default function Profile() {
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
       
-      // Optimistic update
       setFollowers(prev => prev.filter(u => u.user_id !== followerUserId));
       setProfileData(prev => ({ ...prev, follower_count: prev.follower_count - 1 }));
     } catch (err) {
@@ -133,7 +173,6 @@ export default function Profile() {
       const data = await res.json();
       if (!data.success || data.action !== 'unfollowed') throw new Error(data.message);
 
-      // Optimistic update
       setFollowing(prev => prev.filter(u => u.user_id !== followingUserId));
       setProfileData(prev => ({ ...prev, following_count: prev.following_count - 1 }));
     } catch (err) {
@@ -153,9 +192,8 @@ export default function Profile() {
       const data = await res.json();
       if (!data.success || data.action !== 'unsaved') throw new Error(data.message);
 
-      // Optimistic update
       setSavedPosts(prev => prev.filter(post => post.post_id !== postId));
-      setSelectedPost(null); // Also close the modal
+      setSelectedPost(null); 
     } catch (err) {
       console.error("Failed to unsave post", err);
       toast({ title: "Error", description: "Failed to unsave post", variant: "destructive" });
@@ -164,7 +202,6 @@ export default function Profile() {
 
   const handleEditProfile = () => {
     setShowSettingsMenu(false);
-    // Navigate to the new Edit Profile page
     navigate("/profile/edit");
   };
 
@@ -208,17 +245,15 @@ export default function Profile() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showSettingsMenu]);
 
-  // Lock body scroll when modals are open
+  // Lock body scroll for ALL modals
   useEffect(() => {
-    if (selectedPost || modalType) {
+    if (selectedPost || modalType || showCreateHighlight || showHighlightViewer) {
       document.body.style.overflow = 'hidden';
     }
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [selectedPost, modalType]);
-
-  // --- 5. Render ---
+  }, [selectedPost, modalType, showCreateHighlight, showHighlightViewer]);
 
   if (isLoading || !profileData) {
     return (
@@ -235,6 +270,7 @@ export default function Profile() {
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       
+      {/* --- ALL MODALS --- */}
       {selectedPost && (
         <PostDetailModal
           post={selectedPost}
@@ -242,10 +278,8 @@ export default function Profile() {
           onUserClick={handleUserClick}
           variant="owner"
           isSavedPostView={selectedPost.isSavedView}
-          isSaved={selectedPost.isSavedView} // Button is "saved" if it's from the saved tab
+          isSaved={selectedPost.isSavedView}
           onSave={() => handleUnsavePost(selectedPost.post_id)}
-          // This modal will need to be updated to fetch full post details (likes, comments)
-          // when opened, as the grid only has minimal info.
         />
       )}
 
@@ -261,9 +295,26 @@ export default function Profile() {
         />
       )}
       
+      {showHighlightViewer && (
+        <StoryViewer
+          stories={selectedHighlightStories}
+          initialIndex={0}
+          onClose={() => setShowHighlightViewer(false)}
+        />
+      )}
+      
+      {showCreateHighlight && user && (
+        <CreateHighlightModal
+          onClose={() => setShowCreateHighlight(false)}
+          onCreate={handleHighlightCreated}
+          userId={user.id}
+        />
+      )}
+      
       <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
         <div className="max-w-4xl mx-auto">
           <Card className="p-4 sm:p-8 shadow-lg">
+            {/* --- Profile Header (Unchanged) --- */}
             <div className="flex items-start justify-between mb-6">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
                 <Avatar className="w-24 h-24 flex-shrink-0">
@@ -333,6 +384,7 @@ export default function Profile() {
               </div>
             </div>
 
+            {/* --- Bio (Unchanged) --- */}
             <div className="mb-6 p-4 bg-muted/30 rounded-xl">
               <p className="font-semibold mb-1">{profileData.full_name || profileData.username}</p>
               <p className="text-sm text-muted-foreground break-words">
@@ -340,6 +392,44 @@ export default function Profile() {
               </p>
             </div>
 
+            {/* --- *** NEW HIGHLIGHTS SECTION *** --- */}
+            <div className="mb-6">
+              <h2 className="text-sm font-semibold text-muted-foreground mb-3">Highlights</h2>
+              <div className="flex gap-4 overflow-x-auto pb-2">
+                
+                {/* "New" Highlight Button */}
+                <div 
+                  className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer"
+                  onClick={() => setShowCreateHighlight(true)}
+                >
+                  <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-muted-foreground/50 flex items-center justify-center hover:border-primary transition-colors">
+                    <Plus className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">New</span>
+                </div>
+                
+                {/* Existing Highlights */}
+                {highlights.map((highlight) => (
+                  <div 
+                    key={highlight.highlight_id} 
+                    className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer"
+                    onClick={() => handleHighlightClick(highlight)}
+                  >
+                    <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-br from-blue-400 via-emerald-400 to-amber-400">
+                      <div className="w-full h-full rounded-full bg-background p-1">
+                        <Avatar className="w-full h-full">
+                          <AvatarImage src={highlight.cover_media_url ? `${API_URL}${highlight.cover_media_url}` : ''} />
+                          <AvatarFallback>{highlight.title[0]}</AvatarFallback>
+                        </Avatar>
+                      </div>
+                    </div>
+                    <span className="text-xs font-medium">{highlight.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* --- Posts/Saved Tabs (Unchanged) --- */}
             <Tabs defaultValue="posts" className="w-full">
               <TabsList className="w-full gradient-primary mb-6">
                 <TabsTrigger value="posts" className="flex-1 data-[state=active]:bg-white/20">
@@ -357,7 +447,7 @@ export default function Profile() {
                   {posts.map((post) => (
                     <div
                       key={post.post_id}
-                      onClick={() => setSelectedPost(post)} // This post object is minimal
+                      onClick={() => setSelectedPost(post)}
                       className="aspect-square bg-muted rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-md relative group"
                     >
                       {post.media_url ? (

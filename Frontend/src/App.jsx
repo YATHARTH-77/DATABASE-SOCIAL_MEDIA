@@ -17,6 +17,7 @@ import UserProfile from "./pages/UserProfile";
 import Conversation from "./pages/Conversation";
 import EditProfile from "./pages/EditProfile"; // <--- IMPORT THE NEW FILE
 
+
 const queryClient = new QueryClient();
 
 const App = () => (
