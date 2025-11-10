@@ -3,11 +3,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { X, Search } from "lucide-react";
 
+const API_URL = "http://localhost:5000";
+
 export function FollowerModal({ type, users, onClose, onRemoveFollower, onUnfollow, onUserClick, isOwnProfile = false }) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredUsers = users.filter(user => 
-    user.username.toLowerCase().includes(searchQuery.toLowerCase())
+    user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (user.full_name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const title = type === "followers" ? "Followers" : "Following";
@@ -51,7 +54,7 @@ export function FollowerModal({ type, users, onClose, onRemoveFollower, onUnfoll
           ) : (
             <div className="divide-y">
               {filteredUsers.map((user) => (
-                <div key={user.id} className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+                <div key={user.user_id} className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
                   <div 
                     className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
                     onClick={() => {
@@ -60,15 +63,15 @@ export function FollowerModal({ type, users, onClose, onRemoveFollower, onUnfoll
                     }}
                   >
                     <Avatar className="w-10 h-10 flex-shrink-0">
-                      <AvatarImage src={user.avatar} />
+                      <AvatarImage src={user.profile_pic_url ? `${API_URL}${user.profile_pic_url}` : ''} />
                       <AvatarFallback className="bg-blue-500 text-white text-sm">
                         {user.username[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-sm truncate">{user.username}</p>
-                      {user.displayName && (
-                        <p className="text-xs text-muted-foreground truncate">{user.displayName}</p>
+                      {user.full_name && (
+                        <p className="text-xs text-muted-foreground truncate">{user.full_name}</p>
                       )}
                     </div>
                   </div>
@@ -79,7 +82,7 @@ export function FollowerModal({ type, users, onClose, onRemoveFollower, onUnfoll
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => onRemoveFollower(user.id)}
+                        onClick={() => onRemoveFollower(user.user_id)}
                         className="ml-2 flex-shrink-0"
                       >
                         Remove
@@ -88,7 +91,7 @@ export function FollowerModal({ type, users, onClose, onRemoveFollower, onUnfoll
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => onUnfollow(user.id)}
+                        onClick={() => onUnfollow(user.user_id)}
                         className="ml-2 flex-shrink-0"
                       >
                         Unfollow

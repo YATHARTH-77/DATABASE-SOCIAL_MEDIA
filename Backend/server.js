@@ -896,6 +896,196 @@ app.post("/api/conversations/start", async (req, res) => {
   }
 });
 
+app.get("/api/profile/:username", async (req, res) => {
+  const { username } = req.params;
+  const { loggedInUserId } = req.query; // The ID of the person *viewing* the profile
+
+  if (!loggedInUserId) {
+    return res.status(400).json({ success: false, message: "loggedInUserId is required" });
+  }
+
+  try {
+    // 1. Get User Info
+    const [userRows] = await db.query(
+      `SELECT user_id, username, full_name, bio, profile_pic_url, follower_count 
+       FROM USER 
+       WHERE username = ? AND is_deleted = FALSE`,
+      [username]
+    );
+    if (userRows.length === 0) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    const user = userRows[0];
+    const userId = user.user_id;
+
+    // 2. Get Following Count
+    const [followingRows] = await db.query(
+      "SELECT COUNT(*) as following_count FROM FOLLOW WHERE follower_id = ?",
+      [userId]
+    );
+
+    // 3. Get Post Count
+    const [postRows] = await db.query(
+      "SELECT COUNT(*) as post_count FROM POST WHERE user_id = ?",
+      [userId]
+    );
+
+    // 4. Get User's Posts (with first media)
+    const [posts] = await db.query(
+      `SELECT p.post_id, p.caption, 
+       (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id ORDER BY m.media_id ASC LIMIT 1) as media_url
+       FROM POST p
+       WHERE p.user_id = ?
+       ORDER BY p.created_at DESC`,
+      [userId]
+    );
+
+    // 5. Get User's Saved Posts (Only if viewing own profile)
+    let savedPosts = [];
+    if (userId == loggedInUserId) {
+      const [savedRows] = await db.query(
+        `SELECT p.post_id, p.user_id, p.caption, u.username,
+         (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id ORDER BY m.media_id ASC LIMIT 1) as media_url
+         FROM Saved_posts sp
+         JOIN POST p ON sp.post_id = p.post_id
+         JOIN USER u ON p.user_id = u.user_id
+         WHERE sp.user_id = ?
+         ORDER BY sp.created_at DESC`,
+        [userId]
+      );
+      savedPosts = savedRows;
+    }
+
+    // 6. Check if logged-in user is following this profile
+    const [followCheck] = await db.query(
+      "SELECT * FROM FOLLOW WHERE follower_id = ? AND following_id = ?",
+      [loggedInUserId, userId]
+    );
+
+    res.json({
+      success: true,
+      user: {
+        ...user,
+        following_count: followingRows[0].following_count,
+        post_count: postRows[0].post_count,
+        isFollowing: followCheck.length > 0 && userId != loggedInUserId // Can't follow yourself
+      },
+      posts: posts.map(p => ({...p, media_url: p.media_url || ''})),
+      savedPosts: savedPosts.map(p => ({...p, media_url: p.media_url || ''})),
+    });
+
+  } catch (err) {
+    console.error("Get Profile DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- 2. GET FOLLOWERS LIST ---
+app.get("/api/profile/:userId/followers", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const [followers] = await db.query(
+      `SELECT u.user_id, u.username, u.full_name, u.profile_pic_url 
+       FROM FOLLOW f
+       JOIN USER u ON f.follower_id = u.user_id
+       WHERE f.following_id = ?`,
+      [userId]
+    );
+    res.json({ success: true, followers });
+  } catch (err) {
+    console.error("Get Followers DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- 3. GET FOLLOWING LIST ---
+app.get("/api/profile/:userId/following", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const [following] = await db.query(
+      `SELECT u.user_id, u.username, u.full_name, u.profile_pic_url 
+       FROM FOLLOW f
+       JOIN USER u ON f.following_id = u.user_id
+       WHERE f.follower_id = ?`,
+      [userId]
+    );
+    res.json({ success: true, following });
+  } catch (err) {
+    console.error("Get Following DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- 4. REMOVE A FOLLOWER ---
+app.post("/api/followers/remove", async (req, res) => {
+  const { followerId, followingId } = req.body; // followingId = logged-in user
+  if (!followerId || !followingId) {
+    return res.status(400).json({ success: false, message: "followerId and followingId are required" });
+  }
+
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    const [existing] = await conn.query("SELECT * FROM FOLLOW WHERE follower_id = ? AND following_id = ?", [followerId, followingId]);
+    
+    if (existing.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, message: "Follow relationship not found." });
+    }
+
+    await conn.query(
+      "DELETE FROM FOLLOW WHERE follower_id = ? AND following_id = ?",
+      [followerId, followingId]
+    );
+    await conn.query(
+      "UPDATE USER SET follower_count = follower_count - 1 WHERE user_id = ? AND follower_count > 0",
+      [followingId]
+    );
+    
+    await conn.commit();
+    res.json({ success: true, action: 'removed' });
+
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error("Remove Follower DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// --- 5. UPDATE USER PROFILE (*** UPDATED ***) ---
+app.put("/api/profile/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { fullName, bio } = req.body; // Now accepts bio
+
+  try {
+    // Update both full_name and the new bio column
+    await db.query(
+      "UPDATE USER SET full_name = ?, bio = ? WHERE user_id = ?",
+      [fullName, bio, userId]
+    );
+    res.json({ success: true, message: "Profile updated successfully" });
+  } catch (err) {
+    console.error("Update Profile DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- 6. DELETE USER ACCOUNT ---
+app.delete("/api/profile/:userId", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    // Your DB schema's ON DELETE CASCADE will handle all related data
+    await db.query("DELETE FROM USER WHERE user_id = ?", [userId]);
+    res.json({ success: true, message: "Account deleted successfully" });
+  } catch (err) {
+    console.error("Delete Account DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
 // =================================================================
 //                 START SERVER
 // =================================================================

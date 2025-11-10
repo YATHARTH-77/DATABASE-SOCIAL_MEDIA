@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+// --- MODIFICATION: Import useNavigate ---
+import { useLocation, useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Image, Film, Smile, X, Loader2 } from "lucide-react";
 
-// --- Helper Component for File Preview ---
+// --- Helper Component for File Preview (Unchanged) ---
 function MediaPreview({ fileUrl, fileType, onRemove }) {
   const isVideo = fileType.startsWith("video/");
   
@@ -36,17 +37,15 @@ export default function Create() {
   const [caption, setCaption] = useState("");
   const [hashtags, setHashtags] = useState("");
   
-  // --- New State for Files and Previews ---
-  const [postFiles, setPostFiles] = useState([]); // For Post (array)
-  const [postPreviews, setPostPreviews] = useState([]); // For Post (array)
+  const [postFiles, setPostFiles] = useState([]);
+  const [postPreviews, setPostPreviews] = useState([]);
   
-  const [momentFile, setMomentFile] = useState(null); // For Moment (single)
-  const [momentPreview, setMomentPreview] = useState(null); // For Moment (single)
+  const [momentFile, setMomentFile] = useState(null);
+  const [momentPreview, setMomentPreview] = useState(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   
-  // --- Refs for Hidden File Inputs ---
   const postInputRef = useRef(null);
   const momentInputRef = useRef(null);
 
@@ -54,9 +53,24 @@ export default function Create() {
   const params = new URLSearchParams(location.search);
   const tabParam = params.get("tab") || "post";
   
-  // --- Cleanup for Preview URLs ---
+  // --- MODIFICATION: Get logged-in user ---
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
   useEffect(() => {
-    // This is crucial to prevent memory leaks
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    } else {
+      // If no user is found, redirect to login
+      toast({ title: "Error", description: "You must be logged in to create a post.", variant: "destructive" });
+      navigate("/login");
+    }
+  }, [navigate, toast]);
+  // --- END MODIFICATION ---
+
+  // --- Cleanup for Preview URLs (Unchanged) ---
+  useEffect(() => {
     return () => {
       postPreviews.forEach((url) => URL.revokeObjectURL(url));
       if (momentPreview) {
@@ -65,12 +79,10 @@ export default function Create() {
     };
   }, [postPreviews, momentPreview]);
 
-  // --- File Handler for POSTS (multiple) ---
+  // --- File Handlers (Unchanged) ---
   const handlePostFileChange = (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
-
-    // Simple validation (e.g., max 10 files)
     if (files.length + postFiles.length > 10) {
       toast({
         title: "Error",
@@ -79,28 +91,21 @@ export default function Create() {
       });
       return;
     }
-
     setPostFiles((prev) => [...prev, ...files]);
-
     const previewUrls = files.map((file) => URL.createObjectURL(file));
     setPostPreviews((prev) => [...prev, ...previewUrls]);
   };
 
-  // --- File Handler for MOMENT (single) ---
   const handleMomentFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     setMomentFile(file);
-    
-    // Revoke old preview if it exists
     if (momentPreview) {
       URL.revokeObjectURL(momentPreview);
     }
     setMomentPreview(URL.createObjectURL(file));
   };
   
-  // --- Remove Handlers ---
   const removePostPreview = (index) => {
     setPostFiles((prev) => prev.filter((_, i) => i !== index));
     setPostPreviews((prev) => {
@@ -118,7 +123,6 @@ export default function Create() {
     setMomentPreview(null);
   };
   
-  // --- Clear All Inputs ---
   const clearPostForm = () => {
     setCaption("");
     setHashtags("");
@@ -127,8 +131,13 @@ export default function Create() {
     setPostPreviews([]);
   };
 
-  // --- 🚀 API Call: Create Post ---
+  // --- 🚀 API Call: Create Post (MODIFIED) ---
   const handlePost = async () => {
+    // --- MODIFICATION: Check if user exists ---
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+      return;
+    }
     if (postFiles.length === 0) {
       toast({ title: "Error", description: "Please upload at least one media file.", variant: "destructive" });
       return;
@@ -141,12 +150,14 @@ export default function Create() {
     setIsLoading(true);
     const formData = new FormData();
     
-    // !! IMPORTANT: Replace '1' with the actual logged-in user's ID
-    formData.append('user_id', '1'); 
+    // --- MODIFICATION: Use dynamic user.id ---
+    formData.append('user_id', user.id); 
+    // --- END MODIFICATION ---
+    
     formData.append('caption', caption);
     formData.append('hashtags', hashtags);
     postFiles.forEach((file) => {
-      formData.append('media', file); // 'media' must match server
+      formData.append('media', file);
     });
 
     try {
@@ -170,8 +181,13 @@ export default function Create() {
     }
   };
 
-  // --- 🚀 API Call: Create Moment ---
+  // --- 🚀 API Call: Create Moment (MODIFIED) ---
   const handleMomentCreate = async () => {
+    // --- MODIFICATION: Check if user exists ---
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+      return;
+    }
     if (!momentFile) {
       toast({ title: "Error", description: "Please upload a file for your moment.", variant: "destructive" });
       return;
@@ -180,9 +196,11 @@ export default function Create() {
     setIsLoading(true);
     const formData = new FormData();
     
-    // !! IMPORTANT: Replace '1' with the actual logged-in user's ID
-    formData.append('user_id', '1');
-    formData.append('media', momentFile); // 'media' must match server
+    // --- MODIFICATION: Use dynamic user.id ---
+    formData.append('user_id', user.id);
+    // --- END MODIFICATION ---
+
+    formData.append('media', momentFile); 
 
     try {
       const response = await fetch('http://localhost:5000/api/stories/create', {
@@ -204,6 +222,19 @@ export default function Create() {
       setIsLoading(false);
     }
   };
+  
+  // --- MODIFICATION: Add a loading state while checking for user ---
+  if (!user) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <Sidebar />
+        <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 flex items-center justify-center">
+          <Loader2 className="w-12 h-12 text-primary animate-spin" />
+        </main>
+      </div>
+    );
+  }
+  // --- END MODIFICATION ---
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -266,12 +297,30 @@ export default function Create() {
                   {/* --- Caption & Hashtags (Unchanged) --- */}
                   <div>
                     <label className="text-sm font-semibold mb-2 block">Caption</label>
-                    <Textarea value={caption} onChange={(e) => setCaption(e.target.value)} />
-                    ...
+                    <Textarea
+                      placeholder="Write a caption..."
+                      value={caption}
+                      onChange={(e) => setCaption(e.target.value)}
+                      className="min-h-[120px] rounded-xl"
+                    />
+                    <div className="flex items-center gap-2 mt-2">
+                       <Button variant="ghost" size="icon" className="h-8 w-8">
+                         <Smile className="w-4 h-4" />
+                       </Button>
+                       <span className="text-xs text-muted-foreground ml-auto">
+                         {caption.length}/2200
+                       </span>
+                    </div>
                   </div>
+
                   <div>
                     <label className="text-sm font-semibold mb-2 block">Hashtags</label>
-                    <Input value={hashtags} onChange={(e) => setHashtags(e.target.value)} />
+                    <Input
+                      placeholder="#hashtags (separate with spaces)"
+                      value={hashtags}
+                      onChange={(e) => setHashtags(e.target.value)}
+                      className="rounded-xl"
+                    />
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3 pt-4">
