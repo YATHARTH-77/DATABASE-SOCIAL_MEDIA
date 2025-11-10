@@ -242,8 +242,10 @@ app.post("/api/posts/create", uploadPost.array('media', 10), async (req, res) =>
 // =================================================================
 
 // --- CREATE STORY (*** MODIFIED ***) ---
+// --- CREATE STORY (*** MODIFIED ***) ---
 app.post("/api/stories/create", uploadStory.single('media'), async (req, res) => {
-  const { user_id } = req.body;
+  // Now accepts 'tags' (a string of usernames: "user1 user2")
+  const { user_id, tags } = req.body;
   const file = req.file;
 
   if (!user_id) {
@@ -253,21 +255,78 @@ app.post("/api/stories/create", uploadStory.single('media'), async (req, res) =>
      return res.status(400).json({ success: false, message: "A media file is required." });
   }
   
+  let conn;
   try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // 1. Insert the story
     const mediaUrl = `/uploads/stories/${file.filename}`;
-    
-    // --- FIX: Added media_type to the INSERT ---
     const sql = `
       INSERT INTO STORY (user_id, media_url, media_type, expires_at) 
       VALUES (?, ?, ?, NOW() + INTERVAL 1 DAY)
     `;
-    
-    await db.query(sql, [user_id, mediaUrl, file.mimetype]); // Pass file.mimetype
-    
+    const [storyResult] = await conn.query(sql, [user_id, mediaUrl, file.mimetype]);
+    const newStoryId = storyResult.insertId;
+
+    // 2. Handle Tags (if any)
+    if (tags) {
+      const usernames = tags.split(' ').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      
+      if (usernames.length > 0) {
+        // Find the user IDs for these usernames
+        const [users] = await conn.query(
+          "SELECT user_id FROM USER WHERE username IN (?)",
+          [usernames]
+        );
+
+        if (users.length > 0) {
+          // Create tag data for bulk insert
+          const tagValues = users.map(user => [newStoryId, user.user_id]);
+          await conn.query(
+            "INSERT INTO STORY_TAG (story_id, tagged_user_id) VALUES ?",
+            [tagValues]
+          );
+        }
+      }
+    }
+
+    await conn.commit();
     res.status(201).json({ success: true, message: "Story created successfully!" });
 
   } catch (err) {
+    if (conn) await conn.rollback();
     console.error("Create Story DB error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Add this new endpoint to your server.js file
+// You can place it near your existing story routes or profile routes.
+
+// --- GET STORY BY ID (NEW) ---
+app.get("/api/stories/:storyId", async (req, res) => {
+  const { storyId } = req.params;
+
+  try {
+    const [rows] = await db.query(
+      `SELECT s.story_id, s.user_id, s.media_url, s.media_type, s.created_at, s.expires_at,
+              u.username AS owner_username, u.profile_pic_url AS owner_pic_url
+       FROM STORY s
+       JOIN USER u ON s.user_id = u.user_id
+       WHERE s.story_id = ?`,
+      [storyId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Story not found." });
+    }
+
+    res.json({ success: true, story: rows[0] });
+  } catch (err) {
+    console.error("Get Story by ID DB error:", err);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
@@ -549,6 +608,7 @@ app.get("/api/hashtag/:hashtag_text", async (req, res) => {
   }
 });
 
+// --- GET ACTIVITY FEED (*** MODIFIED ***) ---
 app.get("/api/activity/:userId", async (req, res) => {
   const { userId } = req.params;
 
@@ -557,7 +617,7 @@ app.get("/api/activity/:userId", async (req, res) => {
       `
       (
         -- New Likes
-        SELECT 'like' AS type, pl.post_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, pl.created_at, pl.user_id AS actor_id
+        SELECT 'like' AS type, pl.post_id, NULL AS story_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, pl.created_at, pl.user_id AS actor_id
         FROM POST_LIKE pl
         JOIN POST p ON pl.post_id = p.post_id
         JOIN USER u ON pl.user_id = u.user_id
@@ -566,7 +626,7 @@ app.get("/api/activity/:userId", async (req, res) => {
       UNION
       (
         -- New Comments
-        SELECT 'comment' AS type, c.post_id, c.comment_text AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, c.created_at, c.user_id AS actor_id
+        SELECT 'comment' AS type, c.post_id, NULL AS story_id, c.comment_text AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, c.created_at, c.user_id AS actor_id
         FROM COMMENT c
         JOIN POST p ON c.post_id = p.post_id
         JOIN USER u ON c.user_id = u.user_id
@@ -575,7 +635,7 @@ app.get("/api/activity/:userId", async (req, res) => {
       UNION
       (
         -- New Followers
-        SELECT 'follow' AS type, NULL AS post_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, f.created_at, f.follower_id AS actor_id
+        SELECT 'follow' AS type, NULL AS post_id, NULL AS story_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, f.created_at, f.follower_id AS actor_id
         FROM FOLLOW f
         JOIN USER u ON f.follower_id = u.user_id
         WHERE f.following_id = ?
@@ -583,18 +643,26 @@ app.get("/api/activity/:userId", async (req, res) => {
       UNION
       (
         -- New Saves
-        SELECT 'save' AS type, sp.post_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, sp.created_at, sp.user_id AS actor_id
+        SELECT 'save' AS type, sp.post_id, NULL AS story_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, sp.created_at, sp.user_id AS actor_id
         FROM Saved_posts sp
         JOIN POST p ON sp.post_id = p.post_id
         JOIN USER u ON sp.user_id = u.user_id
         WHERE p.user_id = ? AND sp.user_id != ?
       )
+      UNION
+      (
+        -- *** NEW: Story Tags ***
+        SELECT 'story_tag' AS type, NULL AS post_id, st.story_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, st.created_at, s.user_id AS actor_id
+        FROM STORY_TAG st
+        JOIN STORY s ON st.story_id = s.story_id
+        JOIN USER u ON s.user_id = u.user_id
+        WHERE st.tagged_user_id = ? AND s.user_id != ?
+      )
       ORDER BY created_at DESC
       LIMIT 50
     `,
-      // --- THIS IS THE FIX ---
-      // The array now has 7 items to match the 7 '?' placeholders
-      [userId, userId, userId, userId, userId, userId, userId]
+      // 9 total placeholders now
+      [userId, userId, userId, userId, userId, userId, userId, userId, userId]
     );
     res.json({ success: true, activities });
   } catch (err) {

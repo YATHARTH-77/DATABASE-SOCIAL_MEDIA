@@ -3,9 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Heart, MessageCircle, UserPlus, Bookmark, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, UserPlus, Bookmark, Loader2, AtSign } from "lucide-react"; // Import AtSign
 
-// --- Base URL for our API ---
 const API_URL = "http://localhost:5000";
 
 // --- Helper: Format timestamp (e.g., "5m ago") ---
@@ -28,7 +27,7 @@ function formatTimeAgo(dateString) {
   return "Just now";
 }
 
-// --- Helper: Get Icon ---
+// --- Helper: Get Icon (*** MODIFIED ***) ---
 const getActivityIcon = (type) => {
   switch (type) {
     case "like":
@@ -39,12 +38,15 @@ const getActivityIcon = (type) => {
       return <UserPlus className="w-4 h-4 text-green-500" />;
     case "save":
       return <Bookmark className="w-4 h-4 text-yellow-500" />;
+    // --- NEW CASE ---
+    case "story_tag":
+      return <AtSign className="w-4 h-4 text-purple-500" />;
     default:
       return null;
   }
 };
 
-// --- Helper: Get Action Text ---
+// --- Helper: Get Action Text (*** MODIFIED ***) ---
 const getActivityAction = (activity) => {
   const textPreview = activity.text_preview 
     ? `: "${activity.text_preview.substring(0, 20)}..."` 
@@ -55,6 +57,8 @@ const getActivityAction = (activity) => {
     case "comment": return `commented${textPreview}`;
     case "follow": return "started following you.";
     case "save": return "saved your post.";
+    // --- NEW CASE ---
+    case "story_tag": return "tagged you in their story.";
     default: return "";
   }
 };
@@ -62,13 +66,11 @@ const getActivityAction = (activity) => {
 export default function Activity() {
   const navigate = useNavigate();
   
-  // --- Dynamic State ---
   const [user, setUser] = useState(null);
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // --- Get User & Fetch Activity ---
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
@@ -80,7 +82,6 @@ export default function Activity() {
     }
   }, [navigate]);
 
-  // --- API Call: Fetch Activity Feed ---
   const fetchActivity = async (userId) => {
     setIsLoading(true);
     try {
@@ -98,12 +99,10 @@ export default function Activity() {
     }
   };
 
-  // --- API Call: Follow Back ---
   const handleFollowBack = async (e, actorId) => {
-    e.stopPropagation(); // Prevents navigating to user page
+    e.stopPropagation(); 
     if (!user) return;
 
-    // TODO: You can add logic to change the button text to "Following"
     e.target.disabled = true;
     e.target.innerText = "Following";
 
@@ -112,8 +111,8 @@ export default function Activity() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          followerId: user.id,   // You are the follower
-          followingId: actorId   // You are following them back
+          followerId: user.id,   
+          followingId: actorId   
         }),
       });
     } catch (err) {
@@ -123,10 +122,20 @@ export default function Activity() {
     }
   };
   
-  const handleRowClick = (username) => {
-    if (username) {
-      navigate(`/user/${username}`);
+  // --- *** NEW: Handle Repost Click *** ---
+  const handleRepost = (e, storyId) => {
+    e.stopPropagation();
+    // This navigates to the Create Story page.
+    // The Create.jsx page will see the 'repost_id' and show a toast.
+    navigate(`/create?tab=moment&repost_id=${storyId}`);
+  };
+
+  const handleRowClick = (activity) => {
+    // Navigate to user profile
+    if (activity.actor_username) {
+      navigate(`/user/${activity.actor_username}`);
     }
+    // You could add logic here to navigate to the post if (activity.post_id)
   };
 
   return (
@@ -158,7 +167,7 @@ export default function Activity() {
                   <div
                     key={`${activity.type}-${activity.actor_id}-${activity.created_at}`}
                     className="p-4 flex flex-wrap items-center gap-4 hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => handleRowClick(activity.actor_username)}
+                    onClick={() => handleRowClick(activity)}
                   >
                     <div className="relative">
                       <Avatar>
@@ -182,17 +191,23 @@ export default function Activity() {
                       </p>
                     </div>
 
-                    {/* isNew not implemented in DB, you can add a 'read' column later */}
-                    {/* {activity.isNew && (
-                      <div className="w-2 h-2 rounded-full bg-primary ml-auto" />
-                    )} */}
-
+                    {/* "Follow Back" Button */}
                     {activity.type === "follow" && (
                       <button 
                         className="px-4 py-1.5 gradient-primary text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity ml-auto"
                         onClick={(e) => handleFollowBack(e, activity.actor_id)}
                       >
                         Follow Back
+                      </button>
+                    )}
+                    
+                    {/* --- *** NEW: "Add to Story" Button *** --- */}
+                    {activity.type === "story_tag" && (
+                       <button 
+                        className="px-4 py-1.5 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-opacity ml-auto"
+                        onClick={(e) => handleRepost(e, activity.story_id)}
+                      >
+                        Add to Your Story
                       </button>
                     )}
                   </div>
