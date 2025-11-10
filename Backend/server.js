@@ -5,7 +5,31 @@ const bcrypt = require("bcrypt");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+// At the top of server.js, add these new imports
+require('dotenv').config(); // Loads .env variables
+const nodemailer = require('nodemailer');
+const crypto = require('crypto'); // For generating OTP
 
+// --- Add this Nodemailer setup code ---
+// (Place this near your `db` connection)
+
+// Create an email "transporter"
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// Test the connection
+transporter.verify((error, success) => {
+  if (error) {
+    console.error('Error with email transporter:', error);
+  } else {
+    console.log('Email transporter is ready to send mail!');
+  }
+});
 const app = express();
 app.use(cors());
 app.use(express.json()); // For parsing JSON bodies
@@ -80,23 +104,83 @@ const uploadStory = multer({ storage: storyStorage });
 //                 USER AUTHENTICATION ROUTES
 // =================================================================
 
-app.post("/api/register", async (req, res) => {
-  const { username, email, password } = req.body;
-  const saltRounds = 10;
+// --- 1. REGISTER (Step 1: Send OTP) ---
+// This REPLACES your old '/api/register' route
+app.post("/api/register/send-otp", async (req, res) => {
+  const { username, email } = req.body;
 
-  if (!username || !email || !password) {
-    return res.status(400).json({ success: false, message: "All fields are required." });
-  }
-
+  // Check if user already exists
   try {
-    // 1. Check if user already exists
     const [existingUsers] = await db.query(
       "SELECT * FROM USER WHERE username = ? OR email = ?",
       [username, email]
     );
-
     if (existingUsers.length > 0) {
       return res.status(409).json({ success: false, message: "Username or email already in use." });
+    }
+
+    // Generate 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expires_at = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Store OTP in database (REPLACE if old one exists)
+    await db.query(
+      `INSERT INTO OTP_VERIFICATION (email, otp, expires_at) 
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE otp = ?, expires_at = ?`,
+      [email, otp, expires_at, otp, expires_at]
+    );
+
+    // --- Send the actual email ---
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Your Verification Code for ConnectIT',
+      html: `
+        <div style="font-family: sans-serif; text-align: center; padding: 20px;">
+          <h2>ConnectIT Email Verification</h2>
+          <p>Your 6-digit verification code is:</p>
+          <h1 style="font-size: 48px; letter-spacing: 10px; margin: 20px;">
+            ${otp}
+          </h1>
+          <p>This code will expire in 10 minutes.</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({ success: true, message: "OTP sent to your email!" });
+
+  } catch (err) {
+    console.error("Send OTP error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- 2. REGISTER (Step 2: Verify OTP & Create User) ---
+app.post("/api/register/verify", async (req, res) => {
+  const { username, email, password, otp } = req.body;
+  const saltRounds = 10;
+
+  if (!username || !email || !password || !otp) {
+    return res.status(400).json({ success: false, message: "All fields are required." });
+  }
+  
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // 1. Check if OTP is valid
+    const [otpRows] = await conn.query(
+      "SELECT * FROM OTP_VERIFICATION WHERE email = ? AND otp = ? AND expires_at > NOW()",
+      [email, otp]
+    );
+
+    if (otpRows.length === 0) {
+      await conn.rollback();
+      return res.status(400).json({ success: false, message: "Invalid or expired OTP." });
     }
 
     // 2. Hash the password
@@ -104,15 +188,29 @@ app.post("/api/register", async (req, res) => {
 
     // 3. Insert new user
     const sql = "INSERT INTO USER (username, email, password_hash) VALUES (?, ?, ?)";
-    await db.query(sql, [username, email, hashedPassword]);
+    await conn.query(sql, [username, email, hashedPassword]);
+
+    // 4. Delete the used OTP
+    await conn.query("DELETE FROM OTP_VERIFICATION WHERE email = ?", [email]);
+
+    // 5. Commit transaction
+    await conn.commit();
     
     res.status(201).json({ success: true, message: "User registered successfully! Please log in." });
 
   } catch (err) {
+    if (conn) await conn.rollback();
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ success: false, message: "Username or email already in use." });
+    }
     console.error("Registration DB error:", err);
     res.status(500).json({ success: false, message: "Internal server error" });
+  } finally {
+    if (conn) conn.release();
   }
 });
+
+// server.js (excerpt)
 
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
@@ -121,36 +219,29 @@ app.post("/api/login", async (req, res) => {
   }
 
   try {
-    // 1. Find the user
     const [users] = await db.query(
       "SELECT * FROM USER WHERE username = ?",
       [username]
     );
-
     if (users.length === 0) {
-      return res.status(401).json({ success: false, message: "Incorrect username or password." });
+      return res.status(401).json({ success: false, message: "Incorrect username." });
     }
 
     const user = users[0];
-
-    // 2. Compare the provided password with the stored hash
     const match = await bcrypt.compare(password, user.password_hash);
 
     if (match) {
-      // Passwords match!
+      // If successful, you should send back user info.
+      // IMPORTANT: Do NOT send the password_hash.
       res.json({ success: true, user: { id: user.user_id, username: user.username } });
     } else {
-      // Passwords do not match
-      res.status(401).json({ success: false, message: "Incorrect username or password." });
+      res.status(401).json({ success: false, message: "Incorrect password." });
     }
-
   } catch (err) {
-    console.error("Login DB error:", err);
+    console.error("Login DB error:", err); // Look for this error in your server console!
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-
-
 // =================================================================
 //                 CREATE POST ROUTE (with Hashtags)
 // =================================================================

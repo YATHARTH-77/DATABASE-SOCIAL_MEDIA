@@ -6,18 +6,27 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.png";
 import textLogo from "@/assets/text_logo_dbis.png";
-import { Loader2 } from "lucide-react"; // Import a loading icon
+import { Loader2 } from "lucide-react"; 
 
 export default function Register() {
+  // --- Step 1 Fields ---
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // Add loading state
+  
+  // --- Step 2 Field ---
+  const [otp, setOtp] = useState("");
+  
+  // --- UI State ---
+  const [step, setStep] = useState(1); // 1 for details, 2 for OTP
+  const [isLoading, setIsLoading] = useState(false);
+  
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleRegister = async (e) => {
+  // --- Step 1: Send OTP ---
+  const handleSendOtp = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       toast({
@@ -28,27 +37,23 @@ export default function Register() {
       return;
     }
 
-    setIsLoading(true); // Set loading to true
+    setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/register", {
+      // We only need to send username and email to check for duplicates and send the OTP
+      const res = await fetch("http://localhost:5000/api/register/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ username, email }),
       });
       const data = await res.json();
 
       if (data.success) {
         toast({
-          title: "Welcome to ConnectIT!",
-          // Updated description to be more clear
-          description: "Account created! Please log in to continue.",
+          title: "OTP Sent!",
+          description: "A 6-digit code has been sent to your email.",
         });
-        
-        // --- CRITICAL UPDATE ---
-        // Redirect to LOGIN, not home. The user isn't logged in yet.
-        navigate("/login");
+        setStep(2); // Move to OTP verification step
       } else {
-        // Use toast for errors instead of alert
         toast({
           title: "Registration Failed",
           description: data.message || "An unknown error occurred.",
@@ -62,7 +67,44 @@ export default function Register() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false); // Set loading to false
+      setIsLoading(false);
+    }
+  };
+
+  // --- Step 2: Verify OTP and Create User ---
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      // Now we send all the data, including the password and OTP
+      const res = await fetch("http://localhost:5000/api/register/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, password, otp }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        toast({
+          title: "Welcome to ConnectIT!",
+          description: "Account created! Please log in to continue.",
+        });
+        navigate("/login"); // Redirect to login
+      } else {
+        toast({
+          title: "Verification Failed",
+          description: data.message || "An unknown error occurred.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not connect to the server.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -84,100 +126,133 @@ export default function Register() {
         </div>
 
         <div className="bg-card rounded-2xl shadow-2xl p-8 border border-border -mt-10">
-          <h2 className="text-2xl font-bold text-center mb-6 text-foreground">
-            Create Account
-          </h2>
+          
+          {/* --- Step 1: User Details --- */}
+          {step === 1 && (
+            <>
+              <h2 className="text-2xl font-bold text-center mb-6 text-foreground">
+                Create Account
+              </h2>
+              <form onSubmit={handleSendOtp} className="space-y-4">
+                {/* Username Field */}
+                <div>
+                  <Label htmlFor="username" className="text-muted-foreground text-xs mb-1">
+                    Username
+                  </Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="rounded-xl"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                {/* Email Field */}
+                <div>
+                  <Label htmlFor="email" className="text-muted-foreground text-xs mb-1">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="rounded-xl"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                {/* Password Field */}
+                <div>
+                  <Label htmlFor="password" className="text-muted-foreground text-xs mb-1">
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="rounded-xl"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                {/* Confirm Password Field */}
+                <div>
+                  <Label htmlFor="confirmPassword" className="text-muted-foreground text-xs mb-1">
+                    Confirm Password
+                  </Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="rounded-xl"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full gradient-primary text-white font-bold rounded-xl mt-6"
+                  disabled={isLoading}
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send OTP"}
+                </Button>
+              </form>
+            </>
+          )}
 
-          <form onSubmit={handleRegister} className="space-y-4">
-            {/* Username Field */}
-            <div>
-              <Label
-                htmlFor="username"
-                className="text-muted-foreground text-xs mb-1"
-              >
-                Username
-              </Label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="rounded-xl"
-                required
-                disabled={isLoading} // Disable when loading
-              />
-            </div>
+          {/* --- Step 2: OTP Verification --- */}
+          {step === 2 && (
+            <>
+              <h2 className="text-2xl font-bold text-center mb-6 text-foreground">
+                Verify Your Email
+              </h2>
+              <p className="text-center text-sm text-muted-foreground -mt-4 mb-6">
+                A 6-digit OTP was sent to {email}.
+              </p>
+              <form onSubmit={handleVerify} className="space-y-4">
+                {/* OTP Field */}
+                <div>
+                  <Label htmlFor="otp" className="text-muted-foreground text-xs mb-1">
+                    6-Digit OTP
+                  </Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    className="rounded-xl text-center text-lg tracking-[0.3em]"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                
+                <Button
+                  type="submit"
+                  className="w-full gradient-primary text-white font-bold rounded-xl mt-6"
+                  disabled={isLoading}
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify & Register"}
+                </Button>
 
-            {/* Email Field */}
-            <div>
-              <Label
-                htmlFor="email"
-                className="text-muted-foreground text-xs mb-1"
-              >
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="rounded-xl"
-                required
-                disabled={isLoading} // Disable when loading
-              />
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <Label
-                htmlFor="password"
-                className="text-muted-foreground text-xs mb-1"
-              >
-                Password
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="rounded-xl"
-                required
-                disabled={isLoading} // Disable when loading
-              />
-            </div>
-
-            {/* Confirm Password Field */}
-            <div>
-              <Label
-                htmlFor="confirmPassword"
-                className="text-muted-foreground text-xs mb-1"
-              >
-                Confirm Password
-              </Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="rounded-xl"
-                required
-                disabled={isLoading} // Disable when loading
-              />
-            </div>
-
-            {/* --- UPDATED BUTTON --- */}
-            <Button
-              type="submit"
-              className="w-full gradient-primary text-white font-bold rounded-xl mt-6"
-              disabled={isLoading} // Disable when loading
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                "Register"
-              )}
-            </Button>
-          </form>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full text-muted-foreground"
+                  onClick={() => setStep(1)}
+                  disabled={isLoading}
+                >
+                  Go Back
+                </Button>
+              </form>
+            </>
+          )}
 
           {/* Login Link (unchanged) */}
           <p className="text-center text-sm text-muted-foreground mt-6">
