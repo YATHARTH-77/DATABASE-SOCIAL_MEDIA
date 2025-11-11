@@ -45,17 +45,48 @@ export default function Home() {
   const [commentsData, setCommentsData] = useState({});
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Now controls the whole page
   const [error, setError] = useState(null);
 
   // --- 1. Get Logged-in User ---
+  // This is the most critical part for Google Login. This useEffect checks if a user is in localStorage (from a normal login) or in the server session (from a Google login).
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
-      navigate("/login"); // Not logged in, redirect
-    }
+    const checkAuth = async () => {
+      // 1. Check localStorage first (for email/pass login)
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+        return; // Found user, exit
+      }
+
+      // 2. If not, check server session (for Google Login redirect)
+      try {
+        const res = await fetch("http://localhost:5000/api/auth/current_user", {
+          credentials: 'include' // This is crucial for sending the session cookie
+        });
+        
+        if (!res.ok) {
+           // Not an error, just not logged in
+           navigate("/login");
+           return;
+        }
+
+        const data = await res.json();
+        
+        if (data.success) {
+          // Save Google user to localStorage for future visits
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setUser(data.user);
+        } else {
+          // Not logged in
+          navigate("/login");
+        }
+      } catch (err) {
+        console.error("Auth check failed", err);
+        navigate("/login");
+      }
+    };
+    checkAuth();
   }, [navigate]);
 
   // --- 2. Fetch Feed Data (Moments & Posts) on Load ---
@@ -63,7 +94,7 @@ export default function Home() {
     if (!user) return; // Don't fetch if user isn't loaded yet
 
     const fetchFeedData = async () => {
-      setIsLoading(true);
+      setIsLoading(true); // Set loading to true *when* we start fetching
       setError(null);
       try {
         // --- Fetch Moments ---
@@ -76,7 +107,7 @@ export default function Home() {
             username: s.username,
             avatar: s.profile_pic_url,
             src: `${API_URL}${s.media_url}`,
-            type: s.media_url.endsWith('.mp4') ? 'video' : 'photo',
+            type: s.media_url && s.media_url.endsWith('.mp4') ? 'video' : 'photo',
             timestamp: s.created_at,
           })));
         }
@@ -97,7 +128,7 @@ export default function Home() {
       } catch (err) {
         setError(err.message);
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); // Set loading to false *after* fetching is done
       }
     };
 
@@ -213,7 +244,7 @@ export default function Home() {
   
   // --- 4. Render Loading/Error/Content ---
 
-  if (isLoading) {
+  if (isLoading || !user) { // Show loader until user is verified AND data is loaded
     return (
       <div className="flex min-h-screen bg-background">
         <Sidebar />

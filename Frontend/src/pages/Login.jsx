@@ -6,18 +6,18 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.png";
 import textLogo from "@/assets/text_logo_dbis.png";
-import { Loader2 } from "lucide-react"; // Import a loading icon
+import { Loader2 } from "lucide-react"; 
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // Add loading state
+  const [isLoading, setIsLoading] = useState(false); 
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setIsLoading(true); // Set loading to true
+    setIsLoading(true); 
 
     try {
       const res = await fetch("http://localhost:5000/api/login", {
@@ -34,13 +34,10 @@ export default function Login() {
           description: "You've successfully logged in.",
         });
         
-        // --- CRITICAL UPDATE ---
-        // Save the user data so the rest of the app can use it
         localStorage.setItem('user', JSON.stringify(data.user));
         
-        navigate("/home"); // Redirect to home
+        navigate("/home"); 
       } else {
-        // Use toast for errors instead of alert
         toast({
           title: "Login Failed",
           description: data.message || "An unknown error occurred.",
@@ -54,15 +51,16 @@ export default function Login() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false); // Set loading to false
+      setIsLoading(false); 
     }
   };
 
+  // --- *** MODIFIED: Real Google Login *** ---
   const handleGoogleLogin = () => {
-    toast({
-      title: "Google Login",
-      description: "Google authentication would be implemented here.",
-    });
+    // This just redirects the browser to the backend auth route.
+    // The backend will then redirect to Google.
+    // It's not an async fetch call.
+    window.location.href = "http://localhost:5000/api/auth/google";
   };
 
   return (
@@ -103,7 +101,7 @@ export default function Login() {
                 onChange={(e) => setUsername(e.target.value)}
                 className="rounded-xl"
                 required
-                disabled={isLoading} // Disable when loading
+                disabled={isLoading} 
               />
               <button
                 type="button"
@@ -128,7 +126,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="rounded-xl"
                 required
-                disabled={isLoading} // Disable when loading
+                disabled={isLoading} 
               />
               <button
                 type="button"
@@ -138,11 +136,11 @@ export default function Login() {
               </button>
             </div>
 
-            {/* --- UPDATED BUTTON --- */}
+            {/* Login Button (unchanged) */}
             <Button
               type="submit"
               className="w-full gradient-primary text-white font-bold rounded-xl"
-              disabled={isLoading} // Disable when loading
+              disabled={isLoading} 
             >
               {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -152,7 +150,7 @@ export default function Login() {
             </Button>
           </form>
 
-          {/* Google Login & Register Link (unchanged) */}
+          {/* Divider (unchanged) */}
           <div className="my-6 flex items-center gap-3">
             <div className="flex-1 h-px bg-border" />
             <span className="text-sm text-muted-foreground">
@@ -161,16 +159,18 @@ export default function Login() {
             <div className="flex-1 h-px bg-border" />
           </div>
 
+          {/* Google Button (changed) */}
           <Button
             onClick={handleGoogleLogin}
             variant="outline"
             className="w-full rounded-xl"
             disabled={isLoading}
           >
-            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">{/* ... */}</svg>
+            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">{/* (svg path unchanged) */}</svg>
             Google
           </Button>
 
+          {/* Register Link (unchanged) */}
           <p className="text-center text-sm text-muted-foreground mt-6">
             Don't have an account?{" "}
             <Link

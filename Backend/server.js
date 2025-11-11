@@ -9,6 +9,9 @@ const fs = require("fs");
 require('dotenv').config(); // Loads .env variables
 const nodemailer = require('nodemailer');
 const crypto = require('crypto'); // For generating OTP
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const session = require('express-session');
 
 // --- Add this Nodemailer setup code ---
 // (Place this near your `db` connection)
@@ -31,7 +34,10 @@ transporter.verify((error, success) => {
   }
 });
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:8080', // Your React app's URL
+  credentials: true
+}));
 app.use(express.json()); // For parsing JSON bodies
 
 // --- Create upload directories if they don't exist ---
@@ -99,7 +105,90 @@ const storyStorage = multer.diskStorage({
 });
 const uploadStory = multer({ storage: storyStorage });
 
+// =================================================================
+//                 *** NEW PASSPORT & SESSION SETUP ***
+// =================================================================
+// (Place this before your routes)
 
+// 1. Configure Express Session
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    // In production, set: secure: true
+  }
+}));
+
+// 2. Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// 3. Configure Google Strategy
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: "/api/auth/google/callback", // Must match Google Cloud setup
+  },
+  async (accessToken, refreshToken, profile, done) => {
+    // This runs after Google login
+    const email = profile.emails[0].value;
+    const displayName = profile.displayName;
+    const profilePic = profile.photos[0].value;
+    
+    try {
+      // 1. Check if user already exists
+      const [users] = await db.query("SELECT * FROM USER WHERE email = ?", [email]);
+
+      if (users.length > 0) {
+        // User exists, log them in
+        return done(null, users[0]);
+      }
+      
+      // 2. User doesn't exist, create them
+      let username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ''); // Clean username
+      const [existingUsernames] = await db.query("SELECT * FROM USER WHERE username = ?", [username]);
+      if (existingUsernames.length > 0) {
+        // If username is taken, add random numbers
+        username = `${username}${crypto.randomInt(1000, 9999)}`;
+      }
+      
+      const fakePassword = crypto.randomBytes(20).toString('hex');
+      const hashedPassword = await bcrypt.hash(fakePassword, 10);
+      
+      const [result] = await db.query(
+        "INSERT INTO USER (username, email, password_hash, full_name, profile_pic_url) VALUES (?, ?, ?, ?, ?)",
+        [username, email, hashedPassword, displayName, profilePic]
+      );
+      
+      const newUser = {
+        user_id: result.insertId,
+        username: username,
+        email: email
+      };
+      
+      return done(null, newUser);
+
+    } catch (err) {
+      return done(err, null);
+    }
+  }
+));
+
+// 4. Serialize/Deserialize User
+passport.serializeUser((user, done) => {
+  done(null, user.user_id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    const [users] = await db.query("SELECT user_id, username, email FROM USER WHERE user_id = ?", [id]);
+    done(null, users[0]); // Puts user info on req.user
+  } catch (err) {
+    done(err, null);
+  }
+});
 // =================================================================
 //                 USER AUTHENTICATION ROUTES
 // =================================================================
@@ -241,6 +330,47 @@ app.post("/api/login", async (req, res) => {
     console.error("Login DB error:", err); // Look for this error in your server console!
     res.status(500).json({ success: false, message: "Internal server error" });
   }
+});
+
+// --- *** NEW GOOGLE AUTH ROUTES *** ---
+
+// 1. Start Google Login
+// When frontend goes to this URL, server redirects to Google
+app.get('/api/auth/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+// 2. Google Callback
+// After Google login, Google redirects back here
+app.get('/api/auth/google/callback', 
+  passport.authenticate('google', { 
+    failureRedirect: 'http://localhost:8080/login?error=google' // Redirect to login on fail
+  }),
+  (req, res) => {
+    // Successful authentication! Passport adds user to session.
+    // Now redirect user back to the frontend home page.
+    res.redirect('http://localhost:8080/home');
+  }
+);
+
+// 3. Get Current User (for frontend to check session)
+app.get('/api/auth/current_user', (req, res) => {
+  if (req.user) {
+    // req.user is from passport.deserializeUser
+    res.json({ success: true, user: { id: req.user.user_id, username: req.user.username } });
+  } else {
+    res.status(401).json({ success: false, message: "Not authenticated" });
+  }
+});
+
+// 4. Logout
+app.get('/api/auth/logout', (req, res, next) => {
+  req.logout((err) => {
+    if (err) { return next(err); }
+    req.session.destroy(); // Destroy the session
+    res.clearCookie('connect.sid'); // Clear the cookie
+    res.json({ success: true, message: "Logged out" });
+  });
 });
 // =================================================================
 //                 CREATE POST ROUTE (with Hashtags)
