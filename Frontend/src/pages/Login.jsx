@@ -139,7 +139,7 @@ export default function Login() {
             {/* Login Button (unchanged) */}
             <Button
               type="submit"
-              className="w-full gradient-primary text-white font-bold rounded-xl"
+              className="w-full gradient-sidebar text-white font-bold rounded-xl"
               disabled={isLoading} 
             >
               {isLoading ? (

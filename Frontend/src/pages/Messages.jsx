@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -92,12 +91,10 @@ export default function Messages() {
   });
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
+    <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-2xl mx-auto">
           <Card className="shadow-lg rounded-lg">
-            <div className="p-4 border-b gradient-primary flex items-center gap-3">
+            <div className="p-4 border-b gradient-sidebar flex items-center gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white" />
                 <Input
@@ -184,7 +181,7 @@ export default function Messages() {
                       title={`View ${conversation.name}`}
                     >
                       <AvatarImage src={conversation.profile_pic_url ? `${API_URL}${conversation.profile_pic_url}` : ''} />
-                      <AvatarFallback className="gradient-primary text-white">
+                      <AvatarFallback className="gradient-sidebar text-white">
                         {conversation.name[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -210,6 +207,5 @@ export default function Messages() {
           </Card>
         </div>
       </main>
-    </div>
   );
 }

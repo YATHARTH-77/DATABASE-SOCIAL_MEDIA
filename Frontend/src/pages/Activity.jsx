@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Heart, MessageCircle, UserPlus, Bookmark, Loader2, AtSign } from "lucide-react"; // Import AtSign
@@ -139,13 +138,11 @@ export default function Activity() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      
-      <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
+    <>
+      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-4xl mx-auto">
           <Card className="shadow-lg">
-            <div className="p-6 border-b gradient-primary">
+            <div className="p-6 border-b gradient-sidebar">
               <h1 className="text-2xl font-bold text-white">Activity</h1>
             </div>
 
@@ -172,7 +169,7 @@ export default function Activity() {
                     <div className="relative">
                       <Avatar>
                         <AvatarImage src={activity.actor_pic ? `${API_URL}${activity.actor_pic}` : ''} />
-                        <AvatarFallback className="gradient-primary text-white">
+                        <AvatarFallback className="gradient-sidebar text-white">
                           {activity.actor_username[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -194,7 +191,7 @@ export default function Activity() {
                     {/* "Follow Back" Button */}
                     {activity.type === "follow" && (
                       <button 
-                        className="px-4 py-1.5 gradient-primary text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity ml-auto"
+                        className="px-4 py-1.5 gradient-sidebar text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity ml-auto"
                         onClick={(e) => handleFollowBack(e, activity.actor_id)}
                       >
                         Follow Back
@@ -217,6 +214,6 @@ export default function Activity() {
           </Card>
         </div>
       </main>
-    </div>
+    </>
   );
 }

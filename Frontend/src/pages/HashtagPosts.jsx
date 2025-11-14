@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Sidebar } from "@/components/Sidebar";
+// Sidebar is provided by the persistent Layout
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -167,39 +167,31 @@ export default function HashtagPosts() {
   // --- Render Loading/Error States ---
   if (isLoading) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 flex items-center justify-center">
-          <Loader2 className="w-12 h-12 text-primary animate-spin" />
-        </main>
-      </div>
+      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 flex items-center justify-center">
-          <p className="text-red-500">Error: {error}</p>
-        </main>
-      </div>
+      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
+        <p className="text-red-500">Error: {error}</p>
+      </main>
     );
   }
 
   // --- Main Render ---
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      
-      <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
+    <>
+      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-2xl mx-auto space-y-6">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold gradient-primary">#{tag}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold gradient-sidebar">#{tag}</h1>
               <p className="text-sm text-muted-foreground mt-1">
                 {posts.length} {posts.length === 1 ? "post" : "posts"}
               </p>
@@ -317,6 +309,6 @@ export default function HashtagPosts() {
           </div>
         </div>
       </main>
-    </div>
+    </>
   );
 }

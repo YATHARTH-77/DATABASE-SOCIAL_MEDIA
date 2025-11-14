@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -115,26 +114,22 @@ export default function Conversation() {
 
   if (!user || (!otherUser && !isLoading)) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
-          <div className="max-w-2xl mx-auto text-center">
-            <h1 className="text-2xl md:text-3xl font-bold mb-4">Conversation not found</h1>
-            <Button onClick={() => navigate("/messages")}>Back to Messages</Button>
-          </div>
-        </main>
-      </div>
+      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
+        <div className="max-w-2xl mx-auto text-center">
+          <h1 className="text-2xl md:text-3xl font-bold mb-4">Conversation not found</h1>
+          <Button onClick={() => navigate("/messages")}>Back to Messages</Button>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
+    <>
+      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-2xl mx-auto h-[calc(100vh-4rem)]">
           <Card className="shadow-lg h-full flex flex-col">
             {/* --- HEADER --- */}
-            <div className="p-3 md:p-4 border-b gradient-primary flex items-center gap-3 md:gap-4">
+            <div className="p-3 md:p-4 border-b gradient-sidebar flex items-center gap-3 md:gap-4">
               <Button
                 variant="ghost"
                 size="icon"
@@ -186,7 +181,7 @@ export default function Conversation() {
                       <div
                         className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-2 ${
                           msg.sender_id === user.id
-                            ? "gradient-primary text-white"
+                            ? "gradient-sidebar text-white"
                             : "bg-muted"
                         }`}
                       >
@@ -225,7 +220,7 @@ export default function Conversation() {
                 <Button
                   type="submit"
                   disabled={!newMessage.trim()}
-                  className="gradient-primary text-white"
+                  className="gradient-sidebar text-white"
                 >
                   <Send className="w-5 h-5" />
                 </Button>
@@ -234,6 +229,6 @@ export default function Conversation() {
           </Card>
         </div>
       </main>
-    </div>
+    </>
   );
 }

@@ -234,7 +234,7 @@ export const StoryViewer = ({ stories, initialIndex, onClose }) => {
           <ArrowLeft className="w-6 h-6" />
         </Button>
         <Avatar className="w-10 h-10">
-          <AvatarFallback className="gradient-primary text-white">
+          <AvatarFallback className="gradient-sidebar text-white">
             {currentStory.username[0].toUpperCase()}
           </AvatarFallback>
         </Avatar>

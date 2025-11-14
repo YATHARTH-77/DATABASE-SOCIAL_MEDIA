@@ -8,14 +8,14 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 10%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    --card: 0 0% 6%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 100%;
 
     /* Blue to Green to Gold gradient theme */
     --primary: 195 100% 50%; /* Deep Sky Blue */
@@ -28,8 +28,8 @@ All colors MUST be HSL.
     --secondary: 120 61% 50%; /* Lime Green accent */
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 60%;
 
     --accent: 51 100% 50%; /* Gold */
     --accent-foreground: 0 0% 10%;
@@ -37,8 +37,8 @@ All colors MUST be HSL.
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
+    --border: 0 0% 20%;
+    --input: 0 0% 12%;
     --ring: 195 100% 50%;
 
     --radius: 0.75rem;
@@ -55,14 +55,14 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 0 0% 10%;
-    --foreground: 0 0% 98%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
 
-    --card: 0 0% 12%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 6%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 12%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 100%;
 
     --primary: 195 100% 50%;
     --primary-foreground: 0 0% 100%;
@@ -74,8 +74,8 @@ All colors MUST be HSL.
     --secondary: 120 61% 50%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 60%;
 
     --accent: 51 100% 50%;
     --accent-foreground: 0 0% 10%;
@@ -84,7 +84,51 @@ All colors MUST be HSL.
     --destructive-foreground: 0 0% 100%;
 
     --border: 0 0% 20%;
-    --input: 0 0% 20%;
+    --input: 0 0% 12%;
+    --ring: 195 100% 50%;
+
+    --sidebar-background: 195 100% 50%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 195 100% 50%;
+    --sidebar-accent: 0 0% 100% / 0.1;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 100% / 0.2;
+    --sidebar-ring: 0 0% 100%;
+  }
+  
+  /* Light theme override: when `light` class is present on root, use light tokens */
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    --primary: 195 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    
+    --primary-gradient-start: 195 100% 50%;
+    --primary-gradient-middle: 120 61% 50%;
+    --primary-gradient-end: 51 100% 50%;
+
+    --secondary: 120 61% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 51 100% 50%;
+    --accent-foreground: 0 0% 10%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
     --ring: 195 100% 50%;
 
     --sidebar-background: 195 100% 50%;
@@ -114,7 +158,22 @@ All colors MUST be HSL.
   }
   
   .gradient-sidebar {
-    background: linear-gradient(180deg, hsl(var(--primary-gradient-start)), hsl(var(--primary-gradient-middle)), hsl(var(--primary-gradient-end)));
+    /* Animated purple sidebar gradient */
+    background: linear-gradient(120deg, #4b0082 0%, #6a00a3 35%, #2e0051 100%);
+    background-size: 300% 300%;
+    animation: gradientShift 8s ease infinite;
+  }
+
+  @keyframes gradientShift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
   }
 
   .text-gradient {
