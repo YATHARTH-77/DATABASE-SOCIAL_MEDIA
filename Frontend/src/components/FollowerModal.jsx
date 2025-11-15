@@ -17,44 +17,44 @@ export function FollowerModal({ type, users, onClose, onRemoveFollower, onUnfoll
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="relative w-full max-w-md bg-background rounded-xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-md bg-white rounded-xl overflow-hidden shadow-2xl border-2 border-purple-300" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-bold">{title}</h2>
+        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-[#1D0C69] to-[#5A0395]">
+          <h2 className="text-lg font-bold text-white">{title}</h2>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-8 w-8"
+            className="h-8 w-8 text-white hover:bg-white/20"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Search Bar */}
-        <div className="p-4 border-b">
+        <div className="p-4 bg-white border-b border-purple-200">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#5A0395]" />
             <input
               type="text"
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full pl-10 pr-4 py-2 border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A0395] text-[#1D0C69] placeholder:text-purple-400"
             />
           </div>
         </div>
 
         {/* User List */}
-        <div className="max-h-[400px] overflow-y-auto">
+        <div className="max-h-[400px] overflow-y-auto bg-white">
           {filteredUsers.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-12 text-[#5A0395]">
               <p>{searchQuery ? "No users found" : `No ${title.toLowerCase()} yet`}</p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-purple-100">
               {filteredUsers.map((user) => (
-                <div key={user.user_id} className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+                <div key={user.user_id} className="flex items-center justify-between p-4 bg-gradient-to-br from-purple-50 to-purple-100 hover:shadow-md transition-shadow border-b border-purple-200">
                   <div 
                     className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
                     onClick={() => {
@@ -64,14 +64,14 @@ export function FollowerModal({ type, users, onClose, onRemoveFollower, onUnfoll
                   >
                     <Avatar className="w-10 h-10 flex-shrink-0">
                       <AvatarImage src={user.profile_pic_url ? `${API_URL}${user.profile_pic_url}` : ''} />
-                      <AvatarFallback className="bg-blue-500 text-white text-sm">
+                      <AvatarFallback className="bg-[#5A0395] text-white text-sm">
                         {user.username[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm truncate">{user.username}</p>
+                      <p className="font-semibold text-sm truncate text-[#1D0C69]">{user.username}</p>
                       {user.full_name && (
-                        <p className="text-xs text-muted-foreground truncate">{user.full_name}</p>
+                        <p className="text-xs text-[#5A0395] truncate">{user.full_name}</p>
                       )}
                     </div>
                   </div>
@@ -83,7 +83,7 @@ export function FollowerModal({ type, users, onClose, onRemoveFollower, onUnfoll
                         variant="outline"
                         size="sm"
                         onClick={() => onRemoveFollower(user.user_id)}
-                        className="ml-2 flex-shrink-0"
+                        className="ml-2 flex-shrink-0 border-2 border-[#5A0395] text-[#5A0395] hover:bg-[#5A0395] hover:text-white"
                       >
                         Remove
                       </Button>
@@ -92,7 +92,7 @@ export function FollowerModal({ type, users, onClose, onRemoveFollower, onUnfoll
                         variant="outline"
                         size="sm"
                         onClick={() => onUnfollow(user.user_id)}
-                        className="ml-2 flex-shrink-0"
+                        className="ml-2 flex-shrink-0 border-2 border-[#5A0395] text-[#5A0395] hover:bg-[#5A0395] hover:text-white"
                       >
                         Unfollow
                       </Button>
