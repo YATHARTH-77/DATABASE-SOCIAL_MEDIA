@@ -45,30 +45,36 @@ export default function Search() {
 
   // --- Fetch Trending and Suggested Data on Load ---
   useEffect(() => {
-    const fetchInitialData = async () => {
-      setIsLoadingInitial(true);
-      try {
-        // Fetch trending hashtags
-        const hashRes = await fetch(`${API_URL}/api/search/trending-hashtags`);
-        const hashData = await hashRes.json();
-        if (hashData.success) {
-          setTrendingHashtags(hashData.hashtags);
-        }
-
-        // Fetch suggested users
-        const userRes = await fetch(`${API_URL}/api/search/suggested-users`);
-        const userData = await userRes.json();
-        if (userData.success) {
-          setSuggestedUsers(userData.users);
-        }
-      } catch (error) {
-        console.error("Failed to fetch initial search data:", error);
-      } finally {
-        setIsLoadingInitial(false);
+  const fetchInitialData = async () => {
+    setIsLoadingInitial(true);
+    try {
+      // Get logged-in user
+      const storedUser = localStorage.getItem('user');
+      const user = storedUser ? JSON.parse(storedUser) : null;
+      
+      // Fetch trending hashtags
+      const hashRes = await fetch(`${API_URL}/api/search/trending-hashtags`);
+      const hashData = await hashRes.json();
+      if (hashData.success) {
+        setTrendingHashtags(hashData.hashtags);
       }
-    };
-    fetchInitialData();
-  }, []);
+
+      // Fetch suggested users (pass userId if available)
+      const userRes = user 
+        ? await fetch(`${API_URL}/api/search/suggested-users?userId=${user.id}`)
+        : await fetch(`${API_URL}/api/search/suggested-users`);
+      const userData = await userRes.json();
+      if (userData.success) {
+        setSuggestedUsers(userData.users);
+      }
+    } catch (error) {
+      console.error("Failed to fetch initial search data:", error);
+    } finally {
+      setIsLoadingInitial(false);
+    }
+  };
+  fetchInitialData();
+}, []);
 
   // --- Debounced Search Effect ---
   useEffect(() => {
