@@ -67,6 +67,11 @@ export default function Activity() {
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [followedBack, setFollowedBack] = useState(() => {
+    // Initialize from localStorage
+    const stored = localStorage.getItem('followedBack');
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  });
   
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -98,13 +103,21 @@ export default function Activity() {
 
   const handleFollowBack = async (e, actorId) => {
     e.stopPropagation(); 
-    if (!user) return;
+    if (!user) {
+      alert("User not logged in");
+      return;
+    }
 
-    e.target.disabled = true;
-    e.target.innerText = "Following";
+    const button = e.target;
+    const originalText = button.innerText;
+    
+    button.disabled = true;
+    button.innerText = "Following...";
 
     try {
-      await fetch(`${API_URL}/api/follow`, {
+      console.log("Follow back request:", { followerId: user.id, followingId: actorId });
+      
+      const res = await fetch(`${API_URL}/api/follow-back`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -112,10 +125,33 @@ export default function Activity() {
           followingId: actorId   
         }),
       });
+      
+      console.log("Response status:", res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Server error:", errorText);
+        throw new Error(`Server returned ${res.status}: ${errorText}`);
+      }
+      
+      const data = await res.json();
+      console.log("Response data:", data);
+      
+      if (data.success) {
+        // Add to followedBack set and persist to localStorage
+        setFollowedBack(prev => {
+          const updated = new Set([...prev, actorId]);
+          localStorage.setItem('followedBack', JSON.stringify([...updated]));
+          return updated;
+        });
+      } else {
+        throw new Error(data.message || 'Failed to follow');
+      }
     } catch (err) {
-      console.error("Failed to follow back:", err);
-      e.target.disabled = false;
-      e.target.innerText = "Follow Back";
+      console.error("Failed to follow back - Full error:", err);
+      button.disabled = false;
+      button.innerText = originalText;
+      alert(`Failed to follow back: ${err.message}`);
     }
   };
   
@@ -183,7 +219,7 @@ export default function Activity() {
                     </div>
 
                     {/* "Follow Back" Button */}
-                    {activity.type === "follow" && (
+                    {activity.type === "follow" && !followedBack.has(activity.actor_id) && (
                       <button 
                         className="px-4 py-1.5 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity ml-auto"
                         onClick={(e) => handleFollowBack(e, activity.actor_id)}

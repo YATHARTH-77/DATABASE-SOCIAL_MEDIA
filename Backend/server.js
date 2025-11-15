@@ -385,10 +385,19 @@ app.post("/api/posts/create", uploadPost.array('media', 10), async (req, res) =>
 });
 
 app.post("/api/posts/like", async (req, res) => {
+  const { userId, postId } = req.body;
+  
+  if (!userId || !postId) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "userId and postId are required" 
+    });
+  }
+  
   let conn;
   try {
     conn = await db.getConnection();
-    await conn.beginTransaction(); // 🔒 START
+    await conn.beginTransaction();
     
     const [existing] = await conn.query(
       "SELECT * FROM POST_LIKE WHERE user_id = ? AND post_id = ?", 
@@ -401,29 +410,41 @@ app.post("/api/posts/like", async (req, res) => {
         "DELETE FROM POST_LIKE WHERE user_id = ? AND post_id = ?", 
         [userId, postId]
       );
+      await conn.commit();
+      res.json({ success: true, action: 'unliked' });
     } else {
       // LIKE
       await conn.query(
         "INSERT INTO POST_LIKE (user_id, post_id) VALUES (?, ?)", 
         [userId, postId]
       );
+      await conn.commit();
+      res.json({ success: true, action: 'liked' });
     }
     
-    await conn.commit(); // ✅ SUCCESS
-    
   } catch (err) {
-    if (conn) await conn.rollback(); // ❌ CANCEL
-    res.status(500).json({success:false});
+    console.error("Like error:", err);
+    if (conn) await conn.rollback();
+    res.status(500).json({success:false, message: "Internal server error"});
   } finally {
     if (conn) conn.release();
   }
 });
 
 app.post("/api/posts/save", async (req, res) => {
+  const { userId, postId } = req.body;
+  
+  if (!userId || !postId) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "userId and postId are required" 
+    });
+  }
+  
   let conn;
   try {
     conn = await db.getConnection();
-    await conn.beginTransaction(); // 🔒 START
+    await conn.beginTransaction();
     
     const [existing] = await conn.query(
       "SELECT * FROM Saved_posts WHERE user_id = ? AND post_id = ?", 
@@ -436,19 +457,22 @@ app.post("/api/posts/save", async (req, res) => {
         "DELETE FROM Saved_posts WHERE user_id = ? AND post_id = ?", 
         [userId, postId]
       );
+      await conn.commit();
+      res.json({ success: true, action: 'unsaved' });
     } else {
       // SAVE
       await conn.query(
         "INSERT INTO Saved_posts (user_id, post_id) VALUES (?, ?)", 
         [userId, postId]
       );
+      await conn.commit();
+      res.json({ success: true, action: 'saved' });
     }
     
-    await conn.commit(); // ✅ SUCCESS
-    
   } catch (err) {
-    if (conn) await conn.rollback(); // ❌ CANCEL
-    res.status(500).json({success:false});
+    console.error("Save error:", err);
+    if (conn) await conn.rollback();
+    res.status(500).json({success:false, message: "Internal server error"});
   } finally {
     if (conn) conn.release();
   }
@@ -475,7 +499,7 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
   let conn;
   try {
     conn = await db.getConnection();
-    await conn.beginTransaction(); // 🔒 START TRANSACTION
+    await conn.beginTransaction();
 
     // Step 1: Check for duplicate comment
     const [existing] = await conn.query(
@@ -509,7 +533,7 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
       [resDb.insertId]
     );
 
-    await conn.commit(); // ✅ COMMIT
+    await conn.commit();
 
     return res.status(201).json({
       success: true,
@@ -764,6 +788,72 @@ app.post("/api/follow", async (req, res) => {
   } catch (err) { if (conn) await conn.rollback(); res.status(500).json({success:false}); } finally { if (conn) conn.release(); }
 });
 
+// --- Follow Back Route ---
+app.post("/api/follow-back", async (req, res) => {
+  const { followerId, followingId } = req.body;
+  
+  if (!followerId || !followingId) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "followerId and followingId are required" 
+    });
+  }
+  
+  if (followerId == followingId) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Cannot follow yourself" 
+    });
+  }
+  
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+    
+    const [existing] = await conn.query(
+      "SELECT * FROM FOLLOW WHERE follower_id = ? AND following_id = ?", 
+      [followerId, followingId]
+    );
+    
+    if (existing.length > 0) {
+      await conn.commit();
+      return res.json({ 
+        success: true, 
+        action: 'already_following',
+        message: "Already following this user" 
+      });
+    }
+    
+    await conn.query(
+      "INSERT INTO FOLLOW (follower_id, following_id) VALUES (?, ?)", 
+      [followerId, followingId]
+    );
+    
+    await conn.query(
+      "UPDATE USER SET follower_count = follower_count + 1 WHERE user_id = ?", 
+      [followingId]
+    );
+    
+    await conn.commit();
+    res.json({ 
+      success: true, 
+      action: 'followed',
+      message: "Successfully followed back" 
+    });
+    
+  } catch (err) {
+    console.error("Follow back error:", err);
+    if (conn) await conn.rollback();
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal server error" 
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
 app.post("/api/followers/remove", async (req, res) => {
   const { followerId, followingId } = req.body;
   let conn;
@@ -800,7 +890,6 @@ app.get("/api/profile/:userId/following", async (req, res) => {
 app.put("/api/profile/:userId", async (req, res) => {
   const { fullName, bio } = req.body;
   
-  // Validate full name and bio for abusive content
   if (containsAbusiveContent(fullName) || containsAbusiveContent(bio)) {
     return res.status(400).json({ 
       success: false, 
