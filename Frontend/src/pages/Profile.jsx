@@ -7,11 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Grid, Bookmark, UserPen, LogOut, Trash2, Loader2, Plus } from "lucide-react";
 import { PostDetailModal } from "@/components/PostDetailModal";
 import { FollowerModal } from "@/components/FollowerModal";
-import { CreateHighlightModal } from "@/components/CreateHighlightModal"; // *** NEW IMPORT ***
-import { StoryViewer } from "@/components/StoryViewer"; // *** NEW IMPORT ***
+import { CreateHighlightModal } from "@/components/CreateHighlightModal"; 
+import { StoryViewer } from "@/components/StoryViewer"; 
 import { useToast } from "@/hooks/use-toast";
 
-const API_URL = "http://localhost:5000";
+// --- Base URL (Dynamic for Deployment) ---
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -114,7 +115,7 @@ export default function Profile() {
           id: s.story_id,
           username: s.username,
           avatar: s.profile_pic_url,
-          src: `${API_URL}${s.media_url}`,
+          src: s.media_url, // Fixed: Use full URL directly
           type: s.media_type && s.media_type.startsWith('video') ? 'video' : 'photo',
           timestamp: s.created_at,
         }));
@@ -129,13 +130,11 @@ export default function Profile() {
   };
 
   const handleHighlightCreated = (newHighlight) => {
-    // This function will be passed to the modal to refresh the list
-    setHighlights(prev => [...prev, newHighlight]); // Simplified, ideally re-fetch
+    setHighlights(prev => [...prev, newHighlight]); 
     setShowCreateHighlight(false);
     toast({ title: "Success", description: "Highlight created!" });
   };
   
-  // (All other handlers: handleUserClick, handleRemoveFollower, handleUnfollow, etc. are unchanged)
   const handleUserClick = (username) => {
     setModalType(null);
     if (username === user.username) return; 
@@ -233,7 +232,6 @@ export default function Profile() {
     }
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
@@ -244,7 +242,6 @@ export default function Profile() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showSettingsMenu]);
 
-  // Lock body scroll for ALL modals
   useEffect(() => {
     if (selectedPost || modalType || showCreateHighlight || showHighlightViewer) {
       document.body.style.overflow = 'hidden';
@@ -308,11 +305,12 @@ export default function Profile() {
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-4xl mx-auto">
           <Card className="p-4 sm:p-8 shadow-lg">
-            {/* --- Profile Header (Unchanged) --- */}
+            {/* --- Profile Header --- */}
             <div className="flex items-start justify-between mb-6">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
                 <Avatar className="w-24 h-24 flex-shrink-0">
-                  <AvatarImage src={profileData.profile_pic_url ? `${API_URL}${profileData.profile_pic_url}` : ''} />
+                  {/* FIXED: Removed `${API_URL}` prefix */}
+                  <AvatarImage src={profileData.profile_pic_url || ''} />
                   <AvatarFallback className="gradient-sidebar text-white text-3xl">
                     {profileData.username[0].toUpperCase()}
                   </AvatarFallback>
@@ -378,7 +376,7 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* --- Bio (Unchanged) --- */}
+            {/* --- Bio --- */}
             <div className="mb-6 p-4 bg-muted/30 rounded-xl">
               <p className="font-semibold mb-1">{profileData.full_name || profileData.username}</p>
               <p className="text-sm text-muted-foreground break-words">
@@ -386,7 +384,7 @@ export default function Profile() {
               </p>
             </div>
 
-            {/* --- *** NEW HIGHLIGHTS SECTION *** --- */}
+            {/* --- HIGHLIGHTS SECTION --- */}
             <div className="mb-6">
               <h2 className="text-sm font-semibold text-muted-foreground mb-3">Highlights</h2>
               <div className="flex gap-4 overflow-x-auto pb-2">
@@ -412,7 +410,8 @@ export default function Profile() {
                     <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-br from-blue-400 via-emerald-400 to-amber-400">
                       <div className="w-full h-full rounded-full bg-background p-1">
                         <Avatar className="w-full h-full">
-                          <AvatarImage src={highlight.cover_media_url ? `${API_URL}${highlight.cover_media_url}` : ''} />
+                          {/* FIXED: Removed `${API_URL}` prefix */}
+                          <AvatarImage src={highlight.cover_media_url || ''} />
                           <AvatarFallback>{highlight.title[0]}</AvatarFallback>
                         </Avatar>
                       </div>
@@ -423,7 +422,7 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* --- Posts/Saved Tabs (Unchanged) --- */}
+            {/* --- Posts/Saved Tabs --- */}
             <Tabs defaultValue="posts" className="w-full">
               <TabsList className="w-full gradient-sidebar mb-6">
                 <TabsTrigger value="posts" className="flex-1 data-[state=active]:bg-white/20">
@@ -445,7 +444,8 @@ export default function Profile() {
                       className="aspect-square bg-muted rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-md relative group"
                     >
                       {post.media_url ? (
-                        <img src={`${API_URL}${post.media_url}`} alt={post.caption || 'post'} className="w-full h-full object-cover rounded-xl" />
+                        /* FIXED: Removed `${API_URL}` prefix */
+                        <img src={post.media_url} alt={post.caption || 'post'} className="w-full h-full object-cover rounded-xl" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-secondary">
                           <span className="text-muted-foreground">No Media</span>
@@ -474,7 +474,8 @@ export default function Profile() {
                       className="aspect-square bg-muted rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-md relative group"
                     >
                        {post.media_url ? (
-                         <img src={`${API_URL}${post.media_url}`} alt={post.caption || 'post'} className="w-full h-full object-cover rounded-xl" />
+                         /* FIXED: Removed `${API_URL}` prefix */
+                         <img src={post.media_url} alt={post.caption || 'post'} className="w-full h-full object-cover rounded-xl" />
                        ) : (
                         <div className="w-full h-full flex items-center justify-center bg-secondary">
                           <span className="text-muted-foreground">No Media</span>
