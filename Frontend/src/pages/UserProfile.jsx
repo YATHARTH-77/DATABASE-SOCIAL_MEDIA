@@ -231,7 +231,7 @@ export default function UserProfile() {
               </Avatar>
               <div className="flex-1 text-center sm:text-left w-full">
                 <h1 className="text-2xl sm:text-3xl font-bold mb-2 break-words text-[#1D0C69]">{profileData.username}</h1>
-                <div className="flex justify-center sm:justify-start gap-4 sm:gap-8 text-sm mb-4">
+                <div className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-8 text-sm items-baseline mb-4">
                   <div>
                     <span className="font-bold text-md sm:text-lg text-[#1D0C69]">{profileData.post_count}</span>{" "}
                     <span className="text-[#5A0395]">posts</span>
