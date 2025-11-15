@@ -87,7 +87,7 @@ export function CreateHighlightModal({ onClose, onCreate, userId }) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-bold">New Highlight</h2>
-          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 hover:bg-purple-100">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -101,6 +101,7 @@ export function CreateHighlightModal({ onClose, onCreate, userId }) {
               placeholder="Highlight Title..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              className="focus-visible:ring-[#5A0395]"
             />
           </div>
 
