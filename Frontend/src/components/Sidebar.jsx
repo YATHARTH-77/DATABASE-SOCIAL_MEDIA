@@ -11,7 +11,7 @@ export const navItems = [
   { icon: User, label: "PROFILE", path: "/profile" },
 ];
 import { Badge } from "@/components/ui/badge";
-import whiteTextLogo from "@/assets/white_text_logo.png";
+import whiteTextLogo from "@/assets/white_text_logo1.png";
 import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation.jsx";
 import ThemeToggle from "@/components/ui/theme-toggle";
 
