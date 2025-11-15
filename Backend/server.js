@@ -932,42 +932,6 @@ app.delete("/api/profile/:userId", async (req, res) => {
   } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// --- Highlights Routes ---
-app.get("/api/stories/archived", async (req, res) => {
-  try {
-    const [s] = await db.query("SELECT story_id, media_url, media_type, created_at FROM STORY WHERE user_id = ? ORDER BY created_at DESC", [req.query.userId]);
-    res.json({ success: true, stories: s });
-  } catch (err) { res.status(500).json({success:false}); }
-});
-
-app.get("/api/profile/:username/highlights", async (req, res) => {
-  try {
-    const [h] = await db.query("SELECT h.highlight_id, h.title, s.media_url AS cover_media_url FROM HIGHLIGHT h JOIN USER u ON h.user_id = u.user_id LEFT JOIN STORY s ON h.cover_story_id = s.story_id WHERE u.username = ? ORDER BY h.created_at ASC", [req.params.username]);
-    res.json({ success: true, highlights: h });
-  } catch (err) { res.status(500).json({success:false}); }
-});
-
-app.get("/api/highlight/:highlightId/stories", async (req, res) => {
-  try {
-    const [s] = await db.query("SELECT s.*, u.username, u.profile_pic_url FROM STORY s JOIN HIGHLIGHT_STORY hs ON s.story_id = hs.story_id JOIN USER u ON s.user_id = u.user_id WHERE hs.highlight_id = ? ORDER BY s.created_at ASC", [req.params.highlightId]);
-    res.json({ success: true, stories: s });
-  } catch (err) { res.status(500).json({success:false}); }
-});
-
-app.post("/api/highlights/create", async (req, res) => {
-  const { userId, title, storyIds } = req.body;
-  let conn;
-  try {
-    conn = await db.getConnection();
-    await conn.beginTransaction();
-    const [h] = await conn.query("INSERT INTO HIGHLIGHT (user_id, title, cover_story_id) VALUES (?, ?, ?)", [userId, title, storyIds[0]]);
-    const vals = storyIds.map(sid => [h.insertId, sid]);
-    await conn.query("INSERT INTO HIGHLIGHT_STORY (highlight_id, story_id) VALUES ?", [vals]);
-    await conn.commit();
-    res.status(201).json({ success: true, message: "Highlight created!", highlightId: h.insertId });
-  } catch (err) { if (conn) await conn.rollback(); res.status(500).json({success:false}); } finally { if (conn) conn.release(); }
-});
-
 // --- Start Server ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
