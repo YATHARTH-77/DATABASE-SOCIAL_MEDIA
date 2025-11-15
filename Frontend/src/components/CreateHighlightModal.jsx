@@ -150,7 +150,7 @@ export function CreateHighlightModal({ onClose, onCreate, userId }) {
           <Button
             onClick={handleCreate}
             disabled={isCreating || !title || selectedStoryIds.length === 0}
-            className="gradient-primary text-white"
+            className="gradient-sidebar text-white"
           >
             {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create"}
           </Button>

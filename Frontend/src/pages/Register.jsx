@@ -196,7 +196,7 @@ export default function Register() {
                 </div>
                 <Button
                   type="submit"
-                  className="w-full gradient-primary text-white font-bold rounded-xl mt-6"
+                  className="w-full gradient-sidebar text-white font-bold rounded-xl mt-6"
                   disabled={isLoading}
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send OTP"}
@@ -235,7 +235,7 @@ export default function Register() {
                 
                 <Button
                   type="submit"
-                  className="w-full gradient-primary text-white font-bold rounded-xl mt-6"
+                  className="w-full gradient-sidebar text-white font-bold rounded-xl mt-6"
                   disabled={isLoading}
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify & Register"}

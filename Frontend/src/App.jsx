@@ -16,6 +16,7 @@ import HashtagPosts from "./pages/HashtagPosts";
 import UserProfile from "./pages/UserProfile";
 import Conversation from "./pages/Conversation";
 import EditProfile from "./pages/EditProfile"; // <--- IMPORT THE NEW FILE
+import Layout from "@/components/Layout";
 
 
 const queryClient = new QueryClient();
@@ -30,16 +31,21 @@ const App = () => (
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/messages/:chatId" element={<Conversation />} /> {/* <--- ADD THIS LINE */}
-          <Route path="/search" element={<Search />} />
-          <Route path="/hashtag/:tag" element={<HashtagPosts />} />
-          <Route path="/user/:username" element={<UserProfile />} />
-          <Route path="/profile/edit" element={<EditProfile />} />
-          <Route path="/activity" element={<Activity />} />
-          <Route path="/create" element={<Create />} />
+
+          {/* Routes that should keep the Sidebar mounted */}
+          <Route element={<Layout />}>
+            <Route path="/home" element={<Home />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/messages/:chatId" element={<Conversation />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/hashtag/:tag" element={<HashtagPosts />} />
+            <Route path="/user/:username" element={<UserProfile />} />
+            <Route path="/profile/edit" element={<EditProfile />} />
+            <Route path="/activity" element={<Activity />} />
+            <Route path="/create" element={<Create />} />
+          </Route>
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

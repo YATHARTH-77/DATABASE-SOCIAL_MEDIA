@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { navItems } from "@/components/Sidebar";
-import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, ThumbsUp, Loader2 } from "lucide-react";
 import { StoryViewer } from "@/components/StoryViewer";
 import { CommentSection } from "@/components/CommentSection";
+import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation.jsx";
 
 // --- Base URL for our API ---
 const API_URL = "http://localhost:5000";
@@ -246,33 +246,25 @@ export default function Home() {
 
   if (isLoading || !user) { // Show loader until user is verified AND data is loaded
     return (
-      <div className="flex min-h-screen bg-background">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 flex items-center justify-center">
-          <Loader2 className="w-12 h-12 text-primary animate-spin" />
-        </main>
-      </div>
+      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 flex items-center justify-center">
-          <p className="text-red-500 text-center">
-            Error fetching feed: {error}<br/>
-            (Please make sure you have followed some users)
-          </p>
-        </main>
-      </div>
+      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
+        <p className="text-red-500 text-center">
+          Error fetching feed: {error}<br/>
+          (Please make sure you have followed some users)
+        </p>
+      </main>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      
+    <>
       {showStoryViewer && (
         <StoryViewer
           stories={moments}
@@ -280,16 +272,21 @@ export default function Home() {
           onClose={() => setShowStoryViewer(false)}
         />
       )}
-      
-      <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
+      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-2xl mx-auto space-y-6">
           
           {/* --- MOMENTS --- */}
-          <div className="bg-secondary/10 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-secondary/20">
-            <h2 className="text-white font-bold gradient-primary px-4 py-1 rounded-full inline-block mb-4">
-              MOMENTS
-            </h2>
-            <div className="flex gap-4 overflow-x-auto pb-2">
+          <div className="relative rounded-2xl p-4 md:p-6 border border-secondary/20 overflow-hidden">
+            <BackgroundGradientAnimation
+              containerClassName="absolute inset-0 rounded-2xl z-0"
+              interactive={false}
+            />
+            <div className="absolute inset-0 bg-black/20 rounded-2xl z-10 pointer-events-none" />
+            <div className="relative z-20">
+              <h2 className="text-white font-bold px-6 py-3 rounded-full inline-block mb-4 text-xl md:text-2xl">
+                MOMENTS
+              </h2>
+              <div className="flex gap-4 overflow-x-auto pb-2">
               {/* "Your Story" button (Unchanged) */}
               <div>
                 {(() => {
@@ -298,17 +295,17 @@ export default function Home() {
                   const to = createItem ? `${createItem.path}?tab=moment` : "/create?tab=moment";
                   return (
                     <Link to={to} onClick={(e) => e.stopPropagation()} className="flex flex-col items-center gap-2">
-                      <div className={`w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-emerald-500 via-emerald-400 to-lime-400 cursor-pointer transition-shadow hover:shadow-xl flex items-center justify-center`}>
+                      <div className={`w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051] cursor-pointer transition-shadow hover:shadow-xl flex items-center justify-center`}>
                         <div className="w-14 h-14 rounded-full bg-white/75 backdrop-blur-sm border border-white/20 flex items-center justify-center">
                           <button
                             aria-label="Create Story"
-                            className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md"
+                            className="w-8 h-8 rounded-full bg-[#6a00a3] text-white flex items-center justify-center shadow-md"
                           >
                             {Icon ? <Icon className="w-4 h-4" /> : <span className="text-white font-extrabold">+</span>}
                           </button>
                         </div>
                       </div>
-                      <span className="text-xs text-muted-foreground">Your Story</span>
+                      <span className="text-xs text-white">Your Story</span>
                     </Link>
                   );
                 })()}
@@ -331,19 +328,24 @@ export default function Home() {
                   <span className="text-xs text-muted-foreground">{moment.username}</span>
                 </div>
               ))}
+              </div>
             </div>
           </div>
 
           {/* --- FEED --- */}
           <div className="space-y-6">
-            <h2 className="text-white font-bold gradient-primary px-4 py-1 rounded-full inline-block">
+            <h2 className="text-white font-bold gradient-sidebar px-4 py-1 rounded-full inline-block">
               FEED
             </h2>
 
             {posts.length === 0 && (
-              <Card className="p-10 text-center text-muted-foreground">
-                <p>Your feed is empty.</p>
-                <p className="text-sm">Follow some users to see their posts here!</p>
+              <Card className="relative overflow-hidden rounded-2xl border border-secondary/20 p-0">
+                <BackgroundGradientAnimation containerClassName="absolute inset-0 rounded-2xl z-0" interactive={false} />
+                <div className="absolute inset-0 bg-black/20 rounded-2xl z-10 pointer-events-none" />
+                <div className="p-10 text-center text-white z-20 relative">
+                  <p>Your feed is empty.</p>
+                  <p className="text-sm">Follow some users to see their posts here!</p>
+                </div>
               </Card>
             )}
 
@@ -465,6 +467,6 @@ export default function Home() {
           </div>
         </div>
       </main>
-    </div>
+    </>
   );
 }

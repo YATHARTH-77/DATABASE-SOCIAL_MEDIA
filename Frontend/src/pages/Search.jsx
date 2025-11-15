@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Loader2, SearchIcon, Hash, User } from "lucide-react";
+import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
 
 // --- Base URL for our API ---
 const API_URL = "http://localhost:5000";
@@ -12,8 +12,8 @@ const API_URL = "http://localhost:5000";
 // --- Helper Component for User Cards (MODIFIED) ---
 function UserCard({ user, onUserClick }) {
   return (
-    <div 
-      className="flex items-center justify-between p-3 bg-card rounded-lg border cursor-pointer hover:bg-muted"
+    <div
+      className="flex items-center justify-between p-3 bg-transparent rounded-lg border border-white/10 cursor-pointer hover:bg-white/5"
       onClick={() => onUserClick(user.username)}
     >
       <div className="flex items-center gap-3 min-w-0">
@@ -22,12 +22,10 @@ function UserCard({ user, onUserClick }) {
           <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
         </Avatar>
         <div className="min-w-0">
-          <p className="font-semibold truncate text-foreground">{user.username}</p>
-          {/* --- MODIFICATION HERE --- */}
-          <p className="text-sm text-muted-foreground truncate">{user.follower_count} Followers</p>
+          <p className="font-semibold truncate text-white">{user.username}</p>
+          <p className="text-sm text-white/80 truncate">{user.follower_count} Followers</p>
         </div>
       </div>
-      {/* --- MODIFICATION: "Follow" button removed --- */}
     </div>
   );
 }
@@ -115,48 +113,74 @@ export default function Search() {
   const renderInitialContent = () => (
     <div className="space-y-6">
       {/* --- Trending Hashtags --- */}
-      <Card className="p-4">
-        <h2 className="text-lg font-semibold mb-3 flex items-center">
-          <Hash className="w-5 h-5 mr-2 text-primary" />
-          Trending Hashtags
-        </h2>
-        {isLoadingInitial ? (
-          <div className="flex justify-center py-2">
-            <Loader2 className="w-6 h-6 animate-spin" />
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {trendingHashtags.map((tag) => (
-              <div
-                key={tag.hashtag_text}
-                onClick={() => handleHashtagClick(tag.hashtag_text)}
-                className="p-2 hover:bg-muted rounded-lg cursor-pointer"
-              >
-                <p className="font-semibold text-primary">#{tag.hashtag_text}</p>
-                <p className="text-sm text-muted-foreground">{tag.post_count} posts</p>
-              </div>
-            ))}
-          </div>
-        )}
+      <Card className="p-4 relative overflow-hidden">
+        <BackgroundGradientAnimation
+          containerClassName="absolute inset-0 rounded-lg"
+          interactive={false}
+          gradientBackgroundStart="#4b0082"
+          gradientBackgroundEnd="#2e0051"
+          firstColor="75,0,130"
+          secondColor="106,0,163"
+          thirdColor="46,0,81"
+          fourthColor="160,60,170"
+          fifthColor="120,80,200"
+        />
+        <div className="relative z-10">
+          <h2 className="text-lg font-semibold mb-3 flex items-center text-white">
+            <Hash className="w-5 h-5 mr-2 text-white/90" />
+            Trending Hashtags
+          </h2>
+          {isLoadingInitial ? (
+            <div className="flex justify-center py-2">
+              <Loader2 className="w-6 h-6 animate-spin text-white" />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {trendingHashtags.map((tag) => (
+                <div
+                  key={tag.hashtag_text}
+                  onClick={() => handleHashtagClick(tag.hashtag_text)}
+                  className="p-2 rounded-lg cursor-pointer"
+                >
+                  <p className="font-semibold text-white">#{tag.hashtag_text}</p>
+                  <p className="text-sm text-white/80">{tag.post_count} posts</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </Card>
       
       {/* --- Suggested Users --- */}
-      <Card className="p-4">
-        <h2 className="text-lg font-semibold mb-3 flex items-center">
-          <User className="w-5 h-5 mr-2 text-primary" />
-          Suggested For You
-        </h2>
-        {isLoadingInitial ? (
-          <div className="flex justify-center py-2">
-            <Loader2 className="w-6 h-6 animate-spin" />
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {suggestedUsers.map((user) => (
-              <UserCard key={user.user_id} user={user} onUserClick={handleUserClick} />
-            ))}
-          </div>
-        )}
+      <Card className="p-4 relative overflow-hidden">
+        <BackgroundGradientAnimation
+          containerClassName="absolute inset-0 rounded-lg"
+          interactive={false}
+          gradientBackgroundStart="#4b0082"
+          gradientBackgroundEnd="#2e0051"
+          firstColor="75,0,130"
+          secondColor="106,0,163"
+          thirdColor="46,0,81"
+          fourthColor="160,60,170"
+          fifthColor="120,80,200"
+        />
+        <div className="relative z-10">
+          <h2 className="text-lg font-semibold mb-3 flex items-center text-white">
+            <User className="w-5 h-5 mr-2 text-white/90" />
+            Suggested For You
+          </h2>
+          {isLoadingInitial ? (
+            <div className="flex justify-center py-2">
+              <Loader2 className="w-6 h-6 animate-spin text-white" />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {suggestedUsers.map((user) => (
+                <UserCard key={user.user_id} user={user} onUserClick={handleUserClick} />
+              ))}
+            </div>
+          )}
+        </div>
       </Card>
     </div>
   );
@@ -185,21 +209,34 @@ export default function Search() {
   );
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
+    <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-2xl mx-auto space-y-6">
           
           {/* --- Search Bar --- */}
           <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search for users..."
-              className="w-full pl-10 h-12 text-lg rounded-xl"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+            <BackgroundGradientAnimation
+              containerClassName="absolute inset-0 rounded-xl z-0"
+              interactive={false}
+              gradientBackgroundStart="#4b0082"
+              gradientBackgroundEnd="#2e0051"
+              firstColor="75,0,130"
+              secondColor="106,0,163"
+              thirdColor="46,0,81"
+              fourthColor="160,60,170"
+              fifthColor="120,80,200"
             />
+            {/* subtle dark overlay for improved contrast */}
+            <div className="absolute inset-0 bg-black/20 rounded-xl z-10 pointer-events-none" />
+            <div className="relative z-20">
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/80" />
+              <Input
+                type="text"
+                placeholder="Search for users..."
+                className="w-full pl-10 h-12 text-lg rounded-xl bg-transparent text-white placeholder:text-white/70"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
           
           {/* --- Conditional Content --- */}
@@ -207,6 +244,5 @@ export default function Search() {
           
         </div>
       </main>
-    </div>
   );
 }

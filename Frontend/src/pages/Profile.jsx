@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -257,19 +256,14 @@ export default function Profile() {
 
   if (isLoading || !profileData) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 flex items-center justify-center">
-          <Loader2 className="w-12 h-12 text-primary animate-spin" />
-        </main>
-      </div>
+      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+      </main>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      
+    <>
       {/* --- ALL MODALS --- */}
       {selectedPost && (
         <PostDetailModal
@@ -311,7 +305,7 @@ export default function Profile() {
         />
       )}
       
-      <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
+      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-4xl mx-auto">
           <Card className="p-4 sm:p-8 shadow-lg">
             {/* --- Profile Header (Unchanged) --- */}
@@ -319,7 +313,7 @@ export default function Profile() {
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
                 <Avatar className="w-24 h-24 flex-shrink-0">
                   <AvatarImage src={profileData.profile_pic_url ? `${API_URL}${profileData.profile_pic_url}` : ''} />
-                  <AvatarFallback className="gradient-primary text-white text-3xl">
+                  <AvatarFallback className="gradient-sidebar text-white text-3xl">
                     {profileData.username[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -431,7 +425,7 @@ export default function Profile() {
 
             {/* --- Posts/Saved Tabs (Unchanged) --- */}
             <Tabs defaultValue="posts" className="w-full">
-              <TabsList className="w-full gradient-primary mb-6">
+              <TabsList className="w-full gradient-sidebar mb-6">
                 <TabsTrigger value="posts" className="flex-1 data-[state=active]:bg-white/20">
                   <Grid className="w-4 h-4 mr-2" />
                   Posts
@@ -503,6 +497,6 @@ export default function Profile() {
           </Card>
         </div>
       </main>
-    </div>
+    </>
   );
 }

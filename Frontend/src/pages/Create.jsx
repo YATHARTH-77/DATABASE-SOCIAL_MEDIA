@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Image, Film, Smile, X, Loader2 } from "lucide-react";
+import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
 
 // --- Base URL for our API ---
 const API_URL = "http://localhost:5000";
@@ -299,12 +299,9 @@ export default function Create() {
   
   if (!user || repostLoading) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 flex items-center justify-center">
-          <Loader2 className="w-12 h-12 text-primary animate-spin" />
-        </main>
-      </div>
+      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+      </main>
     );
   }
 
@@ -312,9 +309,8 @@ export default function Create() {
   const displayMedia = momentPreview ? { url: momentPreview, type: momentFile?.type } : repostMedia;
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 p-4 md:p-8 ml-20 md:ml-64 transition-all duration-300">
+    <>
+      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-2xl mx-auto">
           <Tabs value={tabParam} onValueChange={(value) => {
              // Clear repost_id when switching away from moment tab
@@ -333,7 +329,7 @@ export default function Create() {
             {/* --- POST TAB --- */}
             <TabsContent value="post">
               <Card className="shadow-lg overflow-hidden">
-                <div className="p-6 border-b gradient-primary">
+                <div className="p-6 border-b gradient-sidebar">
                   <h1 className="text-2xl font-bold text-white">Create New Post</h1>
                 </div>
                 <div className="p-6 space-y-6">
@@ -400,7 +396,7 @@ export default function Create() {
                     <Button
                       onClick={handlePost}
                       disabled={isLoading}
-                      className="flex-1 gradient-primary text-white font-semibold rounded-xl h-12"
+                      className="flex-1 gradient-sidebar text-white font-semibold rounded-xl h-12"
                     >
                       {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Post"}
                     </Button>
@@ -420,7 +416,7 @@ export default function Create() {
             {/* --- MOMENT TAB --- */}
             <TabsContent value="moment">
               <Card className="shadow-lg overflow-hidden">
-                <div className="p-6 border-b gradient-primary">
+                <div className="p-6 border-b gradient-sidebar">
                   <h1 className="text-2xl font-bold text-white">Create New Moment</h1>
                 </div>
 
@@ -482,8 +478,22 @@ export default function Create() {
                           </Button>
                         </div>
                       ) : (
-                        <div className={`w-48 aspect-[9/16] bg-gradient-to-br from-emerald-400 via-green-500 to-lime-400 rounded-2xl flex items-center justify-center shadow-lg`}>
-                          <span className="text-white text-4xl font-bold opacity-30">MOMENT</span>
+                        <div className="relative w-48 aspect-[9/16] rounded-2xl shadow-lg overflow-hidden">
+                          <BackgroundGradientAnimation
+                            containerClassName="absolute inset-0 rounded-2xl z-0"
+                            interactive={false}
+                            gradientBackgroundStart="#4b0082"
+                            gradientBackgroundEnd="#2e0051"
+                            firstColor="75,0,130"
+                            secondColor="106,0,163"
+                            thirdColor="46,0,81"
+                            fourthColor="160,60,170"
+                            fifthColor="120,80,200"
+                          />
+                          <div className="absolute inset-0 bg-black/20 rounded-2xl z-10 pointer-events-none" />
+                          <div className="relative z-20 flex items-center justify-center w-full h-full">
+                            <span className="text-white text-4xl font-bold opacity-30">MOMENT</span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -506,7 +516,7 @@ export default function Create() {
                       onClick={handleMomentCreate}
                       // Enable button if we have a file OR we are reposting valid media
                       disabled={isLoading || (!momentFile && !repostMedia)}
-                      className="flex-1 gradient-primary text-white font-semibold rounded-xl h-12"
+                      className="flex-1 gradient-sidebar text-white font-semibold rounded-xl h-12"
                     >
                       {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Share Moment"}
                     </Button>
@@ -525,6 +535,6 @@ export default function Create() {
           </Tabs>
         </div>
       </main>
-    </div>
+    </>
   );
 }
