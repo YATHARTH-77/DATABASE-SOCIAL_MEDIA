@@ -112,14 +112,14 @@ export default function Search() {
   const renderInitialContent = () => (
     <div className="space-y-6">
       {/* --- Trending Hashtags --- */}
-      <Card className="overflow-hidden border border-purple-200 shadow-md">
+      <Card className="overflow-hidden border-2 border-purple-300 shadow-md">
         <div className="bg-gradient-to-r from-[#1D0C69] to-[#5A0395] p-4">
           <h2 className="text-lg font-semibold flex items-center text-white">
             <Hash className="w-5 h-5 mr-2" />
             Trending Hashtags
           </h2>
         </div>
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4">
+        <div className="bg-white p-4">
           {isLoadingInitial ? (
             <div className="flex justify-center py-2">
               <Loader2 className="w-6 h-6 animate-spin text-[#5A0395]" />
@@ -130,7 +130,7 @@ export default function Search() {
                 <div
                   key={tag.hashtag_text}
                   onClick={() => handleHashtagClick(tag.hashtag_text)}
-                  className="p-3 rounded-lg cursor-pointer bg-white/60 hover:bg-white/80 transition-colors border border-purple-200"
+                  className="p-3 rounded-lg cursor-pointer bg-white hover:bg-purple-50 transition-colors border-2 border-purple-300"
                 >
                   <p className="font-semibold text-[#5A0395]">#{tag.hashtag_text}</p>
                   <p className="text-sm text-gray-600">{tag.post_count} posts</p>
@@ -142,14 +142,14 @@ export default function Search() {
       </Card>
       
       {/* --- Suggested Users --- */}
-      <Card className="overflow-hidden border border-purple-200 shadow-md">
+      <Card className="overflow-hidden border-2 border-purple-300 shadow-md">
         <div className="bg-gradient-to-r from-[#1D0C69] to-[#5A0395] p-4">
           <h2 className="text-lg font-semibold flex items-center text-white">
             <User className="w-5 h-5 mr-2" />
             Suggested For You
           </h2>
         </div>
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4">
+        <div className="bg-white p-4">
           {isLoadingInitial ? (
             <div className="flex justify-center py-2">
               <Loader2 className="w-6 h-6 animate-spin text-[#5A0395]" />
@@ -194,13 +194,13 @@ export default function Search() {
         <div className="max-w-4xl mx-auto space-y-6">
           
           {/* --- Search Bar --- */}
-          <div className="relative rounded-xl overflow-hidden border-2 border-purple-300 bg-gradient-to-br from-purple-50 to-purple-100">
-            <div className="relative">
+          <div className="relative rounded-xl overflow-hidden border-2 border-[#5A0395]">
+            <div className="relative bg-white">
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#5A0395]" />
               <Input
                 type="text"
                 placeholder="Search for users..."
-                className="w-full pl-10 h-12 text-lg rounded-xl bg-transparent text-[#1D0C69] placeholder:text-purple-400 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="w-full pl-10 h-12 text-lg rounded-xl bg-white text-[#1D0C69] placeholder:text-purple-400 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
