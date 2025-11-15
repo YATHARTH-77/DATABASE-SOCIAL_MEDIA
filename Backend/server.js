@@ -762,7 +762,7 @@ app.get("/api/search/suggested-users", async (req, res) => {
 });
 app.get("/api/search/trending-hashtags", async (req, res) => {
   try {
-    const [hashtags] = await db.query("SELECT h.hashtag_text, COUNT(ph.hashtag_id) as count FROM POST_HASHTAG ph JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id GROUP BY ph.hashtag_id ORDER BY count DESC LIMIT 10");
+    const [hashtags] = await db.query("SELECT h.hashtag_text, COUNT(ph.hashtag_id) as count FROM POST_HASHTAG ph JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id GROUP BY ph.hashtag_id ORDER BY count DESC LIMIT 5");
     res.json({ success: true, hashtags });
   } catch (err) { res.status(500).json({success:false}); }
 });
