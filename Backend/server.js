@@ -658,16 +658,6 @@ app.post("/api/stories/create", uploadStory.single('media'), async (req, res) =>
     res.status(500).json({ success: false, message: "Server error" });
   } finally { if (conn) conn.release(); }
 });
-
-app.get("/api/stories/:storyId", async (req, res) => {
-  try {
-    const [rows] = await db.query(`SELECT s.*, u.username, u.profile_pic_url FROM STORY s JOIN USER u ON s.user_id = u.user_id WHERE s.story_id = ?`, [req.params.storyId]);
-    if (rows.length === 0) return res.status(404).json({success: false});
-    res.json({ success: true, story: rows[0] });
-  } catch (err) { res.status(500).json({success:false}); }
-});
-
-// --- NEW ROUTE: Get story archive for highlights ---
 app.get("/api/stories/archive", async (req, res) => {
   const { userId } = req.query;
   if (!userId) {
@@ -685,6 +675,16 @@ app.get("/api/stories/archive", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+app.get("/api/stories/:storyId", async (req, res) => {
+  try {
+    const [rows] = await db.query(`SELECT s.*, u.username, u.profile_pic_url FROM STORY s JOIN USER u ON s.user_id = u.user_id WHERE s.story_id = ?`, [req.params.storyId]);
+    if (rows.length === 0) return res.status(404).json({success: false});
+    res.json({ success: true, story: rows[0] });
+  } catch (err) { res.status(500).json({success:false}); }
+});
+
+// --- NEW ROUTE: Get story archive for highlights ---
+
 
 // --- Feed & Search ---
 app.get("/api/feed/posts", async (req, res) => {
@@ -763,9 +763,24 @@ app.get("/api/search/suggested-users", async (req, res) => {
 });
 app.get("/api/search/trending-hashtags", async (req, res) => {
   try {
-    const [hashtags] = await db.query("SELECT h.hashtag_text, COUNT(ph.hashtag_id) as count FROM POST_HASHTAG ph JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id GROUP BY ph.hashtag_id ORDER BY count DESC LIMIT 10");
+    const [hashtags] = await db.query(
+      `SELECT h.hashtag_text, 
+              COUNT(ph.hashtag_id) as post_count 
+       FROM POST_HASHTAG ph 
+       JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id 
+       GROUP BY ph.hashtag_id, h.hashtag_text 
+       ORDER BY post_count DESC 
+       LIMIT 5`
+    );
+    
+    // Debug log
+    console.log("📊 Trending hashtags:", hashtags);
+    
     res.json({ success: true, hashtags });
-  } catch (err) { res.status(500).json({success:false}); }
+  } catch (err) {
+    console.error("Trending hashtags error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
 });
 
 app.get("/api/hashtag/:hashtag_text", async (req, res) => {
