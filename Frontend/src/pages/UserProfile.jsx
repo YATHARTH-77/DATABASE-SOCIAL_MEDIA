@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, Grid, Loader2 } from "lucide-react";
 import { PostDetailModal } from "@/components/PostDetailModal";
 import { FollowerModal } from "@/components/FollowerModal";
-import { StoryViewer } from "@/components/StoryViewer"; // *** NEW IMPORT ***
+import { StoryViewer } from "@/components/StoryViewer";
 import { useToast } from "@/hooks/use-toast";
 
 const API_URL = "http://localhost:5000";
@@ -135,7 +135,7 @@ export default function UserProfile() {
 
   const handleUserClick = (navUsername) => {
     if (navUsername && username && navUsername.toLowerCase() !== username.toLowerCase()) {
-      setModalType(null); // Close modal
+      setModalType(null);
       navigate(`/user/${navUsername}`);
     }
   };
@@ -215,56 +215,56 @@ export default function UserProfile() {
       )}
       
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
-        <div className="max-w-4xl mx-auto">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mb-4">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mb-4 hover:bg-purple-100 hover:text-[#5A0395]">
             <ArrowLeft className="w-5 h-5" />
           </Button>
 
-          <Card className="p-4 sm:p-8 shadow-lg">
-            {/* --- Profile Header (Unchanged) --- */}
+          <Card className="p-4 sm:p-8 shadow-lg border-2 border-purple-300">
+            {/* --- Profile Header --- */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-6">
               <Avatar className="w-24 h-24 flex-shrink-0">
                 <AvatarImage src={profileData.profile_pic_url ? `${API_URL}${profileData.profile_pic_url}` : ''} />
-                <AvatarFallback className="gradient-sidebar text-white text-3xl">
+                <AvatarFallback className="bg-[#5A0395] text-white text-3xl">
                   {profileData.username[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 text-center sm:text-left w-full">
-                <h1 className="text-2xl sm:text-3xl font-bold mb-2 break-words">{profileData.username}</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold mb-2 break-words text-[#1D0C69]">{profileData.username}</h1>
                 <div className="flex justify-center sm:justify-start gap-4 sm:gap-8 text-sm mb-4">
                   <div>
-                    <span className="font-bold text-md sm:text-lg">{profileData.post_count}</span>{" "}
-                    <span className="text-muted-foreground">posts</span>
+                    <span className="font-bold text-md sm:text-lg text-[#1D0C69]">{profileData.post_count}</span>{" "}
+                    <span className="text-[#5A0395]">posts</span>
                   </div>
-                  <button onClick={() => openFollowModal("followers")} className="hover:bg-muted/80 px-2 py-1 rounded-md transition-colors cursor-pointer">
-                    <span className="font-bold text-md sm:text-lg">{profileData.follower_count}</span>{" "}
-                    <span className="text-muted-foreground hover:text-foreground transition-colors">followers</span>
+                  <button onClick={() => openFollowModal("followers")} className="hover:bg-purple-50 px-2 py-1 rounded-md transition-colors cursor-pointer">
+                    <span className="font-bold text-md sm:text-lg text-[#1D0C69]">{profileData.follower_count}</span>{" "}
+                    <span className="text-[#5A0395] hover:text-[#1D0C69] transition-colors">followers</span>
                   </button>
-                  <button onClick={() => openFollowModal("following")} className="hover:bg-muted/80 px-2 py-1 rounded-md transition-colors cursor-pointer">
-                    <span className="font-bold text-md sm:text-lg">{profileData.following_count}</span>{" "}
-                    <span className="text-muted-foreground hover:text-foreground transition-colors">following</span>
+                  <button onClick={() => openFollowModal("following")} className="hover:bg-purple-50 px-2 py-1 rounded-md transition-colors cursor-pointer">
+                    <span className="font-bold text-md sm:text-lg text-[#1D0C69]">{profileData.following_count}</span>{" "}
+                    <span className="text-[#5A0395] hover:text-[#1D0C69] transition-colors">following</span>
                   </button>
                 </div>
                 <Button
                   onClick={handleFollowToggle}
                   variant={profileData.isFollowing ? "outline" : "default"}
-                  className={!profileData.isFollowing ? "gradient-sidebar text-white" : ""}
+                  className={!profileData.isFollowing ? "bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white hover:opacity-90" : "border-[#5A0395] text-[#5A0395] hover:bg-purple-50"}
                 >
                   {profileData.isFollowing ? "Unfollow" : "Follow"}
                 </Button>
               </div>
             </div>
 
-            {/* --- Bio (Unchanged) --- */}
-            <div className="mb-6 p-4 bg-muted/30 rounded-xl">
-              <p className="font-semibold mb-1">{profileData.full_name}</p>
-              <p className="text-sm text-muted-foreground break-words">{profileData.bio || "No bio available."}</p>
+            {/* --- Bio --- */}
+            <div className="mb-6 p-4 bg-purple-50 rounded-xl border border-purple-200">
+              <p className="font-semibold mb-1 text-[#1D0C69]">{profileData.full_name}</p>
+              <p className="text-sm text-gray-600 break-words">{profileData.bio || "No bio available."}</p>
             </div>
             
-            {/* --- *** NEW HIGHLIGHTS SECTION *** --- */}
+            {/* --- HIGHLIGHTS SECTION --- */}
             {highlights.length > 0 && (
               <div className="mb-6">
-                <h2 className="text-sm font-semibold text-muted-foreground mb-3">Highlights</h2>
+                <h2 className="text-sm font-semibold text-[#5A0395] mb-3">Highlights</h2>
                 <div className="flex gap-4 overflow-x-auto pb-2">
                   {highlights.map((highlight) => (
                     <div 
@@ -272,7 +272,7 @@ export default function UserProfile() {
                       className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer"
                       onClick={() => handleHighlightClick(highlight)}
                     >
-                      <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-br from-blue-400 via-emerald-400 to-amber-400">
+                      <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-br from-purple-400 via-purple-500 to-purple-600">
                         <div className="w-full h-full rounded-full bg-background p-1">
                           <Avatar className="w-full h-full">
                             <AvatarImage src={highlight.cover_media_url ? `${API_URL}${highlight.cover_media_url}` : ''} />
@@ -280,16 +280,16 @@ export default function UserProfile() {
                           </Avatar>
                         </div>
                       </div>
-                      <span className="text-xs font-medium">{highlight.title}</span>
+                      <span className="text-xs font-medium text-[#1D0C69]">{highlight.title}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* --- Posts Grid (Unchanged) --- */}
+            {/* --- Posts Grid --- */}
             <div className="border-t pt-6">
-              <h2 className="text-lg font-bold mb-4 flex items-center">
+              <h2 className="text-lg font-bold mb-4 flex items-center text-[#1D0C69]">
                 <Grid className="w-4 h-4 mr-2" /> Posts
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
@@ -313,7 +313,7 @@ export default function UserProfile() {
                 ))}
               </div>
               {posts.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
+                <div className="text-center py-12 text-[#5A0395]">
                   <Grid className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No posts yet</p>
                 </div>
