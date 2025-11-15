@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { navItems } from "@/components/Sidebar";
+import { Sidebar } from "@/components/Sidebar"; // Assuming Sidebar is in components
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,25 +12,19 @@ import { CommentSection } from "@/components/CommentSection";
 // --- Base URL (Dynamic for Deployment) ---
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// Use this replacement in Home.jsx and Post.jsx
+// --- Helper: Format timestamp (Final Timezone Fix) ---
 function formatTimeAgo(dateString) {
   if (!dateString) return "";
-
-  // 1. Force the date string to be treated as UTC
-  // MySQL often returns "2024-11-15 10:30:00" without the 'Z'
-  let safeDateString = dateString;
-  if (typeof dateString === 'string' && !dateString.endsWith("Z")) {
-      safeDateString = dateString.replace(" ", "T") + "Z";
+  let safeString = String(dateString);
+  if (!safeString.includes("T") && !safeString.includes("Z")) {
+    safeString = safeString.replace(" ", "T") + "Z";
+  } else if (safeString.includes("T") && !safeString.includes("Z")) {
+    safeString += "Z";
   }
-
-  const date = new Date(safeDateString);
+  const date = new Date(safeString);
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  // If the calculated time is negative (meaning server time is ahead), 
-  // simply show "Just now" instead of "-5h ago"
   if (seconds < 0) return "Just now";
-
   let interval = seconds / 31536000;
   if (interval > 1) return Math.floor(interval) + "y ago";
   interval = seconds / 2592000;
@@ -40,7 +35,6 @@ function formatTimeAgo(dateString) {
   if (interval > 1) return Math.floor(interval) + "h ago";
   interval = seconds / 60;
   if (interval > 1) return Math.floor(interval) + "m ago";
-  
   return "Just now";
 }
 
@@ -107,8 +101,8 @@ export default function Home() {
             id: s.story_id,
             username: s.username,
             avatar: s.profile_pic_url,
-            src: s.media_url,
-            type: s.media_url && s.media_url.endsWith('.mp4') ? 'video' : 'photo',
+            src: s.media_url, // Already a full Cloudinary URL
+            type: s.media_type && s.media_type.startsWith('video') ? 'video' : 'photo',
             timestamp: s.created_at,
             userId: s.user_id
           }));
@@ -232,8 +226,10 @@ export default function Home() {
     navigate(`/user/${username}`);
   };
 
-  const handleHashtagClick = (tag) => {
-    navigate(`/hashtag/${tag}`);
+  // --- *** MODIFICATION 1: Simplified function *** ---
+  const handleHashtagClick = (tagText) => {
+    // The server sends a clean string (e.g., "react"), so we just use it.
+    navigate(`/hashtag/${tagText}`);
   };
   
   // --- 4. Render ---
@@ -278,61 +274,61 @@ export default function Home() {
                   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
                 `}</style>
               
-              {/* Add Moment / User Story */}
-              <div>
-                {userStory ? (
-                  <div className="flex flex-col items-center gap-2">
+                {/* Add Moment / User Story */}
+                <div>
+                  {userStory ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div
+                        className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1D0C69] via-[#5A0395] to-[#3D1A8F] p-1 cursor-pointer"
+                        onClick={handleUserStoryClick}
+                      >
+                        <div className="w-full h-full rounded-full bg-background p-1">
+                          <Avatar className="w-full h-full">
+                            <AvatarImage src={user.profile_pic_url || ''} />
+                            <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                        </div>
+                      </div>
+                      <span className="text-xs text-[#5A0395] font-medium">Your Story</span>
+                    </div>
+                  ) : (
+                    (() => {
+                      const createItem = navItems.find((n) => n.label === "CREATE");
+                      const Icon = createItem ? createItem.icon : null;
+                      const to = createItem ? `${createItem.path}?tab=moment` : "/create?tab=moment";
+                      return (
+                        <Link to={to} onClick={(e) => e.stopPropagation()} className="flex flex-col items-center gap-2">
+                          <div className={`w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-[#1D0C69] to-[#5A0395] cursor-pointer transition-shadow hover:shadow-xl flex items-center justify-center`}>
+                            <div className="w-14 h-14 rounded-full bg-white/75 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                              <button aria-label="Create Story" className="w-8 h-8 rounded-full bg-[#5A0395] text-white flex items-center justify-center shadow-md">
+                                {Icon ? <Icon className="w-4 h-4" /> : <span className="text-white font-extrabold">+</span>}
+                              </button>
+                            </div>
+                          </div>
+                          <span className="text-xs text-[#5A0395] font-medium">Add Moment</span>
+                        </Link>
+                      );
+                    })()
+                  )}
+                </div>
+                
+                {/* Other Moments */}
+                {moments.map((moment, index) => (
+                  <div key={moment.id} className="flex flex-col items-center gap-2 flex-shrink-0">
                     <div
                       className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1D0C69] via-[#5A0395] to-[#3D1A8F] p-1 cursor-pointer"
-                      onClick={handleUserStoryClick}
+                      onClick={() => handleMomentClick(userStory ? index + 1 : index)}
                     >
                       <div className="w-full h-full rounded-full bg-background p-1">
                         <Avatar className="w-full h-full">
-                          <AvatarImage src={user.profile_pic_url || ''} />
-                          <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+                          <AvatarImage src={moment.avatar || ''} />
+                          <AvatarFallback>{moment.username[0].toUpperCase()}</AvatarFallback>
                         </Avatar>
                       </div>
                     </div>
-                    <span className="text-xs text-[#5A0395] font-medium">Your Story</span>
+                    <span className="text-xs text-[#5A0395] font-medium">{moment.username}</span>
                   </div>
-                ) : (
-                  (() => {
-                    const createItem = navItems.find((n) => n.label === "CREATE");
-                    const Icon = createItem ? createItem.icon : null;
-                    const to = createItem ? `${createItem.path}?tab=moment` : "/create?tab=moment";
-                    return (
-                      <Link to={to} onClick={(e) => e.stopPropagation()} className="flex flex-col items-center gap-2">
-                        <div className={`w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-[#1D0C69] to-[#5A0395] cursor-pointer transition-shadow hover:shadow-xl flex items-center justify-center`}>
-                          <div className="w-14 h-14 rounded-full bg-white/75 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                            <button aria-label="Create Story" className="w-8 h-8 rounded-full bg-[#5A0395] text-white flex items-center justify-center shadow-md">
-                              {Icon ? <Icon className="w-4 h-4" /> : <span className="text-white font-extrabold">+</span>}
-                            </button>
-                          </div>
-                        </div>
-                        <span className="text-xs text-[#5A0395] font-medium">Add Moment</span>
-                      </Link>
-                    );
-                  })()
-                )}
-              </div>
-              
-              {/* Other Moments */}
-              {moments.map((moment, index) => (
-                <div key={moment.id} className="flex flex-col items-center gap-2 flex-shrink-0">
-                  <div
-                    className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1D0C69] via-[#5A0395] to-[#3D1A8F] p-1 cursor-pointer"
-                    onClick={() => handleMomentClick(userStory ? index + 1 : index)}
-                  >
-                    <div className="w-full h-full rounded-full bg-background p-1">
-                      <Avatar className="w-full h-full">
-                        <AvatarImage src={moment.avatar || ''} />
-                        <AvatarFallback>{moment.username[0].toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                    </div>
-                  </div>
-                  <span className="text-xs text-[#5A0395] font-medium">{moment.username}</span>
-                </div>
-              ))}
+                ))}
               </div>
             </div>
           </div>
@@ -436,21 +432,27 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Hashtags */}
-                  <div className="border-t pt-3 border-purple-200">
-                    <p className="font-semibold text-sm mb-1 text-[#1D0C69]">#Hashtags:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {post.hashtags.map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className="text-sm text-[#5A0395] hover:underline cursor-pointer font-medium"
-                          onClick={() => handleHashtagClick(tag)}
-                        >
-                          #{tag}
-                        </span>
-                      ))}
+                  {/* --- *** MODIFICATION 2: Simplified Hashtag Rendering *** --- */}
+                  {post.hashtags && post.hashtags.length > 0 && (
+                    <div className="border-t pt-3 border-purple-200">
+                      <p className="font-semibold text-sm mb-1 text-[#1D0C69]">#Hashtags:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {/* The server sends an array of strings, so we just map it */}
+                        {post.hashtags.map((tagText, idx) => {
+                          return (
+                            <span
+                              key={idx}
+                              className="text-sm text-[#5A0395] hover:underline cursor-pointer font-medium"
+                              onClick={() => handleHashtagClick(tagText)}
+                            >
+                              #{tagText}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
+                  
                   <p className="text-xs text-gray-600">{formatTimeAgo(post.created_at)}</p>
                 </div>
 

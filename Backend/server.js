@@ -341,11 +341,12 @@ app.get('/api/auth/logout', (req, res, next) => {
 });
 
 // --- Post Routes (UPDATED: Uses Cloudinary file.path) ---
+// --- Post Routes (FIXED: Hashtag Logic & Abusive Content Check) ---
 app.post("/api/posts/create", uploadPost.array('media', 10), async (req, res) => {
   const { user_id, caption, hashtags } = req.body;
   const files = req.files;
   
-  // Validate caption for abusive content
+  // 1. Validate caption for abusive content
   if (caption && containsAbusiveContent(caption)) {
     return res.status(400).json({ 
       success: false, 
@@ -358,23 +359,45 @@ app.post("/api/posts/create", uploadPost.array('media', 10), async (req, res) =>
     conn = await db.getConnection();
     await conn.beginTransaction();
 
+    // 2. Insert Post
     const [postResult] = await conn.query("INSERT INTO POST (user_id, caption) VALUES (?, ?)", [user_id, caption]);
     const postId = postResult.insertId;
 
-    // Cloudinary Change: Use `file.path` (The remote URL) instead of `file.filename`
+    // 3. Insert Media (Cloudinary)
+    // Use `file.path` (The remote URL) instead of `file.filename`
     const mediaValues = files.map(f => [postId, f.path, f.mimetype]);
     if (mediaValues.length > 0) await conn.query("INSERT INTO MEDIA (post_id, media_url, media_type) VALUES ?", [mediaValues]);
 
+    // 4. Insert Hashtags (FIXED LOGIC)
     if (hashtags) {
-      const tagList = hashtags.split(' ').map(t => t.trim()).filter(t => t).map(t => t.startsWith('#') ? t.substring(1).toLowerCase() : t.toLowerCase());
+      // Clean tags: remove spaces, split by space, remove #, lowercase
+      const tagList = hashtags.split(' ')
+        .map(t => t.trim())
+        .filter(t => t.length > 0)
+        .map(t => t.startsWith('#') ? t.substring(1).toLowerCase() : t.toLowerCase());
+
       if (tagList.length > 0) {
-        const phs = tagList.map(() => '(?)').join(', ');
-        await conn.query(`INSERT IGNORE INTO HASHTAG (hashtag_text) VALUES ${phs}`, tagList);
-        const [hRows] = await db.query(`SELECT hashtag_id FROM HASHTAG WHERE hashtag_text IN (?)`, [tagList]);
+        // A. Insert new tags (IGNORE duplicates)
+        // Dynamic placeholders: (?, ?), (?, ?)
+        const insertPlaceholders = tagList.map(() => '(?)').join(', ');
+        await conn.query(`INSERT IGNORE INTO HASHTAG (hashtag_text) VALUES ${insertPlaceholders}`, tagList);
+
+        // B. Get IDs of ALL tags (THE FIX)
+        // We must expand the array into "?, ?, ?" manually so the database sees all items
+        const selectPlaceholders = tagList.map(() => '?').join(', ');
+        const [hRows] = await conn.query(
+            `SELECT hashtag_id FROM HASHTAG WHERE hashtag_text IN (${selectPlaceholders})`, 
+            tagList
+        );
+
+        // C. Link tags to the post
         const phValues = hRows.map(row => [postId, row.hashtag_id]);
-        if (phValues.length > 0) await conn.query("INSERT INTO POST_HASHTAG (post_id, hashtag_id) VALUES ?", [phValues]);
+        if (phValues.length > 0) {
+            await conn.query("INSERT INTO POST_HASHTAG (post_id, hashtag_id) VALUES ?", [phValues]);
+        }
       }
     }
+
     await conn.commit();
     res.status(201).json({ success: true, message: "Post created!", postId });
   } catch (err) {
@@ -383,7 +406,6 @@ app.post("/api/posts/create", uploadPost.array('media', 10), async (req, res) =>
     res.status(500).json({ success: false, message: "Internal server error" });
   } finally { if (conn) conn.release(); }
 });
-
 app.post("/api/posts/like", async (req, res) => {
   let conn;
   try {
