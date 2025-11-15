@@ -131,63 +131,71 @@ export default function Register() {
               <form onSubmit={handleSendOtp} className="space-y-4">
                 {/* Username Field */}
                 <div>
-                  <Label htmlFor="username" className="text-muted-foreground text-xs mb-1">
+                  <Label htmlFor="username" className="text-bold-foreground text-xs mb-1">
                     Username
                   </Label>
-                  <Input
-                    id="username"
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="rounded-xl bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white placeholder:text-white/70 px-3 py-2 border-0"
-                    required
-                    disabled={isLoading}
-                  />
+                  <div className={`rounded-xl p-[3px] overflow-hidden transition focus-within:bg-gradient-to-r focus-within:from-[#6B4BFF] focus-within:to-[#C9A8FF] ${username ? 'bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF]' : 'bg-transparent'}`}>
+                    <Input
+                      id="username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className={`w-full rounded-lg bg-black text-white placeholder:text-white/70 px-3 py-2 border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 transition-all`}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
                 {/* Email Field */}
                 <div>
-                  <Label htmlFor="email" className="text-muted-foreground text-xs mb-1">
+                  <Label htmlFor="email" className="text-bold-foreground text-xs mb-1">
                     Email
                   </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="rounded-xl bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white placeholder:text-white/70 px-3 py-2 border-0"
-                    required
-                    disabled={isLoading}
-                  />
+                  <div className={`rounded-xl p-[3px] overflow-hidden transition focus-within:bg-gradient-to-r focus-within:from-[#6B4BFF] focus-within:to-[#C9A8FF] ${email ? 'bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF]' : 'bg-transparent'}`}>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={`w-full rounded-lg bg-black text-white placeholder:text-white/70 px-3 py-2 border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 transition-all`}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
                 {/* Password Field */}
                 <div>
-                  <Label htmlFor="password" className="text-muted-foreground text-xs mb-1">
+                  <Label htmlFor="password" className="text-bold-foreground text-xs mb-1">
                     Password
                   </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="rounded-xl bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white placeholder:text-white/70 px-3 py-2 border-0"
-                    required
-                    disabled={isLoading}
-                  />
+                  <div className={`rounded-xl p-[3px] overflow-hidden transition focus-within:bg-gradient-to-r focus-within:from-[#6B4BFF] focus-within:to-[#C9A8FF] ${password ? 'bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF]' : 'bg-transparent'}`}>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`w-full rounded-lg bg-black text-white placeholder:text-white/70 px-3 py-2 border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 transition-all`}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
                 {/* Confirm Password Field */}
                 <div>
-                  <Label htmlFor="confirmPassword" className="text-muted-foreground text-xs mb-1">
+                  <Label htmlFor="confirmPassword" className="text-bold-foreground text-xs mb-1">
                     Confirm Password
                   </Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="rounded-xl bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white placeholder:text-white/70 px-3 py-2 border-0"
-                    required
-                    disabled={isLoading}
-                  />
+                  <div className={`rounded-xl p-[3px] overflow-hidden transition focus-within:bg-gradient-to-r focus-within:from-[#6B4BFF] focus-within:to-[#C9A8FF] ${confirmPassword ? 'bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF]' : 'bg-transparent'}`}>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className={`w-full rounded-lg bg-black text-white placeholder:text-white/70 px-3 py-2 border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 transition-all`}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
                 <Button
                   type="submit"
@@ -215,17 +223,19 @@ export default function Register() {
                   <Label htmlFor="otp" className="text-muted-foreground text-xs mb-1">
                     6-Digit OTP
                   </Label>
-                  <Input
-                    id="otp"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    className="rounded-xl text-center text-lg tracking-[0.3em]"
-                    required
-                    disabled={isLoading}
-                  />
+                  <div className={`rounded-xl p-[3px] mx-auto overflow-hidden transition focus-within:bg-gradient-to-r focus-within:from-[#6B4BFF] focus-within:to-[#C9A8FF] ${otp ? 'bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF]' : 'bg-transparent'}`}>
+                    <Input
+                      id="otp"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      className="rounded-lg bg-black text-center text-lg tracking-[0.3em] px-6 py-2 border-0 focus:outline-none focus:ring-0 focus-visible:ring-0"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
                 
                 <Button

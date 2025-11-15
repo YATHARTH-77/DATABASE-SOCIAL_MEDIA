@@ -304,8 +304,8 @@ export default function Profile() {
       
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-4xl mx-auto">
-          <Card className="p-4 sm:p-8 shadow-lg">
-            {/* --- Profile Header (Unchanged) --- */}
+          <Card className="p-4 sm:p-8 shadow-lg border-2 border-purple-300">
+            {/* --- Profile Header --- */}
             <div className="flex items-start justify-between mb-6">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
                 <Avatar className="w-24 h-24 flex-shrink-0">
@@ -376,10 +376,10 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* --- Bio (Unchanged) --- */}
-            <div className="mb-6 p-4 bg-muted/30 rounded-xl">
-              <p className="font-semibold mb-1">{profileData.full_name || profileData.username}</p>
-              <p className="text-sm text-muted-foreground break-words">
+            {/* --- Bio --- */}
+            <div className="mb-6 p-4 bg-purple-50 rounded-xl border border-purple-200">
+              <p className="font-semibold mb-1 text-[#1D0C69]">{profileData.full_name || profileData.username}</p>
+              <p className="text-sm text-gray-600 break-words">
                 {profileData.bio || "No bio available."}
               </p>
             </div>

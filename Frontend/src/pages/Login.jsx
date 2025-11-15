@@ -73,56 +73,48 @@ export default function Login() {
             alt="ConnectIT"
             className="h-[17rem] -mt-20 -mb-20"
           />
-        </div>
+          </div>
 
-        <div className="bg-card rounded-2xl shadow-2xl p-8 border border-border -mt-10">
+          <div className="bg-card rounded-2xl shadow-2xl p-8 border border-border -mt-10">
           <h2 className="text-2xl font-bold text-center mb-6 text-foreground">
             Login
           </h2>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* Username Field (unchanged) */}
+            {/* Username Field */}
             <div>
-              <Label
-                htmlFor="username"
-                className="text-bold-foreground text-xs mb-1"
-              >
+              <Label htmlFor="username" className="text-bold-foreground text-xs mb-1">
                 Username
               </Label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="rounded-xl bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white placeholder:text-white/70 px-3 py-2 border-0"
-                required
-                disabled={isLoading} 
-              />
-              <button
-                type="button"
-                className="text-xs font-semibold mt-2 bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF] bg-clip-text text-transparent hover:underline hover:brightness-125 drop-shadow-sm transition duration-150 ease-out focus:outline-none"
-              >
-                Forgot Username?
-              </button>
+              <div className={`rounded-xl p-[3px] overflow-hidden transition focus-within:bg-gradient-to-r focus-within:from-[#6B4BFF] focus-within:to-[#C9A8FF] ${username ? 'bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF]' : 'bg-transparent'}`}>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className={`w-full rounded-lg bg-black text-white placeholder:text-white/70 px-3 py-2 border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 transition-all`}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
             </div>
 
-            {/* Password Field (unchanged) */}
+            {/* Password Field */}
             <div>
-              <Label
-                htmlFor="password"
-                className="text-bold-foreground text-xs mb-1"
-              >
+              <Label htmlFor="password" className="text-bold-foreground text-xs mb-1">
                 Password
               </Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="rounded-xl bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white placeholder:text-white/70 px-3 py-2 border-0"
-                required
-                disabled={isLoading} 
-              />
+              <div className={`rounded-xl p-[3px] overflow-hidden transition focus-within:bg-gradient-to-r focus-within:from-[#6B4BFF] focus-within:to-[#C9A8FF] ${password ? 'bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF]' : 'bg-transparent'}`}>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`w-full rounded-lg bg-black text-white placeholder:text-white/70 px-3 py-2 border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 transition-all`}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
               <button
                 type="button"
                 className="text-xs font-semibold mt-2 bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF] bg-clip-text text-transparent hover:underline hover:brightness-125 drop-shadow-sm transition duration-150 ease-out focus:outline-none"
@@ -131,17 +123,9 @@ export default function Login() {
               </button>
             </div>
 
-            {/* Login Button (unchanged) */}
-            <Button
-              type="submit"
-              className="w-full gradient-sidebar text-white font-bold rounded-xl"
-              disabled={isLoading} 
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                "Login"
-              )}
+            {/* Login Button */}
+            <Button type="submit" className="w-full gradient-sidebar text-white font-bold rounded-xl" disabled={isLoading}>
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Login"}
             </Button>
           </form>
 
