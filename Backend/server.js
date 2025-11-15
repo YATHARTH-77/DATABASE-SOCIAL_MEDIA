@@ -385,31 +385,73 @@ app.post("/api/posts/create", uploadPost.array('media', 10), async (req, res) =>
 });
 
 app.post("/api/posts/like", async (req, res) => {
-  const { userId, postId } = req.body;
+  let conn;
   try {
-    const [existing] = await db.query("SELECT * FROM POST_LIKE WHERE user_id = ? AND post_id = ?", [userId, postId]);
+    conn = await db.getConnection();
+    await conn.beginTransaction(); // 🔒 START
+    
+    const [existing] = await conn.query(
+      "SELECT * FROM POST_LIKE WHERE user_id = ? AND post_id = ?", 
+      [userId, postId]
+    );
+    
     if (existing.length > 0) {
-      await db.query("DELETE FROM POST_LIKE WHERE user_id = ? AND post_id = ?", [userId, postId]);
-      res.json({ success: true, action: 'unliked' });
+      // UNLIKE
+      await conn.query(
+        "DELETE FROM POST_LIKE WHERE user_id = ? AND post_id = ?", 
+        [userId, postId]
+      );
     } else {
-      await db.query("INSERT INTO POST_LIKE (user_id, post_id) VALUES (?, ?)", [userId, postId]);
-      res.json({ success: true, action: 'liked' });
+      // LIKE
+      await conn.query(
+        "INSERT INTO POST_LIKE (user_id, post_id) VALUES (?, ?)", 
+        [userId, postId]
+      );
     }
-  } catch (err) { res.status(500).json({success:false}); }
+    
+    await conn.commit(); // ✅ SUCCESS
+    
+  } catch (err) {
+    if (conn) await conn.rollback(); // ❌ CANCEL
+    res.status(500).json({success:false});
+  } finally {
+    if (conn) conn.release();
+  }
 });
 
 app.post("/api/posts/save", async (req, res) => {
-  const { userId, postId } = req.body;
+  let conn;
   try {
-    const [existing] = await db.query("SELECT * FROM Saved_posts WHERE user_id = ? AND post_id = ?", [userId, postId]);
+    conn = await db.getConnection();
+    await conn.beginTransaction(); // 🔒 START
+    
+    const [existing] = await conn.query(
+      "SELECT * FROM Saved_posts WHERE user_id = ? AND post_id = ?", 
+      [userId, postId]
+    );
+    
     if (existing.length > 0) {
-      await db.query("DELETE FROM Saved_posts WHERE user_id = ? AND post_id = ?", [userId, postId]);
-      res.json({ success: true, action: 'unsaved' });
+      // UNSAVE
+      await conn.query(
+        "DELETE FROM Saved_posts WHERE user_id = ? AND post_id = ?", 
+        [userId, postId]
+      );
     } else {
-      await db.query("INSERT INTO Saved_posts (user_id, post_id) VALUES (?, ?)", [userId, postId]);
-      res.json({ success: true, action: 'saved' });
+      // SAVE
+      await conn.query(
+        "INSERT INTO Saved_posts (user_id, post_id) VALUES (?, ?)", 
+        [userId, postId]
+      );
     }
-  } catch (err) { res.status(500).json({success:false}); }
+    
+    await conn.commit(); // ✅ SUCCESS
+    
+  } catch (err) {
+    if (conn) await conn.rollback(); // ❌ CANCEL
+    res.status(500).json({success:false});
+  } finally {
+    if (conn) conn.release();
+  }
 });
 
 app.get("/api/posts/:postId/comments", async (req, res) => {
@@ -420,31 +462,81 @@ app.get("/api/posts/:postId/comments", async (req, res) => {
 });
 
 app.post("/api/posts/:postId/comments", async (req, res) => {
+  const { postId } = req.params;
   const { userId, commentText } = req.body;
-  const postId = req.params.postId;
-  
-  // Validate comment for abusive content
-  if (containsAbusiveContent(commentText)) {
+
+  if (!userId || !commentText) {
     return res.status(400).json({ 
       success: false, 
-      message: "Abusive or inappropriate language detected." 
+      message: "userId and commentText are required" 
     });
   }
-  
+
+  let conn;
   try {
-    // Check for duplicate comment
-    const isDuplicate = await isDuplicateComment(db, userId, postId, commentText);
-    if (isDuplicate) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Duplicate comment not allowed." 
+    conn = await db.getConnection();
+    await conn.beginTransaction(); // 🔒 START TRANSACTION
+
+    // Step 1: Check for duplicate comment
+    const [existing] = await conn.query(
+      `SELECT COUNT(*) AS count 
+       FROM COMMENT 
+       WHERE user_id = ? AND post_id = ? AND comment_text = ?`,
+      [userId, postId, commentText]
+    );
+
+    if (existing[0].count > 0) {
+      await conn.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Duplicate comment not allowed."
       });
     }
-    
-    const [resDb] = await db.query("INSERT INTO COMMENT (user_id, post_id, comment_text) VALUES (?, ?, ?)", [userId, req.params.postId, commentText]);
-    const [newComment] = await db.query(`SELECT c.*, u.username, u.profile_pic_url FROM COMMENT c JOIN USER u ON c.user_id = u.user_id WHERE c.comment_id = ?`, [resDb.insertId]);
-    res.status(201).json({ success: true, comment: newComment[0] });
-  } catch (err) { res.status(500).json({success:false}); }
+
+    // Step 2: Insert the new comment
+    const [resDb] = await conn.query(
+      "INSERT INTO COMMENT (user_id, post_id, comment_text) VALUES (?, ?, ?)",
+      [userId, postId, commentText]
+    );
+
+    // Step 3: Fetch inserted comment with user info
+    const [newComment] = await conn.query(
+      `SELECT c.comment_id, c.comment_text, c.created_at,
+              u.user_id, u.username, u.profile_pic_url
+       FROM COMMENT c
+       JOIN USER u ON c.user_id = u.user_id
+       WHERE c.comment_id = ?`,
+      [resDb.insertId]
+    );
+
+    await conn.commit(); // ✅ COMMIT
+
+    return res.status(201).json({
+      success: true,
+      comment: newComment[0]
+    });
+
+  } catch (err) {
+    console.error("Add Comment Error:", err);
+
+    if (conn) await conn.rollback();
+
+    // Handle trigger errors (spam, abusive, etc.)
+    if (err.code === "ER_SIGNAL_EXCEPTION" || err.errno === 1644) {
+      return res.status(400).json({
+        success: false,
+        message: err.sqlMessage
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+
+  } finally {
+    if (conn) conn.release();
+  }
 });
 
 // --- Story Routes (UPDATED: Uses Cloudinary file.path) ---
