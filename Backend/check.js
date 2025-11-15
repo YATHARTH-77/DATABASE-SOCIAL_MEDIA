@@ -1,31 +1,23 @@
-// Import mysql2
-const mysql = require('mysql2');
+require('dotenv').config(); // Load the .env variables
+const mysql = require('mysql2'); // Or 'mysql' if you use that package
 
-// Create a connection
-const connection = mysql.createConnection({
-  host: 'localhost',     // your host, usually localhost
-  user: 'root',          // your MySQL username
-  password: 'ym@123@ym', // your MySQL password
-  database: 'S_M'  // database name you want to connect
+const db = mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
+    ssl: {
+        rejectUnauthorized: true // Required for TiDB Cloud
+    }
 });
 
-// Connect
-connection.connect((err) => {
-  if (err) {
-    console.error('Error connecting to MySQL:', err);
-    return;
-  }
-  console.log('Connected to MySQL!');
+db.connect((err) => {
+    if (err) {
+        console.error('❌ Database connection failed:', err.message);
+        return;
+    }
+    console.log('✅ Connected to TiDB Cloud MySQL Database!');
 });
 
-// Example query
-connection.query('SELECT * FROM USER', (err, results) => {
-  if (err) {
-    console.error(err);
-  } else {
-    console.log(results);
-  }
-});
-
-// Close connection
-connection.end();
+module.exports = db;
