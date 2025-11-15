@@ -346,11 +346,13 @@ app.post("/api/posts/create", uploadPost.array('media', 10), async (req, res) =>
   const { user_id, caption, hashtags } = req.body;
   const files = req.files;
   
+  console.log("📝 Creating post with hashtags:", hashtags); // Debug
+  
   // 1. Validate caption for abusive content
   if (caption && containsAbusiveContent(caption)) {
-    return res.status(400).json({
-      success: false,
-      message: "Caption contains inappropriate language."
+    return res.status(400).json({ 
+      success: false, 
+      message: "Caption contains inappropriate language." 
     });
   }
   
@@ -360,51 +362,91 @@ app.post("/api/posts/create", uploadPost.array('media', 10), async (req, res) =>
     await conn.beginTransaction();
 
     // 2. Insert Post
-    const [postResult] = await conn.query("INSERT INTO POST (user_id, caption) VALUES (?, ?)", [user_id, caption]);
+    const [postResult] = await conn.query(
+      "INSERT INTO POST (user_id, caption) VALUES (?, ?)", 
+      [user_id, caption]
+    );
     const postId = postResult.insertId;
+    console.log(`✅ Post ${postId} created`);
 
     // 3. Insert Media (Cloudinary)
-    // Use `file.path` (The remote URL) instead of `file.filename`
     const mediaValues = files.map(f => [postId, f.path, f.mimetype]);
-    if (mediaValues.length > 0) await conn.query("INSERT INTO MEDIA (post_id, media_url, media_type) VALUES ?", [mediaValues]);
+    if (mediaValues.length > 0) {
+      await conn.query("INSERT INTO MEDIA (post_id, media_url, media_type) VALUES ?", [mediaValues]);
+      console.log(`✅ Inserted ${mediaValues.length} media files`);
+    }
 
     // 4. Insert Hashtags (FIXED LOGIC)
-    if (hashtags) {
+    if (hashtags && hashtags.trim().length > 0) {
+      console.log("🏷️  Processing hashtags:", hashtags);
+      
       // Clean tags: remove spaces, split by space, remove #, lowercase
-      const tagList = hashtags.split(' ')
+      const tagList = hashtags
+        .split(' ')
         .map(t => t.trim())
         .filter(t => t.length > 0)
-        .map(t => t.startsWith('#') ? t.substring(1).toLowerCase() : t.toLowerCase());
+        .map(t => {
+          // Remove # if present and convert to lowercase
+          const cleaned = t.startsWith('#') ? t.substring(1) : t;
+          return cleaned.toLowerCase();
+        });
+
+      console.log("🔍 Cleaned tag list:", tagList);
 
       if (tagList.length > 0) {
         // A. Insert new tags (IGNORE duplicates)
-        // Dynamic placeholders: (?, ?), (?, ?)
-        const insertPlaceholders = tagList.map(() => '(?)').join(', ');
-        await conn.query(`INSERT IGNORE INTO HASHTAG (hashtag_text) VALUES ${insertPlaceholders}`, tagList);
+        // Build VALUES clause: (?) for each tag
+        const insertValues = tagList.map(tag => [tag]);
+        await conn.query(
+          "INSERT IGNORE INTO HASHTAG (hashtag_text) VALUES ?", 
+          [insertValues]
+        );
+        console.log(`✅ Inserted/ignored ${tagList.length} hashtags into HASHTAG table`);
 
-        // B. Get IDs of ALL tags (THE FIX)
-        // We must expand the array into "?, ?, ?" manually so the database sees all items
-        const selectPlaceholders = tagList.map(() => '?').join(', ');
+        // B. Get IDs of ALL tags - FIXED: Spread the array properly
+        const placeholders = tagList.map(() => '?').join(', ');
         const [hRows] = await conn.query(
-            `SELECT hashtag_id FROM HASHTAG WHERE hashtag_text IN (${selectPlaceholders})`,
-            tagList
+          `SELECT hashtag_id, hashtag_text FROM HASHTAG WHERE hashtag_text IN (${placeholders})`, 
+          [...tagList] // ⭐ CRITICAL FIX: Spread the array!
         );
 
+        console.log(`🔍 Found ${hRows.length} hashtag IDs:`, hRows);
+
         // C. Link tags to the post
-        const phValues = hRows.map(row => [postId, row.hashtag_id]);
-        if (phValues.length > 0) {
-            await conn.query("INSERT INTO POST_HASHTAG (post_id, hashtag_id) VALUES ?", [phValues]);
+        if (hRows.length > 0) {
+          const phValues = hRows.map(row => [postId, row.hashtag_id]);
+          await conn.query(
+            "INSERT INTO POST_HASHTAG (post_id, hashtag_id) VALUES ?", 
+            [phValues]
+          );
+          console.log(`✅ Linked ${phValues.length} hashtags to post ${postId}`);
+        } else {
+          console.warn("⚠️ No hashtag IDs found! Check HASHTAG table.");
         }
       }
     }
 
     await conn.commit();
-    res.status(201).json({ success: true, message: "Post created!", postId });
+    console.log(`✅ Post ${postId} committed successfully`);
+    
+    res.status(201).json({ 
+      success: true, 
+      message: "Post created!", 
+      postId 
+    });
+    
   } catch (err) {
     if (conn) await conn.rollback();
-    console.error("Create Post DB error:", err);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  } finally { if (conn) conn.release(); }
+    console.error("❌ Create Post DB error:", err);
+    console.error("Error details:", err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal server error",
+      error: err.message 
+    });
+  } finally { 
+    if (conn) conn.release(); 
+  }
 });
 app.post("/api/posts/like", async (req, res) => {
   const { userId, postId } = req.body;
@@ -720,7 +762,7 @@ app.get("/api/search/suggested-users", async (req, res) => {
 });
 app.get("/api/search/trending-hashtags", async (req, res) => {
   try {
-    const [hashtags] = await db.query("SELECT h.hashtag_text, COUNT(ph.hashtag_id) as count FROM POST_HASHTAG ph JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id GROUP BY ph.hashtag_id ORDER BY count DESC LIMIT 10");
+    const [hashtags] = await db.query("SELECT h.hashtag_text, COUNT(ph.hashtag_id) as count FROM POST_HASHTAG ph JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id GROUP BY ph.hashtag_id ORDER BY count DESC LIMIT 5");
     res.json({ success: true, hashtags });
   } catch (err) { res.status(500).json({success:false}); }
 });

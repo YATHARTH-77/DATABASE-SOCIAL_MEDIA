@@ -33,9 +33,7 @@ export function PostDetailModal({
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="relative w-full max-w-md md:max-w-4xl max-h-[90vh] bg-background rounded-xl flex overflow-y-auto md:overflow-y-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-col md:flex-row w-full md:h-full">
-          {/* --- MODIFICATION START: Corrected md:w-12 to md:w-1/2 --- */}
           <div className="w-full md:w-1/2 bg-black flex items-center justify-center relative flex-shrink-0">
-          {/* --- MODIFICATION END --- */}
             <div className="absolute top-4 right-4 z-20">
               {variant === 'owner' ? (
                 isSavedPostView ? (
@@ -43,7 +41,7 @@ export function PostDetailModal({
                     variant="ghost"
                     size="icon"
                     onClick={onSave}
-                    className="bg-background/80 backdrop-blur-sm rounded-full text-blue-500 hover:text-blue-600"
+                    className="bg-background/80 backdrop-blur-sm rounded-full text-[#5A0395] hover:text-[#1D0C69]"
                   >
                     <Bookmark className="w-5 h-5 fill-current" />
                   </Button>
@@ -66,10 +64,20 @@ export function PostDetailModal({
                 )
               ) : (
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={onLike} className={`bg-background/80 backdrop-blur-sm rounded-full ${isLiked ? "text-blue-500" : "hover:text-blue-500"}`}>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={onLike} 
+                    className={`bg-background/80 backdrop-blur-sm rounded-full hover:bg-purple-100 ${isLiked ? "text-[#5A0395]" : "hover:text-[#5A0395]"}`}
+                  >
                     <ThumbsUp className={`w-5 h-5 ${isLiked ? "fill-current" : ""}`} />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={onSave} className={`bg-background/80 backdrop-blur-sm rounded-full ${isSaved ? "text-blue-500" : "hover:text-blue-500"}`}>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={onSave} 
+                    className={`bg-background/80 backdrop-blur-sm rounded-full hover:bg-purple-100 ${isSaved ? "text-[#5A0395]" : "hover:text-[#5A0395]"}`}
+                  >
                     <Bookmark className={`w-5 h-5 ${isSaved ? "fill-current" : ""}`} />
                   </Button>
                 </div>
@@ -83,7 +91,7 @@ export function PostDetailModal({
 
           <div className="w-full md:w-1/2 flex flex-col bg-background md:overflow-y-auto">
             {isSavedPostView && (
-              <div className="p-3 bg-yellow-300/80 border-b border-yellow-400 flex items-center gap-3 flex-shrink-0">
+              <div className="p-3 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] border-b border-purple-600 flex items-center gap-3 flex-shrink-0">
                  <Avatar className="w-8 h-8">
                     <AvatarImage src={post.avatar} />
                     <AvatarFallback className="bg-blue-500 text-white">
@@ -92,27 +100,27 @@ export function PostDetailModal({
                   </Avatar>
                   <div className="min-w-0">
                     <p 
-                      className="font-semibold truncate text-blue-800 cursor-pointer hover:underline" 
+                      className="font-semibold truncate text-white cursor-pointer hover:opacity-80" 
                       onClick={() => onUserClick(post.username)}
                     >
                       {post.username}
                     </p>
-                    <p className="text-xs text-blue-800/70">{post.timestamp || "3d ago"}</p>
+                    <p className="text-xs text-white/70">{post.timestamp || "3d ago"}</p>
                   </div>
               </div>
             )}
 
-            <div className="p-4 bg-gray-100 border-b flex-shrink-0">
-              <p className="text-sm break-words">
+            <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-b border-purple-200 flex-shrink-0">
+              <p className="text-sm break-words text-gray-800">
                 {post.caption}
               </p>
             </div>
             {post.hashtags && post.hashtags.length > 0 && (
-              <div className="p-4 bg-gray-100 border-b flex-shrink-0">
-                <p className="font-semibold text-sm mb-2 text-gray-700">#Hashtags:</p>
+              <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-b border-purple-200 flex-shrink-0">
+                <p className="font-semibold text-sm mb-2 text-[#1D0C69]">#Hashtags:</p>
                 <div className="flex flex-wrap gap-2">
                   {post.hashtags.map((tag, idx) => (
-                    <span key={idx} className="text-sm text-blue-600 hover:underline cursor-pointer">{tag}</span>
+                    <span key={idx} className="text-sm text-[#5A0395] hover:underline cursor-pointer font-medium">#{tag}</span>
                   ))}
                 </div>
               </div>
@@ -134,4 +142,4 @@ export function PostDetailModal({
       </div>
     </div>
   );
-} 
+}
