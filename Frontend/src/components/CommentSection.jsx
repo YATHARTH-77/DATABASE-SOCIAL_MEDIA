@@ -56,15 +56,15 @@ export function CommentSection({ postId, comments, onAddComment, onClose, onUser
               >
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={comment.avatar} />
-                  <AvatarFallback className="bg-blue-500 text-white text-xs">
+                  <AvatarFallback className="bg-[#5A0395] text-white text-xs">
                     {comment.username[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="bg-gray-100 rounded-2xl px-3 py-2">
+                <div className="bg-purple-50 rounded-2xl px-3 py-2 border border-purple-100">
                   <p 
-                    className="font-semibold text-sm text-gray-800 cursor-pointer hover:underline inline-block"
+                    className="font-semibold text-sm text-[#5A0395] cursor-pointer hover:underline inline-block"
                     onClick={(e) => handleUsernameClick(e, comment.username)}
                   >
                     {comment.username}
@@ -82,7 +82,7 @@ export function CommentSection({ postId, comments, onAddComment, onClose, onUser
       <div className="p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
         <div className="flex gap-2">
           <Avatar className="w-8 h-8 flex-shrink-0">
-            <AvatarFallback className="bg-blue-500 text-white text-xs">
+            <AvatarFallback className="bg-[#5A0395] text-white text-xs">
               U
             </AvatarFallback>
           </Avatar>
@@ -93,14 +93,14 @@ export function CommentSection({ postId, comments, onAddComment, onClose, onUser
               onChange={(e) => setCommentText(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Add a comment..."
-              className="flex-1 px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
+              className="flex-1 px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:border-[#5A0395] focus:ring-1 focus:ring-[#5A0395] text-sm"
               autoFocus
             />
             <Button
               onClick={handleSubmit}
               size="icon"
               disabled={!commentText.trim()}
-              className="rounded-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed h-10 w-10"
+              className="rounded-full bg-[#5A0395] hover:bg-[#1D0C69] disabled:opacity-50 disabled:cursor-not-allowed h-10 w-10"
             >
               <Send className="h-4 w-4" />
             </Button>

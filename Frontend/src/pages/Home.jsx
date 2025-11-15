@@ -47,6 +47,7 @@ export default function Home() {
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true); // Now controls the whole page
   const [error, setError] = useState(null);
+  const [userStory, setUserStory] = useState(null); // Store user's own story
 
   // --- 1. Get Logged-in User ---
   // This is the most critical part for Google Login. This useEffect checks if a user is in localStorage (from a normal login) or in the server session (from a Google login).
@@ -101,15 +102,23 @@ export default function Home() {
         const momentsRes = await fetch(`${API_URL}/api/feed/stories?userId=${user.id}`);
         const momentsData = await momentsRes.json();
         if (momentsData.success) {
-          // Map server data to frontend StoryViewer structure
-          setMoments(momentsData.stories.map(s => ({
+          // Separate user's own story from others
+          const allStories = momentsData.stories.map(s => ({
             id: s.story_id,
             username: s.username,
             avatar: s.profile_pic_url,
             src: `${API_URL}${s.media_url}`,
             type: s.media_url && s.media_url.endsWith('.mp4') ? 'video' : 'photo',
             timestamp: s.created_at,
-          })));
+            userId: s.user_id
+          }));
+          
+          // Find user's own story
+          const ownStory = allStories.find(s => s.username === user.username);
+          const otherStories = allStories.filter(s => s.username !== user.username);
+          
+          setUserStory(ownStory || null);
+          setMoments(otherStories);
         }
 
         // --- Fetch Posts ---
@@ -234,6 +243,13 @@ export default function Home() {
     setShowStoryViewer(true);
   };
 
+  const handleUserStoryClick = () => {
+    // When user clicks their own story, show it first
+    const allStoriesWithUser = userStory ? [userStory, ...moments] : moments;
+    setSelectedStoryIndex(0);
+    setShowStoryViewer(true);
+  };
+
   const handleUserClick = (username) => {
     navigate(`/user/${username}`);
   };
@@ -267,7 +283,7 @@ export default function Home() {
     <>
       {showStoryViewer && (
         <StoryViewer
-          stories={moments}
+          stories={userStory ? [userStory, ...moments] : moments}
           initialIndex={selectedStoryIndex}
           onClose={() => setShowStoryViewer(false)}
         />
@@ -276,42 +292,71 @@ export default function Home() {
         <div className="max-w-2xl mx-auto space-y-6">
           
           {/* --- MOMENTS --- */}
-          <div className="rounded-2xl p-4 md:p-6 border border-secondary/20 overflow-hidden bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051]">
+          <div className="rounded-2xl p-4 md:p-6 border border-secondary/20 overflow-hidden bg-gradient-to-br from-purple-50 to-purple-100">
             <div>
-              <h2 className="text-white font-bold px-6 py-3 rounded-full inline-block mb-4 text-xl md:text-2xl">
+              <h2 className="text-white font-bold px-4 py-2 rounded-full inline-block mb-4 text-base md:text-lg bg-gradient-to-r from-[#1D0C69] to-[#5A0395]">
                 MOMENTS
               </h2>
-              <div className="flex gap-4 overflow-x-auto pb-2">
-              {/* "Your Story" button (Unchanged) */}
+              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                {/* Add this style tag for scrollbar-hide utility */}
+                <style jsx>{`
+                  .scrollbar-hide::-webkit-scrollbar {
+                    display: none;
+                  }
+                  .scrollbar-hide {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                  }
+                `}</style>
+              {/* "Add Moment" button OR User's Own Story */}
               <div>
-                {(() => {
-                  const createItem = navItems.find((n) => n.label === "CREATE");
-                  const Icon = createItem ? createItem.icon : null;
-                  const to = createItem ? `${createItem.path}?tab=moment` : "/create?tab=moment";
-                  return (
-                    <Link to={to} onClick={(e) => e.stopPropagation()} className="flex flex-col items-center gap-2">
-                      <div className={`w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051] cursor-pointer transition-shadow hover:shadow-xl flex items-center justify-center`}>
-                        <div className="w-14 h-14 rounded-full bg-white/75 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                          <button
-                            aria-label="Create Story"
-                            className="w-8 h-8 rounded-full bg-[#6a00a3] text-white flex items-center justify-center shadow-md"
-                          >
-                            {Icon ? <Icon className="w-4 h-4" /> : <span className="text-white font-extrabold">+</span>}
-                          </button>
-                        </div>
+                {userStory ? (
+                  // Show user's own story if it exists
+                  <div className="flex flex-col items-center gap-2">
+                    <div
+                      className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1D0C69] via-[#5A0395] to-[#3D1A8F] p-1 cursor-pointer"
+                      onClick={handleUserStoryClick}
+                    >
+                      <div className="w-full h-full rounded-full bg-background p-1">
+                        <Avatar className="w-full h-full">
+                          <AvatarImage src={user.profile_pic_url ? `${API_URL}${user.profile_pic_url}` : ''} />
+                          <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+                        </Avatar>
                       </div>
-                      <span className="text-xs text-white">Your Story</span>
-                    </Link>
-                  );
-                })()}
+                    </div>
+                    <span className="text-xs text-[#5A0395] font-medium">Your Story</span>
+                  </div>
+                ) : (
+                  // Show "Add Moment" button if no story exists
+                  (() => {
+                    const createItem = navItems.find((n) => n.label === "CREATE");
+                    const Icon = createItem ? createItem.icon : null;
+                    const to = createItem ? `${createItem.path}?tab=moment` : "/create?tab=moment";
+                    return (
+                      <Link to={to} onClick={(e) => e.stopPropagation()} className="flex flex-col items-center gap-2">
+                        <div className={`w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-[#1D0C69] to-[#5A0395] cursor-pointer transition-shadow hover:shadow-xl flex items-center justify-center`}>
+                          <div className="w-14 h-14 rounded-full bg-white/75 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                            <button
+                              aria-label="Create Story"
+                              className="w-8 h-8 rounded-full bg-[#5A0395] text-white flex items-center justify-center shadow-md"
+                            >
+                              {Icon ? <Icon className="w-4 h-4" /> : <span className="text-white font-extrabold">+</span>}
+                            </button>
+                          </div>
+                        </div>
+                        <span className="text-xs text-[#5A0395] font-medium">Add Moment</span>
+                      </Link>
+                    );
+                  })()
+                )}
               </div>
               
-              {/* DYNAMIC MOMENTS */}
+              {/* DYNAMIC MOMENTS - Now adjusted for index since user story is separate */}
               {moments.map((moment, index) => (
                 <div key={moment.id} className="flex flex-col items-center gap-2 flex-shrink-0">
                   <div
-                    className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 via-emerald-400 to-amber-400 p-1 cursor-pointer"
-                    onClick={() => handleMomentClick(index)}
+                    className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1D0C69] via-[#5A0395] to-[#3D1A8F] p-1 cursor-pointer"
+                    onClick={() => handleMomentClick(userStory ? index + 1 : index)}
                   >
                     <div className="w-full h-full rounded-full bg-background p-1">
                       <Avatar className="w-full h-full">
@@ -320,7 +365,7 @@ export default function Home() {
                       </Avatar>
                     </div>
                   </div>
-                  <span className="text-xs text-muted-foreground">{moment.username}</span>
+                  <span className="text-xs text-[#5A0395] font-medium">{moment.username}</span>
                 </div>
               ))}
               </div>
@@ -334,7 +379,7 @@ export default function Home() {
             </h2>
 
             {posts.length === 0 && (
-              <Card className="overflow-hidden rounded-2xl border border-secondary/20 p-0 bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051]">
+              <Card className="overflow-hidden rounded-2xl border border-secondary/20 p-0 bg-gradient-to-br from-[#1D0C69] to-[#5A0395]">
                 <div className="p-10 text-center text-white">
                   <p>Your feed is empty.</p>
                   <p className="text-sm">Follow some users to see their posts here!</p>
@@ -343,9 +388,9 @@ export default function Home() {
             )}
 
             {posts.map((post) => (
-              <Card key={post.post_id} className="overflow-hidden shadow-lg border">
+              <Card key={post.post_id} className="overflow-hidden shadow-lg border max-w-xl mx-auto">
                 {/* Header (Username & Avatar) */}
-                <div className="flex items-center justify-between p-3 bg-yellow-300/80 border-b border-yellow-400">
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] border-b border-purple-600">
                   <div 
                     className="flex items-center gap-3 cursor-pointer hover:opacity-80 min-w-0"
                     onClick={() => handleUserClick(post.username)}
@@ -357,25 +402,25 @@ export default function Home() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <p className="font-semibold truncate text-blue-800">{post.username}</p>
+                      <p className="font-semibold truncate text-white">{post.username}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* --- DYNAMIC MEDIA --- */}
-                <div className="bg-black aspect-square flex items-center justify-center border-b">
+                <div className="bg-black max-h-[500px] flex items-center justify-center border-b">
                   {post.media && post.media.length > 0 ? (
                     post.media[0].media_type.startsWith('video') ? (
                       <video 
                         src={`${API_URL}${post.media[0].media_url}`} 
                         controls 
-                        className="w-full h-full object-contain" 
+                        className="w-full max-h-[500px] object-contain" 
                       />
                     ) : (
                       <img 
                         src={`${API_URL}${post.media[0].media_url}`} 
                         alt="Post media" 
-                        className="w-full h-full object-cover" 
+                        className="w-full max-h-[500px] object-contain" 
                       />
                     )
                   ) : (
@@ -384,10 +429,10 @@ export default function Home() {
                 </div>
 
                 {/* Caption, Actions, Hashtags */}
-                <div className="p-4 space-y-3 bg-gray-100">
+                <div className="p-4 space-y-3 bg-gradient-to-br from-purple-50 to-purple-100">
                   <div className="flex items-start justify-between">
-                    <p className="text-sm break-words flex-1 pr-4 min-w-0">
-                      <span className="font-semibold cursor-pointer" onClick={() => handleUserClick(post.username)}>
+                    <p className="text-sm break-words flex-1 pr-4 min-w-0 text-gray-800">
+                      <span className="font-semibold cursor-pointer text-[#5A0395]" onClick={() => handleUserClick(post.username)}>
                         {post.username}
                       </span>{" "}
                       {post.caption}
@@ -397,7 +442,7 @@ export default function Home() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleLike(post.post_id)}
-                        className={`w-auto h-auto p-1 ${likedPosts.includes(post.post_id) ? "text-blue-500" : "hover:text-blue-500"}`}
+                        className={`w-auto h-auto p-1 hover:bg-purple-100 ${likedPosts.includes(post.post_id) ? "text-[#5A0395]" : "hover:text-[#5A0395]"}`}
                       >
                         <ThumbsUp className={`w-5 h-5 ${likedPosts.includes(post.post_id) ? "fill-current" : ""}`} />
                         <span className="text-sm ml-1">{post.like_count}</span>
@@ -405,12 +450,12 @@ export default function Home() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className={`w-auto h-auto p-1 relative ${openCommentPostId === post.post_id ? "text-blue-500" : "hover:text-blue-500"}`}
+                        className={`w-auto h-auto p-1 hover:bg-purple-100 relative ${openCommentPostId === post.post_id ? "text-[#5A0395]" : "hover:text-[#5A0395]"}`}
                         onClick={() => toggleComments(post.post_id)}
                       >
                         <MessageCircle className="w-5 h-5" />
                         {post.comment_count > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                          <span className="absolute -top-1 -right-1 bg-[#5A0395] text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                             {post.comment_count}
                           </span>
                         )}
@@ -419,7 +464,7 @@ export default function Home() {
                         variant="ghost" 
                         size="icon" 
                         onClick={() => handleSave(post.post_id)}
-                        className={`w-auto h-auto p-1 ${savedPosts.includes(post.post_id) ? "text-blue-500" : "hover:text-blue-500"}`}
+                        className={`w-auto h-auto p-1 hover:bg-purple-100 ${savedPosts.includes(post.post_id) ? "text-[#5A0395]" : "hover:text-[#5A0395]"}`}
                       >
                         <Bookmark className={`w-5 h-5 ${savedPosts.includes(post.post_id) ? "fill-current" : ""}`} />
                       </Button>
@@ -427,13 +472,13 @@ export default function Home() {
                   </div>
 
                   {/* Hashtags */}
-                  <div className="border-t pt-3">
-                    <p className="font-semibold text-sm mb-1 text-gray-700">#Hashtags:</p>
+                  <div className="border-t pt-3 border-purple-200">
+                    <p className="font-semibold text-sm mb-1 text-[#1D0C69]">#Hashtags:</p>
                     <div className="flex flex-wrap gap-2">
                       {post.hashtags.map((tag, idx) => (
                         <span
                           key={idx}
-                          className="text-sm text-blue-600 hover:underline cursor-pointer"
+                          className="text-sm text-[#5A0395] hover:underline cursor-pointer font-medium"
                           onClick={() => handleHashtagClick(tag)}
                         >
                           #{tag}
@@ -441,7 +486,7 @@ export default function Home() {
                       ))}
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">{formatTimeAgo(post.created_at)}</p>
+                  <p className="text-xs text-gray-600">{formatTimeAgo(post.created_at)}</p>
                 </div>
 
                 {/* Comment Section - Inline */}
