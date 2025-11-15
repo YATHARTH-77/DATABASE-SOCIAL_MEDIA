@@ -125,25 +125,16 @@ export default function Search() {
               <Loader2 className="w-6 h-6 animate-spin text-[#5A0395]" />
             </div>
           ) : (
-            <div className="flex flex-col gap-3"> {/* <-- Changed gap-2 to gap-3 */}
+            <div className="flex flex-col gap-2">
               {trendingHashtags.map((tag) => (
-                // --- UPDATED HASHTAG CARD ---
                 <div
                   key={tag.hashtag_text}
                   onClick={() => handleHashtagClick(tag.hashtag_text)}
-                  className="flex items-center justify-between p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200 cursor-pointer hover:shadow-md transition-shadow"
+                  className="p-3 rounded-lg cursor-pointer bg-gradient-to-br from-purple-50 to-purple-100 hover:shadow-md transition-shadow border border-purple-200"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#5A0395] flex items-center justify-center">
-                      <Hash className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold truncate text-[#1D0C69]">#{tag.hashtag_text}</p>
-                      <p className="text-sm text-[#5A0395] truncate">{tag.post_count} posts</p>
-                    </div>
-                  </div>
+                  <p className="font-semibold text-[#1D0C69]">#{tag.hashtag_text}</p>
+                  <p className="text-sm text-[#5A0395]">{tag.post_count} posts</p>
                 </div>
-                // --- END OF UPDATED CARD ---
               ))}
             </div>
           )}
@@ -211,7 +202,7 @@ export default function Search() {
                 placeholder="Search for users..."
                 className="w-full pl-10 h-12 text-lg rounded-xl bg-white text-[#1D0C69] placeholder:text-purple-400 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.g.target.value)}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>

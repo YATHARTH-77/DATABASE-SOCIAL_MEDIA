@@ -10,6 +10,32 @@ import { CommentSection } from "@/components/CommentSection";
 // --- Base URL for our API ---
 const API_URL = "http://localhost:5000";
 
+// --- Helper: Format timestamp ---
+function formatTimeAgo(dateString) {
+  if (!dateString) return "";
+  let safeString = String(dateString);
+  if (!safeString.includes("T") && !safeString.includes("Z")) {
+    safeString = safeString.replace(" ", "T") + "Z";
+  } else if (safeString.includes("T") && !safeString.includes("Z")) {
+    safeString += "Z";
+  }
+  const date = new Date(safeString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (seconds < 0) return "Just now";
+  let interval = seconds / 31536000;
+  if (interval > 1) return Math.floor(interval) + "y ago";
+  interval = seconds / 2592000;
+  if (interval > 1) return Math.floor(interval) + "mo ago";
+  interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + "d ago";
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + "h ago";
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + "m ago";
+  return "Just now";
+}
+
 export default function HashtagPosts() {
   const { tag } = useParams();
   const navigate = useNavigate();
@@ -164,6 +190,10 @@ export default function HashtagPosts() {
     navigate(`/user/${username}`);
   };
 
+  const handleHashtagClick = (tagText) => {
+    navigate(`/hashtag/${tagText}`);
+  };
+
   // --- Render Loading/Error States ---
   if (isLoading) {
     return (
@@ -200,8 +230,9 @@ export default function HashtagPosts() {
 
           <div className="space-y-6">
             {posts.map((post) => (
-              <Card key={post.post_id} className="overflow-hidden shadow-lg border">
-                <div className="flex items-center justify-between p-3 bg-yellow-300/80 border-b border-yellow-400">
+              <Card key={post.post_id} className="overflow-hidden shadow-lg border max-w-xl mx-auto">
+                {/* Header - matching Home.jsx gradient */}
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] border-b border-purple-600">
                   <div 
                     className="flex items-center gap-3 cursor-pointer hover:opacity-80 min-w-0"
                     onClick={() => handleUserClick(post.username)}
@@ -213,25 +244,25 @@ export default function HashtagPosts() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <p className="font-semibold truncate text-blue-800">{post.username}</p>
+                      <p className="font-semibold truncate text-white">{post.username}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* --- DYNAMIC MEDIA --- */}
-                <div className="bg-black aspect-square flex items-center justify-center border-b">
+                {/* --- DYNAMIC MEDIA - matching Home.jsx max-height --- */}
+                <div className="bg-black max-h-[500px] flex items-center justify-center border-b">
                   {post.media && post.media.length > 0 ? (
                     post.media[0].media_type.startsWith('video') ? (
                       <video 
                         src={`${API_URL}${post.media[0].media_url}`} 
                         controls 
-                        className="w-full h-full object-contain" 
+                        className="w-full max-h-[500px] object-contain" 
                       />
                     ) : (
                       <img 
                         src={`${API_URL}${post.media[0].media_url}`} 
                         alt="Post media" 
-                        className="w-full h-full object-cover" 
+                        className="w-full max-h-[500px] object-contain" 
                       />
                     )
                   ) : (
@@ -239,9 +270,13 @@ export default function HashtagPosts() {
                   )}
                 </div>
 
-                <div className="p-4 space-y-3 bg-gray-100">
+                {/* Caption, Actions, Hashtags - matching Home.jsx gradient background */}
+                <div className="p-4 space-y-3 bg-gradient-to-br from-purple-50 to-purple-100">
                   <div className="flex items-start justify-between">
-                    <p className="text-sm break-words flex-1 pr-4 min-w-0">
+                    <p className="text-sm break-words flex-1 pr-4 min-w-0 text-gray-800">
+                      <span className="font-semibold cursor-pointer text-[#5A0395]" onClick={() => handleUserClick(post.username)}>
+                        {post.username}
+                      </span>{" "}
                       {post.caption}
                     </p>
                     <div className="flex items-center gap-3 text-gray-600 flex-shrink-0">
@@ -249,7 +284,7 @@ export default function HashtagPosts() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleLike(post.post_id)}
-                        className={`w-auto h-auto p-1 ${likedPosts.includes(post.post_id) ? "text-blue-500" : "hover:text-blue-500"}`}
+                        className={`w-auto h-auto p-1 hover:bg-purple-100 ${likedPosts.includes(post.post_id) ? "text-[#5A0395]" : "hover:text-[#5A0395]"}`}
                       >
                         <ThumbsUp className={`w-5 h-5 ${likedPosts.includes(post.post_id) ? "fill-current" : ""}`} />
                         <span className="text-sm ml-1">{post.like_count}</span>
@@ -257,12 +292,12 @@ export default function HashtagPosts() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className={`w-auto h-auto p-1 relative ${openCommentPostId === post.post_id ? "text-blue-500" : "hover:text-blue-500"}`}
+                        className={`w-auto h-auto p-1 hover:bg-purple-100 relative ${openCommentPostId === post.post_id ? "text-[#5A0395]" : "hover:text-[#5A0395]"}`}
                         onClick={() => toggleComments(post.post_id)}
                       >
                         <MessageCircle className="w-5 h-5" />
                         {post.comment_count > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                          <span className="absolute -top-1 -right-1 bg-[#5A0395] text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                             {post.comment_count}
                           </span>
                         )}
@@ -271,27 +306,33 @@ export default function HashtagPosts() {
                         variant="ghost" 
                         size="icon" 
                         onClick={() => handleSave(post.post_id)}
-                        className={`w-auto h-auto p-1 ${savedPosts.includes(post.post_id) ? "text-blue-500" : "hover:text-blue-500"}`}
+                        className={`w-auto h-auto p-1 hover:bg-purple-100 ${savedPosts.includes(post.post_id) ? "text-[#5A0395]" : "hover:text-[#5A0395]"}`}
                       >
                         <Bookmark className={`w-5 h-5 ${savedPosts.includes(post.post_id) ? "fill-current" : ""}`} />
                       </Button>
                     </div>
                   </div>
 
-                  <div className="border-t pt-3">
-                    <p className="font-semibold text-sm mb-1 text-gray-700">#Hashtags:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {post.hashtags.map((hashtag, idx) => (
-                        <span
-                          key={idx}
-                          className="text-sm text-blue-600 hover:underline cursor-pointer"
-                          onClick={() => navigate(`/hashtag/${hashtag}`)}
-                        >
-                          #{hashtag}
-                        </span>
-                      ))}
+                  {/* Hashtags - matching Home.jsx styling */}
+                  {post.hashtags && post.hashtags.length > 0 && (
+                    <div className="border-t pt-3 border-purple-200">
+                      <p className="font-semibold text-sm mb-1 text-[#1D0C69]">#Hashtags:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {post.hashtags.map((tagText, idx) => (
+                          <span
+                            key={idx}
+                            className="text-sm text-[#5A0395] hover:underline cursor-pointer font-medium"
+                            onClick={() => handleHashtagClick(tagText)}
+                          >
+                            #{tagText}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Timestamp - matching Home.jsx */}
+                  <p className="text-xs text-gray-600">{formatTimeAgo(post.created_at)}</p>
                 </div>
 
                 {openCommentPostId === post.post_id && (
