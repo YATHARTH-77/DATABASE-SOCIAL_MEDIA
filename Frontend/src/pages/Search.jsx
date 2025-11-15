@@ -130,10 +130,10 @@ export default function Search() {
                 <div
                   key={tag.hashtag_text}
                   onClick={() => handleHashtagClick(tag.hashtag_text)}
-                  className="p-3 rounded-lg cursor-pointer bg-white hover:bg-purple-50 transition-colors border-2 border-purple-300"
+                  className="p-3 rounded-lg cursor-pointer bg-gradient-to-br from-purple-50 to-purple-100 hover:shadow-md transition-shadow border border-purple-200"
                 >
-                  <p className="font-semibold text-[#5A0395]">#{tag.hashtag_text}</p>
-                  <p className="text-sm text-gray-600">{tag.post_count} posts</p>
+                  <p className="font-semibold text-[#1D0C69]">#{tag.hashtag_text}</p>
+                  <p className="text-sm text-[#5A0395]">{tag.post_count} posts</p>
                 </div>
               ))}
             </div>
