@@ -6,12 +6,11 @@ export const navItems = [
   { icon: Home, label: "HOME", path: "/home" },
   { icon: Search, label: "SEARCH", path: "/search" },
   { icon: MessageCircle, label: "MESSAGES", path: "/messages" },
-  { icon: Bell, label: "ACTIVITY", path: "/activity", hasNew: true },
+  { icon: Bell, label: "ACTIVITY", path: "/activity" },
   { icon: PlusCircle, label: "CREATE", path: "/create" },
   { icon: User, label: "PROFILE", path: "/profile" },
 ];
 import { Badge } from "@/components/ui/badge";
-import logo from "@/assets/logo.png";
 import whiteTextLogo from "@/assets/white_text_logo.png";
 import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation.jsx";
 import ThemeToggle from "@/components/ui/theme-toggle";
@@ -28,46 +27,52 @@ export const Sidebar = () => {
   };
 
   return (
-    <aside onMouseMove={handleMouseMove} className="fixed left-0 top-0 h-screen w-28 bg-green-500 p-4 transition-all duration-300 md:w-[22rem] md:p-6 gradient-sidebar flex flex-col shadow-xl z-50">
+    <aside 
+      onMouseMove={handleMouseMove} 
+      // Main container: h-screen is correct, overflow-y-auto is needed for the rare case the whole bar needs to scroll
+      className="fixed left-0 top-0 h-screen w-28 p-4 transition-all duration-300 md:w-[22rem] md:p-6 gradient-sidebar flex flex-col shadow-xl z-50 overflow-y-auto"
+    >
       <BackgroundGradientAnimation containerClassName="absolute inset-0" interactive={true} cursor={cursor}>
-        {/* sidebar content rendered above the gradient */}
-        <div className="w-full h-full">
-          <div className="mb-10 flex items-center justify-center">
-            <img 
-              src={logo} 
-              alt="ConnectIT Logo" 
-              className="w-12 h-12 rounded-2xl  md:w-28 md:h-28" 
-            />
-            <img 
-              src={whiteTextLogo} 
-              alt="ConnectIT" 
-              className="hidden md:block h-29 -ml-24 " 
-            />
+        
+        {/* Inner Content Wrapper: MUST be h-full and flex-col to enable internal scrolling */}
+        <div className="w-full h-full flex flex-col">
+          
+          {/* 1. Logo/Brand - Centered without negative margin, clickable to refresh */}
+          <div className="pt-2 pb-4 border-b border-white/20 flex items-center justify-center mb-8">
+            <NavLink to="/home" onClick={() => window.location.href = '/home'}>
+              <img 
+                src={whiteTextLogo} 
+                alt="ConnectIT" 
+                className="hidden md:block h-20 cursor-pointer hover:opacity-80 transition-opacity" 
+              />
+            </NavLink>
           </div>
 
-          <nav className="flex-1 space-y-2 -mt-5">
+          {/* 2. Navigation - Takes remaining space but doesn't grow */}
+          <nav className="space-y-4 px-2">
             {navItems.map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center gap-5 rounded-xl p-5 text-white font-semibold text-sm transition-all relative justify-center md:justify-start md:px-6 md:py-5 ${
+                  `flex items-center gap-3 rounded-xl p-3 text-white font-semibold text-sm transition-all relative justify-center md:justify-start md:px-4 md:py-3 ${
                     isActive ? "bg-white/20 shadow-md" : "hover:bg-white/10"
                   }`
                 }
               >
-                <item.icon className="w-7 h-7" />
+                <item.icon className="w-6 h-6" />
                 <span className="hidden md:inline">{item.label}</span>
-                {item.hasNew && (
-                  <Badge className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-xs px-1.5 py-0.5 font-bold">
-                    NEW
-                  </Badge>
-                )}
               </NavLink>
             ))}
           </nav>
-          <div className="mt-2 flex items-center justify-center md:justify-start">
-            <div className="rounded-xl p-1 border border-black/60 bg-white/5 shadow-sm transform -translate-y-2">
+          
+          {/* Spacer to push theme toggle to bottom */}
+          <div className="flex-1"></div>
+          
+          {/* 3. Theme Toggle - Fixed at the very bottom */}
+          <div className="mt-4 pt-4 border-t border-white/20 flex items-center gap-3 px-2 md:justify-start justify-center md:pl-4">
+            <span className="hidden md:inline text-white font-semibold text-sm">THEME</span>
+            <div className="rounded-xl p-1 border border-black/60 bg-white/5 shadow-sm">
               <ThemeToggle />
             </div>
           </div>

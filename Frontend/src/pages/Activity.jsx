@@ -141,8 +141,8 @@ export default function Activity() {
     <>
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-4xl mx-auto">
-          <Card className="shadow-lg">
-            <div className="p-6 border-b gradient-sidebar">
+          <Card className="shadow-lg overflow-hidden"> {/* Added overflow-hidden */}
+            <div className="p-6 border-b bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051]">
               <h1 className="text-2xl font-bold text-white">Activity</h1>
             </div>
 
@@ -169,7 +169,7 @@ export default function Activity() {
                     <div className="relative">
                       <Avatar>
                         <AvatarImage src={activity.actor_pic ? `${API_URL}${activity.actor_pic}` : ''} />
-                        <AvatarFallback className="gradient-sidebar text-white">
+                        <AvatarFallback className="bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051] text-white">
                           {activity.actor_username[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -191,7 +191,7 @@ export default function Activity() {
                     {/* "Follow Back" Button */}
                     {activity.type === "follow" && (
                       <button 
-                        className="px-4 py-1.5 gradient-sidebar text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity ml-auto"
+                        className="px-4 py-1.5 bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051] text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity ml-auto"
                         onClick={(e) => handleFollowBack(e, activity.actor_id)}
                       >
                         Follow Back

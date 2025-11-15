@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, ThumbsUp, Loader2 } from "lucide-react";
 import { StoryViewer } from "@/components/StoryViewer";
 import { CommentSection } from "@/components/CommentSection";
-import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation.jsx";
+// import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation.jsx"; // Removed
 
 // --- Base URL for our API ---
 const API_URL = "http://localhost:5000";
@@ -276,13 +276,8 @@ export default function Home() {
         <div className="max-w-2xl mx-auto space-y-6">
           
           {/* --- MOMENTS --- */}
-          <div className="relative rounded-2xl p-4 md:p-6 border border-secondary/20 overflow-hidden">
-            <BackgroundGradientAnimation
-              containerClassName="absolute inset-0 rounded-2xl z-0"
-              interactive={false}
-            />
-            <div className="absolute inset-0 bg-black/20 rounded-2xl z-10 pointer-events-none" />
-            <div className="relative z-20">
+          <div className="rounded-2xl p-4 md:p-6 border border-secondary/20 overflow-hidden bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051]">
+            <div>
               <h2 className="text-white font-bold px-6 py-3 rounded-full inline-block mb-4 text-xl md:text-2xl">
                 MOMENTS
               </h2>
@@ -339,10 +334,8 @@ export default function Home() {
             </h2>
 
             {posts.length === 0 && (
-              <Card className="relative overflow-hidden rounded-2xl border border-secondary/20 p-0">
-                <BackgroundGradientAnimation containerClassName="absolute inset-0 rounded-2xl z-0" interactive={false} />
-                <div className="absolute inset-0 bg-black/20 rounded-2xl z-10 pointer-events-none" />
-                <div className="p-10 text-center text-white z-20 relative">
+              <Card className="overflow-hidden rounded-2xl border border-secondary/20 p-0 bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051]">
+                <div className="p-10 text-center text-white">
                   <p>Your feed is empty.</p>
                   <p className="text-sm">Follow some users to see their posts here!</p>
                 </div>

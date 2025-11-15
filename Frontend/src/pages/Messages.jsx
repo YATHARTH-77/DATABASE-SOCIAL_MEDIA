@@ -93,8 +93,8 @@ export default function Messages() {
   return (
     <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-2xl mx-auto">
-          <Card className="shadow-lg rounded-lg">
-            <div className="p-4 border-b gradient-sidebar flex items-center gap-3">
+          <Card className="shadow-lg rounded-lg overflow-hidden"> {/* Added overflow-hidden */}
+            <div className="p-4 border-b bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051] flex items-center gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white" />
                 <Input
@@ -168,7 +168,7 @@ export default function Messages() {
                 filteredConversations.map((conversation) => (
                   <div
                     key={conversation.chat_id}
-                    className="p-4 flex items-center gap-4 cursor-pointer transition-transform duration-150 transform rounded-lg hover:-translate-y-0.5 hover:shadow-md hover:ring-1 hover:ring-primary/10"
+                    className="p-4 flex items-center gap-4 cursor-pointer transition-transform duration-150 transform hover:-translate-y-0.5 hover:shadow-md hover:bg-gray-50" // Simplified hover
                     onClick={() => navigate(`/messages/${conversation.chat_id}`)}
                   >
                     <Avatar
@@ -181,7 +181,7 @@ export default function Messages() {
                       title={`View ${conversation.name}`}
                     >
                       <AvatarImage src={conversation.profile_pic_url ? `${API_URL}${conversation.profile_pic_url}` : ''} />
-                      <AvatarFallback className="gradient-sidebar text-white">
+                      <AvatarFallback className="bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051] text-white">
                         {conversation.name[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>

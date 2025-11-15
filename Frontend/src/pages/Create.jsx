@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Image, Film, Smile, X, Loader2 } from "lucide-react";
-import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
+// import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation"; // Removed
 
 // --- Base URL for our API ---
 const API_URL = "http://localhost:5000";
@@ -329,7 +329,7 @@ export default function Create() {
             {/* --- POST TAB --- */}
             <TabsContent value="post">
               <Card className="shadow-lg overflow-hidden">
-                <div className="p-6 border-b gradient-sidebar">
+                <div className="p-6 border-b bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051]">
                   <h1 className="text-2xl font-bold text-white">Create New Post</h1>
                 </div>
                 <div className="p-6 space-y-6">
@@ -396,7 +396,7 @@ export default function Create() {
                     <Button
                       onClick={handlePost}
                       disabled={isLoading}
-                      className="flex-1 gradient-sidebar text-white font-semibold rounded-xl h-12"
+                      className="flex-1 bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051] text-white font-semibold rounded-xl h-12"
                     >
                       {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Post"}
                     </Button>
@@ -416,7 +416,7 @@ export default function Create() {
             {/* --- MOMENT TAB --- */}
             <TabsContent value="moment">
               <Card className="shadow-lg overflow-hidden">
-                <div className="p-6 border-b gradient-sidebar">
+                <div className="p-6 border-b bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051]">
                   <h1 className="text-2xl font-bold text-white">Create New Moment</h1>
                 </div>
 
@@ -478,18 +478,7 @@ export default function Create() {
                           </Button>
                         </div>
                       ) : (
-                        <div className="relative w-48 aspect-[9/16] rounded-2xl shadow-lg overflow-hidden">
-                          <BackgroundGradientAnimation
-                            containerClassName="absolute inset-0 rounded-2xl z-0"
-                            interactive={false}
-                            gradientBackgroundStart="#4b0082"
-                            gradientBackgroundEnd="#2e0051"
-                            firstColor="75,0,130"
-                            secondColor="106,0,163"
-                            thirdColor="46,0,81"
-                            fourthColor="160,60,170"
-                            fifthColor="120,80,200"
-                          />
+                        <div className="relative w-48 aspect-[9/16] rounded-2xl shadow-lg overflow-hidden bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051]">
                           <div className="absolute inset-0 bg-black/20 rounded-2xl z-10 pointer-events-none" />
                           <div className="relative z-20 flex items-center justify-center w-full h-full">
                             <span className="text-white text-4xl font-bold opacity-30">MOMENT</span>
@@ -516,7 +505,7 @@ export default function Create() {
                       onClick={handleMomentCreate}
                       // Enable button if we have a file OR we are reposting valid media
                       disabled={isLoading || (!momentFile && !repostMedia)}
-                      className="flex-1 gradient-sidebar text-white font-semibold rounded-xl h-12"
+                      className="flex-1 bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051] text-white font-semibold rounded-xl h-12"
                     >
                       {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Share Moment"}
                     </Button>

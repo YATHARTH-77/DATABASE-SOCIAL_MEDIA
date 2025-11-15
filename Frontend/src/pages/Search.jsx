@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Loader2, SearchIcon, Hash, User } from "lucide-react";
-import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
+// import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation"; // Removed
 
 // --- Base URL for our API ---
 const API_URL = "http://localhost:5000";
@@ -113,19 +113,8 @@ export default function Search() {
   const renderInitialContent = () => (
     <div className="space-y-6">
       {/* --- Trending Hashtags --- */}
-      <Card className="p-4 relative overflow-hidden">
-        <BackgroundGradientAnimation
-          containerClassName="absolute inset-0 rounded-lg"
-          interactive={false}
-          gradientBackgroundStart="#4b0082"
-          gradientBackgroundEnd="#2e0051"
-          firstColor="75,0,130"
-          secondColor="106,0,163"
-          thirdColor="46,0,81"
-          fourthColor="160,60,170"
-          fifthColor="120,80,200"
-        />
-        <div className="relative z-10">
+      <Card className="p-4 overflow-hidden bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051]">
+        <div>
           <h2 className="text-lg font-semibold mb-3 flex items-center text-white">
             <Hash className="w-5 h-5 mr-2 text-white/90" />
             Trending Hashtags
@@ -152,19 +141,8 @@ export default function Search() {
       </Card>
       
       {/* --- Suggested Users --- */}
-      <Card className="p-4 relative overflow-hidden">
-        <BackgroundGradientAnimation
-          containerClassName="absolute inset-0 rounded-lg"
-          interactive={false}
-          gradientBackgroundStart="#4b0082"
-          gradientBackgroundEnd="#2e0051"
-          firstColor="75,0,130"
-          secondColor="106,0,163"
-          thirdColor="46,0,81"
-          fourthColor="160,60,170"
-          fifthColor="120,80,200"
-        />
-        <div className="relative z-10">
+      <Card className="p-4 overflow-hidden bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051]">
+        <div>
           <h2 className="text-lg font-semibold mb-3 flex items-center text-white">
             <User className="w-5 h-5 mr-2 text-white/90" />
             Suggested For You
@@ -213,18 +191,7 @@ export default function Search() {
         <div className="max-w-2xl mx-auto space-y-6">
           
           {/* --- Search Bar --- */}
-          <div className="relative">
-            <BackgroundGradientAnimation
-              containerClassName="absolute inset-0 rounded-xl z-0"
-              interactive={false}
-              gradientBackgroundStart="#4b0082"
-              gradientBackgroundEnd="#2e0051"
-              firstColor="75,0,130"
-              secondColor="106,0,163"
-              thirdColor="46,0,81"
-              fourthColor="160,60,170"
-              fifthColor="120,80,200"
-            />
+          <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051]">
             {/* subtle dark overlay for improved contrast */}
             <div className="absolute inset-0 bg-black/20 rounded-xl z-10 pointer-events-none" />
             <div className="relative z-20">
