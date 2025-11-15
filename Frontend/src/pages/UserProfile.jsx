@@ -1,16 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Grid, Loader2, Bookmark } from "lucide-react";
+import { ArrowLeft, Grid, Loader2, Bookmark, Settings, UserPen, LogOut, Trash2, Plus } from "lucide-react";
 import { PostDetailModal } from "@/components/PostDetailModal";
 import { FollowerModal } from "@/components/FollowerModal";
 import { StoryViewer } from "@/components/StoryViewer";
+import { CreateHighlightModal } from "@/components/CreateHighlightModal"; // Ensure this is imported
 import { useToast } from "@/hooks/use-toast";
 
 // --- Base URL (Dynamic for Deployment) ---
-// Ensure your .env file has VITE_API_URL=https://your-backend.onrender.com
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function UserProfile() {
@@ -24,16 +24,23 @@ export default function UserProfile() {
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
   
-  // --- NEW HIGHLIGHT STATE ---
+  // --- HIGHLIGHT STATE ---
   const [highlights, setHighlights] = useState([]);
   const [showHighlightViewer, setShowHighlightViewer] = useState(false);
   const [selectedHighlightStories, setSelectedHighlightStories] = useState([]);
   
+  // --- Modal States ---
+  const [isCreateHighlightModalOpen, setCreateHighlightModalOpen] = useState(false);
+  const [archivedStories, setArchivedStories] = useState([]);
+  const [isModalLoading, setIsModalLoading] = useState(false);
+
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState(null);
   const [likedPosts, setLikedPosts] = useState([]); 
   const [savedPosts, setSavedPosts] = useState([]); 
   const [modalType, setModalType] = useState(null);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const settingsMenuRef = useRef(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -55,43 +62,31 @@ export default function UserProfile() {
     const fetchProfile = async () => {
       setIsLoading(true);
       try {
-        // 1. Fetch Profile Data
+        // 1. Fetch Main Profile Data (Which includes Highlights now!)
         const profileRes = await fetch(`${API_URL}/api/profile/${username}?loggedInUserId=${user.id}`);
         
-        // --- FIX: Handle 404 (User Not Found) specifically ---
         if (profileRes.status === 404) {
              toast({ title: "User not found", description: "This user does not exist.", variant: "destructive" });
-             navigate("/home"); // Redirect back to home
+             navigate("/home");
              return;
         }
         
-        if (!profileRes.ok) {
-             throw new Error(`Server error: ${profileRes.status}`);
-        }
+        if (!profileRes.ok) throw new Error(`Server error: ${profileRes.status}`);
+        
         const profileJson = await profileRes.json();
-
-        // 2. Fetch Highlights
-        const highlightsRes = await fetch(`${API_URL}/api/profile/${username}/highlights`);
-        // Highlights might be 404 if none exist, which is fine, so we check ok OR just parse safely
-        let highlightsJson = { success: false, highlights: [] };
-        if (highlightsRes.ok) {
-            highlightsJson = await highlightsRes.json();
-        }
         
         if (profileJson.success) {
           setProfileData(profileJson.user);
           setPosts(profileJson.posts);
+          setSavedPosts(profileJson.savedPosts || []); 
+          // FIX: Get highlights directly from the profile response
+          setHighlights(profileJson.highlights || []); 
         } else {
           throw new Error(profileJson.message);
-        }
-
-        if (highlightsJson.success) {
-          setHighlights(highlightsJson.highlights);
         }
         
       } catch (err) {
         console.error(err);
-        // Don't show toast if we already redirected for 404
         if (err.message !== "Server error: 404") {
              toast({ title: "Error", description: "Could not load profile.", variant: "destructive" });
         }
@@ -148,8 +143,8 @@ export default function UserProfile() {
     }
   };
   
-  const handleLike = (postId) => { /* Implement Like logic if needed here, currently handled in modal */ };
-  const handleSave = (postId) => { /* Implement Save logic if needed here */ };
+  const handleLike = (postId) => { /* Logic handled in modal usually */ };
+  const handleSave = (postId) => { /* Logic handled in modal usually */ };
 
   const handleUserClick = (navUsername) => {
     if (navUsername && username && navUsername.toLowerCase() !== username.toLowerCase()) {
@@ -157,18 +152,18 @@ export default function UserProfile() {
       navigate(`/user/${navUsername}`);
     }
   };
-  
-  // --- NEW: Open Highlight Story Viewer ---
+
+  // --- Highlight Handlers ---
   const handleHighlightClick = async (highlight) => {
     try {
-      const res = await fetch(`${API_URL}/api/highlight/${highlight.highlight_id}/stories`);
+      const res = await fetch(`${API_URL}/api/highlights/${highlight.highlight_id}/stories`);
       const data = await res.json();
       if (data.success) {
         const storiesForViewer = data.stories.map(s => ({
           id: s.story_id,
           username: s.username,
           avatar: s.profile_pic_url,
-          src: s.media_url, // FIXED: Removed API_URL prefix (Cloudinary is absolute)
+          src: s.media_url, 
           type: s.media_type && s.media_type.startsWith('video') ? 'video' : 'photo',
           timestamp: s.created_at,
         }));
@@ -182,12 +177,32 @@ export default function UserProfile() {
     }
   };
 
+  // Handlers for Owner Features (Settings, Create Highlight)
+  // Note: These won't show for other users because of the `isOwnProfile` check, but we keep the functions safe
+  const handleEditProfile = () => { setShowSettingsMenu(false); navigate("/profile/edit"); };
+  const handleLogout = () => { setShowSettingsMenu(false); localStorage.removeItem('user'); navigate("/login"); };
+  const handleDeleteAccount = async () => { /* ... logic ... */ };
+
+  const handleOpenCreateHighlightModal = async () => {
+     /* Logic for owner only - fetched in Profile.jsx, but safe here */ 
+  };
+
   useEffect(() => {
     if (selectedPost || modalType || showHighlightViewer) {
       document.body.style.overflow = 'hidden';
     }
     return () => { document.body.style.overflow = 'unset'; };
   }, [selectedPost, modalType, showHighlightViewer]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
+        setShowSettingsMenu(false);
+      }
+    };
+    if (showSettingsMenu) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSettingsMenu]);
 
   if (isLoading || !profileData) {
     return (
@@ -196,6 +211,9 @@ export default function UserProfile() {
       </main>
     );
   }
+
+  // Determine if we are viewing our own profile (though this page is mostly for others)
+  const isOwnProfile = user && user.username === profileData.username;
 
   return (
     <>
@@ -231,6 +249,8 @@ export default function UserProfile() {
           onClose={() => setShowHighlightViewer(false)}
         />
       )}
+
+      {/* We don't render CreateHighlightModal here because this is for VIEWING others */}
       
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -242,7 +262,6 @@ export default function UserProfile() {
             {/* --- Profile Header --- */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-6">
               <Avatar className="w-24 h-24 flex-shrink-0">
-                {/* FIXED: Removed API_URL prefix */}
                 <AvatarImage src={profileData.profile_pic_url || ''} />
                 <AvatarFallback className="bg-[#5A0395] text-white text-3xl">
                   {profileData.username[0].toUpperCase()}
@@ -272,6 +291,25 @@ export default function UserProfile() {
                   {profileData.isFollowing ? "Unfollow" : "Follow"}
                 </Button>
               </div>
+              
+              {/* Only show settings if for some reason we are on our own profile here */}
+              {isOwnProfile && (
+                 <div className="relative" ref={settingsMenuRef}>
+                    <Button variant="ghost" size="icon" onClick={() => setShowSettingsMenu(!showSettingsMenu)}>
+                      <Settings className="w-5 h-5" />
+                    </Button>
+                    {showSettingsMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-background border border-border rounded-lg shadow-lg py-1 z-50">
+                        <button onClick={handleEditProfile} className="w-full px-4 py-2 text-left text-sm hover:bg-muted flex items-center gap-2">
+                           <UserPen className="w-4 h-4"/> Edit Profile
+                        </button>
+                        <button onClick={handleLogout} className="w-full px-4 py-2 text-left text-sm hover:bg-muted flex items-center gap-2">
+                           <LogOut className="w-4 h-4"/> Logout
+                        </button>
+                      </div>
+                    )}
+                 </div>
+              )}
             </div>
 
             {/* --- Bio --- */}
@@ -280,7 +318,7 @@ export default function UserProfile() {
               <p className="text-sm text-gray-600 break-words">{profileData.bio || "No bio available."}</p>
             </div>
             
-            {/* --- HIGHLIGHTS SECTION --- */}
+            {/* --- HIGHLIGHTS SECTION (FIXED) --- */}
             {highlights.length > 0 && (
               <div className="mb-6">
                 <h2 className="text-sm font-semibold text-[#5A0395] mb-3">Highlights</h2>
@@ -294,7 +332,6 @@ export default function UserProfile() {
                       <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-br from-purple-400 via-purple-500 to-purple-600">
                         <div className="w-full h-full rounded-full bg-background p-1">
                           <Avatar className="w-full h-full">
-                            {/* FIXED: Removed API_URL prefix */}
                             <AvatarImage src={highlight.cover_media_url || ''} />
                             <AvatarFallback>{highlight.title[0]}</AvatarFallback>
                           </Avatar>
@@ -320,7 +357,6 @@ export default function UserProfile() {
                     className="aspect-square bg-muted rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-md relative group"
                   >
                     {post.media_url ? (
-                      /* FIXED: Removed API_URL prefix */
                       <img src={post.media_url} alt={post.caption || 'post'} className="w-full h-full object-cover rounded-xl" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-secondary">
