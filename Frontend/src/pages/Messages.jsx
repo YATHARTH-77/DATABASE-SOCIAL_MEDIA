@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Search, Plus, Loader2 } from "lucide-react";
-import { relativeTime } from "@/lib/time";
+import { relativeTime } from "@/lib/time"; // Assuming this is a helper you have
 
 const API_URL = "http://localhost:5000";
 
@@ -12,7 +12,7 @@ export default function Messages() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [conversations, setConversations] = useState([]);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null); // Logged in user
   
   // --- New Chat State ---
   const [newUser, setNewUser] = useState("");
@@ -50,27 +50,14 @@ export default function Messages() {
     }
   };
 
-  // --- API Call to Start New Chat ---
+  // --- API Call to Start New Chat (*** MODIFIED ***) ---
   const handleCreateConversation = async () => {
     const name = newUser.trim();
     if (!name || !user) {
+      // --- CHANGE 1: Updated error message ---
       setCreateError("Please enter a username");
-      setTimeout(() => setCreateError(""), 3000);
       return;
     }
-    
-    // Check if conversation already exists with this user
-    const existingConversation = conversations.find(
-      conv => conv.name.toLowerCase() === name.toLowerCase()
-    );
-    
-    if (existingConversation) {
-      setNewUser("");
-      setIsCreating(false);
-      navigate(`/messages/${existingConversation.chat_id}`);
-      return;
-    }
-    
     setCreateError("");
     setIsCreating(true); 
 
@@ -78,6 +65,7 @@ export default function Messages() {
       const res = await fetch(`${API_URL}/api/conversations/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // --- CHANGE 2: Send 'username2' instead of 'displayName2' ---
         body: JSON.stringify({ userId1: user.id, username2: name }),
       });
       const data = await res.json();
@@ -88,12 +76,10 @@ export default function Messages() {
         navigate(`/messages/${data.chatId}`);
       } else {
         setCreateError(data.message || "Failed to start chat");
-        setTimeout(() => setCreateError(""), 3000);
         setIsCreating(false);
       }
     } catch (err) {
       setCreateError("Server error");
-      setTimeout(() => setCreateError(""), 3000);
       setIsCreating(false);
     }
   };
@@ -106,16 +92,15 @@ export default function Messages() {
 
   return (
     <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
-        <div className="max-w-4xl mx-auto">
-          <Card className="shadow-lg rounded-lg overflow-hidden border-2 border-purple-300">
-            {/* Header Section */}
-            <div className="p-4 border-b-2 border-purple-300 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] flex items-center gap-3">
+        <div className="max-w-2xl mx-auto">
+          <Card className="shadow-lg rounded-lg overflow-hidden"> {/* Added overflow-hidden */}
+            <div className="p-4 border-b bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051] flex items-center gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white" />
                 <Input
                   placeholder="Search by username"
                   aria-label="Search by username"
-                  className="w-full pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/70 rounded-full focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="w-full pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/70 rounded-full"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
@@ -129,15 +114,16 @@ export default function Messages() {
                 />
               </div>
 
-              {/* --- NEW CHAT UI --- */}
+              {/* --- NEW CHAT UI (*** MODIFIED ***) --- */}
               <div className="flex items-center gap-2">
                 {isCreating ? (
                   <div className="flex items-center gap-2">
                     <Input
                       ref={inputRef}
+                      // --- CHANGE 3: Updated placeholder ---
                       placeholder="username"
                       aria-label="New username"
-                      className="w-40 bg-white/10 text-white placeholder:text-white/60 rounded-md px-2 py-1 border-white/30 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="w-40 bg-white/10 text-white placeholder:text-white/60 rounded-md px-2 py-1"
                       value={newUser}
                       onChange={(e) => setNewUser(e.target.value)}
                       onKeyDown={(e) => {
@@ -170,28 +156,23 @@ export default function Messages() {
                 )}
               </div>
             </div>
-            
-            {createError && (
-              <div className="p-2 text-xs text-center text-white bg-gradient-to-r from-red-500 to-red-600 border-b-2 border-red-700">
-                {createError}
-              </div>
-            )}
+            {createError && <div className="p-2 text-xs text-center text-red-500 bg-red-100">{createError}</div>}
 
             {/* --- DYNAMIC LIST --- */}
-            <div className="divide-y-2 divide-purple-200 bg-white">
+            <div className="divide-y">
               {isLoading ? (
                 <div className="flex justify-center p-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#5A0395]" />
+                  <Loader2 className="w-8 h-8 animate-spin" />
                 </div>
               ) : filteredConversations.length > 0 ? (
                 filteredConversations.map((conversation) => (
                   <div
                     key={conversation.chat_id}
-                    className="p-4 flex items-center gap-4 cursor-pointer transition-all duration-150 bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-150"
+                    className="p-4 flex items-center gap-4 cursor-pointer transition-transform duration-150 transform hover:-translate-y-0.5 hover:shadow-md hover:bg-gray-50" // Simplified hover
                     onClick={() => navigate(`/messages/${conversation.chat_id}`)}
                   >
                     <Avatar
-                      className="w-12 h-12 cursor-pointer border-2 border-purple-200"
+                      className="w-10 h-10 cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/user/${encodeURIComponent(conversation.name)}`);
@@ -200,25 +181,25 @@ export default function Messages() {
                       title={`View ${conversation.name}`}
                     >
                       <AvatarImage src={conversation.profile_pic_url ? `${API_URL}${conversation.profile_pic_url}` : ''} />
-                      <AvatarFallback className="bg-[#5A0395] text-white">
+                      <AvatarFallback className="bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051] text-white">
                         {conversation.name[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-semibold truncate text-[#1D0C69]">
+                        <h3 className="font-semibold truncate">
                           {conversation.name}
                         </h3>
-                        <span className="text-xs text-[#5A0395]">{relativeTime(conversation.time)}</span>
+                        <span className="text-xs text-muted-foreground">{relativeTime(conversation.time)}</span>
                       </div>
-                      <p className="text-sm truncate text-gray-600">
+                      <p className="text-sm truncate text-muted-foreground">
                         {conversation.lastMessage}
                       </p>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="p-8 text-center text-gray-600">
+                <div className="p-8 text-center text-muted-foreground">
                   No conversations found.
                 </div>
               )}

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Heart, MessageCircle, UserPlus, Bookmark, Loader2, AtSign } from "lucide-react";
+import { Heart, MessageCircle, UserPlus, Bookmark, Loader2, AtSign } from "lucide-react"; // Import AtSign
 
 const API_URL = "http://localhost:5000";
 
@@ -26,7 +26,7 @@ function formatTimeAgo(dateString) {
   return "Just now";
 }
 
-// --- Helper: Get Icon ---
+// --- Helper: Get Icon (*** MODIFIED ***) ---
 const getActivityIcon = (type) => {
   switch (type) {
     case "like":
@@ -37,6 +37,7 @@ const getActivityIcon = (type) => {
       return <UserPlus className="w-4 h-4 text-green-500" />;
     case "save":
       return <Bookmark className="w-4 h-4 text-yellow-500" />;
+    // --- NEW CASE ---
     case "story_tag":
       return <AtSign className="w-4 h-4 text-purple-500" />;
     default:
@@ -44,7 +45,7 @@ const getActivityIcon = (type) => {
   }
 };
 
-// --- Helper: Get Action Text ---
+// --- Helper: Get Action Text (*** MODIFIED ***) ---
 const getActivityAction = (activity) => {
   const textPreview = activity.text_preview 
     ? `: "${activity.text_preview.substring(0, 20)}..."` 
@@ -55,6 +56,7 @@ const getActivityAction = (activity) => {
     case "comment": return `commented${textPreview}`;
     case "follow": return "started following you.";
     case "save": return "saved your post.";
+    // --- NEW CASE ---
     case "story_tag": return "tagged you in their story.";
     default: return "";
   }
@@ -119,65 +121,69 @@ export default function Activity() {
     }
   };
   
+  // --- *** NEW: Handle Repost Click *** ---
   const handleRepost = (e, storyId) => {
     e.stopPropagation();
+    // This navigates to the Create Story page.
+    // The Create.jsx page will see the 'repost_id' and show a toast.
     navigate(`/create?tab=moment&repost_id=${storyId}`);
   };
 
   const handleRowClick = (activity) => {
+    // Navigate to user profile
     if (activity.actor_username) {
       navigate(`/user/${activity.actor_username}`);
     }
+    // You could add logic here to navigate to the post if (activity.post_id)
   };
 
   return (
     <>
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-4xl mx-auto">
-          <Card className="shadow-lg overflow-hidden border-2 border-purple-300">
-            {/* Header */}
-            <div className="p-6 border-b-2 border-purple-300 bg-gradient-to-r from-[#1D0C69] to-[#5A0395]">
+          <Card className="shadow-lg overflow-hidden"> {/* Added overflow-hidden */}
+            <div className="p-6 border-b bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051]">
               <h1 className="text-2xl font-bold text-white">Activity</h1>
             </div>
 
             {isLoading ? (
-              <div className="flex justify-center items-center p-20 bg-white">
-                <Loader2 className="w-10 h-10 text-[#5A0395] animate-spin" />
+              <div className="flex justify-center items-center p-20">
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
               </div>
             ) : error ? (
-              <div className="p-20 text-center text-red-500 bg-white">
+              <div className="p-20 text-center text-red-500">
                 <p>Error: {error}</p>
               </div>
             ) : activities.length === 0 ? (
-              <div className="p-20 text-center text-gray-600 bg-white">
+              <div className="p-20 text-center text-muted-foreground">
                 <p>No new activity yet.</p>
               </div>
             ) : (
-              <div className="divide-y-2 divide-purple-200 bg-white">
+              <div className="divide-y">
                 {activities.map((activity) => (
                   <div
                     key={`${activity.type}-${activity.actor_id}-${activity.created_at}`}
-                    className="p-4 flex flex-wrap items-center gap-4 bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-150 transition-all cursor-pointer"
+                    className="p-4 flex flex-wrap items-center gap-4 hover:bg-muted/50 transition-colors cursor-pointer"
                     onClick={() => handleRowClick(activity)}
                   >
                     <div className="relative">
-                      <Avatar className="w-12 h-12 border-2 border-purple-200">
+                      <Avatar>
                         <AvatarImage src={activity.actor_pic ? `${API_URL}${activity.actor_pic}` : ''} />
-                        <AvatarFallback className="bg-[#5A0395] text-white">
+                        <AvatarFallback className="bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051] text-white">
                           {activity.actor_username[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 border-2 border-purple-200">
+                      <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-1">
                         {getActivityIcon(activity.type)}
                       </div>
                     </div>
 
                     <div className="flex-1 min-w-[150px]">
                       <p className="text-sm break-words">
-                        <span className="font-semibold text-[#1D0C69]">{activity.actor_username}</span>{" "}
-                        <span className="text-gray-600">{getActivityAction(activity)}</span>
+                        <span className="font-semibold">{activity.actor_username}</span>{" "}
+                        <span className="text-muted-foreground">{getActivityAction(activity)}</span>
                       </p>
-                      <p className="text-xs text-[#5A0395] mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {formatTimeAgo(activity.created_at)}
                       </p>
                     </div>
@@ -185,17 +191,17 @@ export default function Activity() {
                     {/* "Follow Back" Button */}
                     {activity.type === "follow" && (
                       <button 
-                        className="px-4 py-1.5 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity ml-auto"
+                        className="px-4 py-1.5 bg-gradient-to-br from-[#4b0082] via-[#6a00a3] to-[#2e0051] text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity ml-auto"
                         onClick={(e) => handleFollowBack(e, activity.actor_id)}
                       >
                         Follow Back
                       </button>
                     )}
                     
-                    {/* "Add to Story" Button */}
+                    {/* --- *** NEW: "Add to Story" Button *** --- */}
                     {activity.type === "story_tag" && (
                        <button 
-                        className="px-4 py-1.5 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity ml-auto"
+                        className="px-4 py-1.5 bg-blue-500 text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition-opacity ml-auto"
                         onClick={(e) => handleRepost(e, activity.story_id)}
                       >
                         Add to Your Story

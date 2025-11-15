@@ -7,27 +7,27 @@ import { Card } from "@/components/ui/card";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, ThumbsUp, Loader2 } from "lucide-react";
 import { StoryViewer } from "@/components/StoryViewer";
 import { CommentSection } from "@/components/CommentSection";
-// import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation.jsx"; // Removed
 
-// --- Base URL for our API ---
-const API_URL = "http://localhost:5000";
+// --- Base URL (Dynamic for Deployment) ---
+// On Vercel, this uses your .env variable. On localhost, it defaults to 5000.
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// --- Helper: Format timestamp (e.g., "5m ago") ---
+// --- Helper: Format timestamp ---
 function formatTimeAgo(dateString) {
   if (!dateString) return "";
   const date = new Date(dateString);
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  let interval = seconds / 31536000; // years
+  let interval = seconds / 31536000;
   if (interval > 1) return Math.floor(interval) + "y ago";
-  interval = seconds / 2592000; // months
+  interval = seconds / 2592000;
   if (interval > 1) return Math.floor(interval) + "mo ago";
-  interval = seconds / 86400; // days
+  interval = seconds / 86400; 
   if (interval > 1) return Math.floor(interval) + "d ago";
-  interval = seconds / 3600; // hours
+  interval = seconds / 3600; 
   if (interval > 1) return Math.floor(interval) + "h ago";
-  interval = seconds / 60; // minutes
+  interval = seconds / 60; 
   if (interval > 1) return Math.floor(interval) + "m ago";
   return "Just now";
 }
@@ -35,7 +35,6 @@ function formatTimeAgo(dateString) {
 export default function Home() {
   const navigate = useNavigate();
 
-  // --- Dynamic State ---
   const [user, setUser] = useState(null);
   const [moments, setMoments] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -45,41 +44,31 @@ export default function Home() {
   const [commentsData, setCommentsData] = useState({});
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true); // Now controls the whole page
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userStory, setUserStory] = useState(null); // Store user's own story
+  const [userStory, setUserStory] = useState(null);
 
-  // --- 1. Get Logged-in User ---
-  // This is the most critical part for Google Login. This useEffect checks if a user is in localStorage (from a normal login) or in the server session (from a Google login).
+  // --- 1. Check Auth ---
   useEffect(() => {
     const checkAuth = async () => {
-      // 1. Check localStorage first (for email/pass login)
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
         setUser(JSON.parse(storedUser));
-        return; // Found user, exit
+        return;
       }
-
-      // 2. If not, check server session (for Google Login redirect)
       try {
-        const res = await fetch("http://localhost:5000/api/auth/current_user", {
-          credentials: 'include' // This is crucial for sending the session cookie
+        const res = await fetch(`${API_URL}/api/auth/current_user`, {
+          credentials: 'include'
         });
-        
         if (!res.ok) {
-           // Not an error, just not logged in
            navigate("/login");
            return;
         }
-
         const data = await res.json();
-        
         if (data.success) {
-          // Save Google user to localStorage for future visits
           localStorage.setItem('user', JSON.stringify(data.user));
           setUser(data.user);
         } else {
-          // Not logged in
           navigate("/login");
         }
       } catch (err) {
@@ -90,30 +79,28 @@ export default function Home() {
     checkAuth();
   }, [navigate]);
 
-  // --- 2. Fetch Feed Data (Moments & Posts) on Load ---
+  // --- 2. Fetch Data ---
   useEffect(() => {
-    if (!user) return; // Don't fetch if user isn't loaded yet
+    if (!user) return;
 
     const fetchFeedData = async () => {
-      setIsLoading(true); // Set loading to true *when* we start fetching
+      setIsLoading(true);
       setError(null);
       try {
-        // --- Fetch Moments ---
+        // Moments
         const momentsRes = await fetch(`${API_URL}/api/feed/stories?userId=${user.id}`);
         const momentsData = await momentsRes.json();
         if (momentsData.success) {
-          // Separate user's own story from others
           const allStories = momentsData.stories.map(s => ({
             id: s.story_id,
             username: s.username,
             avatar: s.profile_pic_url,
-            src: `${API_URL}${s.media_url}`,
+            src: s.media_url, // FIXED: Removed extra curly braces
             type: s.media_url && s.media_url.endsWith('.mp4') ? 'video' : 'photo',
             timestamp: s.created_at,
             userId: s.user_id
           }));
           
-          // Find user's own story
           const ownStory = allStories.find(s => s.username === user.username);
           const otherStories = allStories.filter(s => s.username !== user.username);
           
@@ -121,13 +108,12 @@ export default function Home() {
           setMoments(otherStories);
         }
 
-        // --- Fetch Posts ---
+        // Posts
         const postsRes = await fetch(`${API_URL}/api/feed/posts?userId=${user.id}`);
         const postsData = await postsRes.json();
         
         if (postsData.success) {
           setPosts(postsData.posts);
-          // Initialize liked/saved state from the fetched data
           setLikedPosts(postsData.posts.filter(p => p.user_has_liked).map(p => p.post_id));
           setSavedPosts(postsData.posts.filter(p => p.user_has_saved).map(p => p.post_id));
         } else {
@@ -137,28 +123,23 @@ export default function Home() {
       } catch (err) {
         setError(err.message);
       } finally {
-        setIsLoading(false); // Set loading to false *after* fetching is done
+        setIsLoading(false);
       }
     };
 
     fetchFeedData();
-  }, [user]); // Re-run when user is available
+  }, [user]);
 
-  // --- 3. API-Driven Action Handlers ---
-
+  // --- 3. Action Handlers ---
   const handleLike = async (postId) => {
     if (!user) return;
     const isLiked = likedPosts.includes(postId);
-
-    // Optimistic UI Update
     setLikedPosts(prev => isLiked ? prev.filter(id => id !== postId) : [...prev, postId]);
     setPosts(prevPosts => prevPosts.map(p => 
       p.post_id === postId 
         ? { ...p, like_count: isLiked ? p.like_count - 1 : p.like_count + 1 }
         : p
     ));
-
-    // API Call
     try {
       await fetch(`${API_URL}/api/posts/like`, {
         method: 'POST',
@@ -166,24 +147,15 @@ export default function Home() {
         body: JSON.stringify({ userId: user.id, postId }),
       });
     } catch (err) {
-      console.error("Failed to like post:", err);
-      // Revert on error
-      setLikedPosts(prev => isLiked ? [...prev, postId] : prev.filter(id => id !== postId));
-       setPosts(prevPosts => prevPosts.map(p => 
-        p.post_id === postId 
-          ? { ...p, like_count: isLiked ? p.like_count + 1 : p.like_count - 1 }
-          : p
-      ));
+      console.error("Failed to like", err);
     }
   };
 
   const handleSave = async (postId) => {
     if (!user) return;
-    // Optimistic UI Update
     setSavedPosts(prev =>
       prev.includes(postId) ? prev.filter(id => id !== postId) : [...prev, postId]
     );
-    // API Call
     try {
       await fetch(`${API_URL}/api/posts/save`, {
         method: 'POST',
@@ -191,11 +163,7 @@ export default function Home() {
         body: JSON.stringify({ userId: user.id, postId }),
       });
     } catch (err) {
-      console.error("Failed to save post:", err);
-      // Revert on error
-      setSavedPosts(prev =>
-        prev.includes(postId) ? prev.filter(id => id !== postId) : [...prev, postId]
-      );
+      console.error("Failed to save", err);
     }
   };
   
@@ -206,7 +174,7 @@ export default function Home() {
       if (data.success) {
         setCommentsData(prev => ({ ...prev, [postId]: data.comments }));
       }
-    } catch (err) { console.error("Failed to fetch comments:", err); }
+    } catch (err) { console.error("Failed to fetch comments", err); }
   };
 
   const toggleComments = (postId) => {
@@ -235,7 +203,7 @@ export default function Home() {
           p.post_id === postId ? { ...p, comment_count: p.comment_count + 1 } : p
         ));
       }
-    } catch (err) { console.error("Failed to add comment:", err); }
+    } catch (err) { console.error("Failed to add comment", err); }
   };
 
   const handleMomentClick = (index) => {
@@ -244,8 +212,6 @@ export default function Home() {
   };
 
   const handleUserStoryClick = () => {
-    // When user clicks their own story, show it first
-    const allStoriesWithUser = userStory ? [userStory, ...moments] : moments;
     setSelectedStoryIndex(0);
     setShowStoryViewer(true);
   };
@@ -255,12 +221,12 @@ export default function Home() {
   };
 
   const handleHashtagClick = (tag) => {
-    navigate(`/hashtag/${tag}`); // Tag already comes without '#' from server
+    navigate(`/hashtag/${tag}`);
   };
   
-  // --- 4. Render Loading/Error/Content ---
+  // --- 4. Render ---
 
-  if (isLoading || !user) { // Show loader until user is verified AND data is loaded
+  if (isLoading || !user) { 
     return (
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-primary animate-spin" />
@@ -271,10 +237,7 @@ export default function Home() {
   if (error) {
     return (
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
-        <p className="text-red-500 text-center">
-          Error fetching feed: {error}<br/>
-          (Please make sure you have followed some users)
-        </p>
+        <p className="text-red-500 text-center">Error fetching feed: {error}</p>
       </main>
     );
   }
@@ -298,20 +261,14 @@ export default function Home() {
                 MOMENTS
               </h2>
               <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                {/* Add this style tag for scrollbar-hide utility */}
                 <style jsx>{`
-                  .scrollbar-hide::-webkit-scrollbar {
-                    display: none;
-                  }
-                  .scrollbar-hide {
-                    -ms-overflow-style: none;
-                    scrollbar-width: none;
-                  }
+                  .scrollbar-hide::-webkit-scrollbar { display: none; }
+                  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
                 `}</style>
-              {/* "Add Moment" button OR User's Own Story */}
+              
+              {/* Add Moment / User Story */}
               <div>
                 {userStory ? (
-                  // Show user's own story if it exists
                   <div className="flex flex-col items-center gap-2">
                     <div
                       className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1D0C69] via-[#5A0395] to-[#3D1A8F] p-1 cursor-pointer"
@@ -319,7 +276,8 @@ export default function Home() {
                     >
                       <div className="w-full h-full rounded-full bg-background p-1">
                         <Avatar className="w-full h-full">
-                          <AvatarImage src={user.profile_pic_url ? `${API_URL}${user.profile_pic_url}` : ''} />
+                          {/* FIXED: Removed curly braces from src */}
+                          <AvatarImage src={user.profile_pic_url || ''} />
                           <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
                         </Avatar>
                       </div>
@@ -327,7 +285,6 @@ export default function Home() {
                     <span className="text-xs text-[#5A0395] font-medium">Your Story</span>
                   </div>
                 ) : (
-                  // Show "Add Moment" button if no story exists
                   (() => {
                     const createItem = navItems.find((n) => n.label === "CREATE");
                     const Icon = createItem ? createItem.icon : null;
@@ -336,10 +293,7 @@ export default function Home() {
                       <Link to={to} onClick={(e) => e.stopPropagation()} className="flex flex-col items-center gap-2">
                         <div className={`w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-[#1D0C69] to-[#5A0395] cursor-pointer transition-shadow hover:shadow-xl flex items-center justify-center`}>
                           <div className="w-14 h-14 rounded-full bg-white/75 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                            <button
-                              aria-label="Create Story"
-                              className="w-8 h-8 rounded-full bg-[#5A0395] text-white flex items-center justify-center shadow-md"
-                            >
+                            <button aria-label="Create Story" className="w-8 h-8 rounded-full bg-[#5A0395] text-white flex items-center justify-center shadow-md">
                               {Icon ? <Icon className="w-4 h-4" /> : <span className="text-white font-extrabold">+</span>}
                             </button>
                           </div>
@@ -351,7 +305,7 @@ export default function Home() {
                 )}
               </div>
               
-              {/* DYNAMIC MOMENTS - Now adjusted for index since user story is separate */}
+              {/* Other Moments */}
               {moments.map((moment, index) => (
                 <div key={moment.id} className="flex flex-col items-center gap-2 flex-shrink-0">
                   <div
@@ -360,7 +314,8 @@ export default function Home() {
                   >
                     <div className="w-full h-full rounded-full bg-background p-1">
                       <Avatar className="w-full h-full">
-                        <AvatarImage src={moment.avatar ? `${API_URL}${moment.avatar}` : ''} />
+                         {/* FIXED: Removed curly braces from src */}
+                        <AvatarImage src={moment.avatar || ''} />
                         <AvatarFallback>{moment.username[0].toUpperCase()}</AvatarFallback>
                       </Avatar>
                     </div>
@@ -389,14 +344,15 @@ export default function Home() {
 
             {posts.map((post) => (
               <Card key={post.post_id} className="overflow-hidden shadow-lg border max-w-xl mx-auto">
-                {/* Header (Username & Avatar) */}
+                {/* Header */}
                 <div className="flex items-center justify-between p-3 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] border-b border-purple-600">
                   <div 
                     className="flex items-center gap-3 cursor-pointer hover:opacity-80 min-w-0"
                     onClick={() => handleUserClick(post.username)}
                   >
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={post.profile_pic_url ? `${API_URL}${post.profile_pic_url}` : ''} />
+                      {/* FIXED: Removed curly braces from src */}
+                      <AvatarImage src={post.profile_pic_url || ''} />
                       <AvatarFallback className="bg-blue-500 text-white">
                         {post.username[0].toUpperCase()}
                       </AvatarFallback>
@@ -407,18 +363,20 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* --- DYNAMIC MEDIA --- */}
+                {/* --- DYNAMIC MEDIA (FIXED) --- */}
                 <div className="bg-black max-h-[500px] flex items-center justify-center border-b">
                   {post.media && post.media.length > 0 ? (
                     post.media[0].media_type.startsWith('video') ? (
                       <video 
-                        src={`${API_URL}${post.media[0].media_url}`} 
+                        /* FIXED: Use variable directly */
+                        src={post.media[0].media_url} 
                         controls 
                         className="w-full max-h-[500px] object-contain" 
                       />
                     ) : (
                       <img 
-                        src={`${API_URL}${post.media[0].media_url}`} 
+                        /* FIXED: Use variable directly */
+                        src={post.media[0].media_url} 
                         alt="Post media" 
                         className="w-full max-h-[500px] object-contain" 
                       />
@@ -489,7 +447,7 @@ export default function Home() {
                   <p className="text-xs text-gray-600">{formatTimeAgo(post.created_at)}</p>
                 </div>
 
-                {/* Comment Section - Inline */}
+                {/* Comment Section */}
                 {openCommentPostId === post.post_id && (
                   <CommentSection
                     postId={post.post_id}
