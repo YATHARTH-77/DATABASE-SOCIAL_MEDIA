@@ -1,14 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Grid, Bookmark, UserPen, LogOut, Trash2, Loader2, Plus } from "lucide-react";
+import { Settings, Grid, Bookmark, UserPen, LogOut, Trash2, Loader2 } from "lucide-react";
 import { PostDetailModal } from "@/components/PostDetailModal";
 import { FollowerModal } from "@/components/FollowerModal";
-import { CreateHighlightModal } from "@/components/CreateHighlightModal"; 
-import { StoryViewer } from "@/components/StoryViewer"; 
 import { useToast } from "@/hooks/use-toast";
 
 // --- Base URL (Dynamic for Deployment) ---
@@ -25,12 +24,6 @@ export default function Profile() {
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
   
-  // --- NEW HIGHLIGHT STATE ---
-  const [highlights, setHighlights] = useState([]);
-  const [showCreateHighlight, setShowCreateHighlight] = useState(false);
-  const [showHighlightViewer, setShowHighlightViewer] = useState(false);
-  const [selectedHighlightStories, setSelectedHighlightStories] = useState([]);
-  
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState(null);
   const [modalType, setModalType] = useState(null);
@@ -46,21 +39,16 @@ export default function Profile() {
     }
   }, [navigate]);
 
-  // --- Fetch All Profile Data (Highlights added) ---
+  // --- Fetch All Profile Data (Highlights removed) ---
   useEffect(() => {
     if (!user) return; 
 
     const fetchProfile = async () => {
       setIsLoading(true);
       try {
-        // Fetch profile, posts, and highlights in parallel
-        const [profileRes, highlightsRes] = await Promise.all([
-          fetch(`${API_URL}/api/profile/${user.username}?loggedInUserId=${user.id}`),
-          fetch(`${API_URL}/api/profile/${user.username}/highlights`)
-        ]);
-
+        // Fetch only the profile data, posts, and saved posts
+        const profileRes = await fetch(`${API_URL}/api/profile/${user.username}?loggedInUserId=${user.id}`);
         const profileJson = await profileRes.json();
-        const highlightsJson = await highlightsRes.json();
 
         if (profileJson.success) {
           setProfileData(profileJson.user);
@@ -68,10 +56,6 @@ export default function Profile() {
           setSavedPosts(profileJson.savedPosts);
         } else {
           throw new Error(profileJson.message);
-        }
-        
-        if (highlightsJson.success) {
-          setHighlights(highlightsJson.highlights);
         }
 
       } catch (err) {
@@ -102,37 +86,6 @@ export default function Profile() {
     } catch (err) {
       console.error(`Failed to fetch ${type}`, err);
     }
-  };
-  
-  // --- NEW: Open Highlight Story Viewer ---
-  const handleHighlightClick = async (highlight) => {
-    try {
-      const res = await fetch(`${API_URL}/api/highlight/${highlight.highlight_id}/stories`);
-      const data = await res.json();
-      if (data.success) {
-        // Map stories to the format StoryViewer expects
-        const storiesForViewer = data.stories.map(s => ({
-          id: s.story_id,
-          username: s.username,
-          avatar: s.profile_pic_url,
-          src: s.media_url, // Fixed: Use full URL directly
-          type: s.media_type && s.media_type.startsWith('video') ? 'video' : 'photo',
-          timestamp: s.created_at,
-        }));
-        setSelectedHighlightStories(storiesForViewer);
-        setShowHighlightViewer(true);
-      } else {
-        throw new Error(data.message);
-      }
-    } catch (err) {
-      toast({ title: "Error", description: "Could not load highlight.", variant: "destructive" });
-    }
-  };
-
-  const handleHighlightCreated = (newHighlight) => {
-    setHighlights(prev => [...prev, newHighlight]); 
-    setShowCreateHighlight(false);
-    toast({ title: "Success", description: "Highlight created!" });
   };
   
   const handleUserClick = (username) => {
@@ -242,14 +195,15 @@ export default function Profile() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showSettingsMenu]);
 
+  // Updated to remove highlight states
   useEffect(() => {
-    if (selectedPost || modalType || showCreateHighlight || showHighlightViewer) {
+    if (selectedPost || modalType) {
       document.body.style.overflow = 'hidden';
     }
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [selectedPost, modalType, showCreateHighlight, showHighlightViewer]);
+  }, [selectedPost, modalType]);
 
   if (isLoading || !profileData) {
     return (
@@ -261,7 +215,7 @@ export default function Profile() {
 
   return (
     <>
-      {/* --- ALL MODALS --- */}
+      {/* --- ALL MODALS (Highlights Removed) --- */}
       {selectedPost && (
         <PostDetailModal
           post={selectedPost}
@@ -286,22 +240,6 @@ export default function Profile() {
         />
       )}
       
-      {showHighlightViewer && (
-        <StoryViewer
-          stories={selectedHighlightStories}
-          initialIndex={0}
-          onClose={() => setShowHighlightViewer(false)}
-        />
-      )}
-      
-      {showCreateHighlight && user && (
-        <CreateHighlightModal
-          onClose={() => setShowCreateHighlight(false)}
-          onCreate={handleHighlightCreated}
-          userId={user.id}
-        />
-      )}
-      
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-4xl mx-auto">
           <Card className="p-4 sm:p-8 shadow-lg border-2 border-purple-300">
@@ -309,7 +247,7 @@ export default function Profile() {
             <div className="flex items-start justify-between mb-6">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
                 <Avatar className="w-24 h-24 flex-shrink-0">
-                  <AvatarImage src={profileData.profile_pic_url ? `${API_URL}${profileData.profile_pic_url}` : ''} />
+                  <AvatarImage src={profileData.profile_pic_url || ''} />
                   <AvatarFallback className="gradient-sidebar text-white text-3xl">
                     {profileData.username[0].toUpperCase()}
                   </AvatarFallback>
@@ -384,43 +322,7 @@ export default function Profile() {
               </p>
             </div>
 
-            {/* --- *** NEW HIGHLIGHTS SECTION *** --- */}
-            <div className="mb-6">
-              <h2 className="text-sm font-semibold text-[#5A0395] mb-3">Highlights</h2>
-              <div className="flex gap-4 overflow-x-auto pb-2">
-                
-                {/* "New" Highlight Button */}
-                <div 
-                  className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer"
-                  onClick={() => setShowCreateHighlight(true)}
-                >
-                  <div className="w-16 h-16 rounded-full bg-purple-50 border-2 border-dashed border-purple-300 flex items-center justify-center hover:border-[#5A0395] transition-colors">
-                    <Plus className="w-8 h-8 text-[#5A0395]" />
-                  </div>
-                  <span className="text-xs text-[#5A0395]">New</span>
-                </div>
-                
-                {/* Existing Highlights */}
-                {highlights.map((highlight) => (
-                  <div 
-                    key={highlight.highlight_id} 
-                    className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer"
-                    onClick={() => handleHighlightClick(highlight)}
-                  >
-                    <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-br from-purple-400 via-purple-500 to-purple-600">
-                      <div className="w-full h-full rounded-full bg-background p-1">
-                        <Avatar className="w-full h-full">
-                          {/* FIXED: Removed `${API_URL}` prefix */}
-                          <AvatarImage src={highlight.cover_media_url || ''} />
-                          <AvatarFallback>{highlight.title[0]}</AvatarFallback>
-                        </Avatar>
-                      </div>
-                    </div>
-                    <span className="text-xs font-medium text-[#1D0C69]">{highlight.title}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* --- HIGHLIGHTS SECTION REMOVED --- */}
 
             {/* --- Posts/Saved Tabs --- */}
             <Tabs defaultValue="posts" className="w-full">
@@ -444,7 +346,6 @@ export default function Profile() {
                       className="aspect-square bg-muted rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-md relative group"
                     >
                       {post.media_url ? (
-                        /* FIXED: Removed `${API_URL}` prefix */
                         <img src={post.media_url} alt={post.caption || 'post'} className="w-full h-full object-cover rounded-xl" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-secondary">
@@ -474,7 +375,6 @@ export default function Profile() {
                       className="aspect-square bg-muted rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-md relative group"
                     >
                        {post.media_url ? (
-                         /* FIXED: Removed `${API_URL}` prefix */
                          <img src={post.media_url} alt={post.caption || 'post'} className="w-full h-full object-cover rounded-xl" />
                        ) : (
                         <div className="w-full h-full flex items-center justify-center bg-secondary">
