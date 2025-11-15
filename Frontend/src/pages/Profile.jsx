@@ -3,15 +3,179 @@ import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input"; // ⭐️ ADDED
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Grid, Bookmark, UserPen, LogOut, Trash2, Loader2 } from "lucide-react";
+import { Settings, Grid, Bookmark, UserPen, LogOut, Trash2, Loader2, Plus, X, ChevronLeft, ChevronRight } from "lucide-react"; // ⭐️ ADDED ICONS
 import { PostDetailModal } from "@/components/PostDetailModal";
 import { FollowerModal } from "@/components/FollowerModal";
 import { useToast } from "@/hooks/use-toast";
 
 // --- Base URL (Dynamic for Deployment) ---
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+// ⭐️ --- ViewHighlightModal Component --- ⭐️
+function ViewHighlightModal({ stories, onClose }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const currentStory = stories[currentIndex];
+
+  const nextStory = () => {
+    setCurrentIndex(prev => Math.min(prev + 1, stories.length - 1));
+  };
+  const prevStory = () => {
+    setCurrentIndex(prev => Math.max(prev - 1, 0));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="relative w-full max-w-md h-[90vh] bg-black rounded-xl overflow-hidden shadow-lg">
+        <button onClick={onClose} className="absolute top-3 right-3 z-50 text-white bg-black/30 rounded-full p-1">
+          <X className="w-6 h-6" />
+        </button>
+        
+        {currentStory && (
+          <div className="relative w-full h-full">
+            {/* Story Media */}
+            {currentStory.media_type.startsWith('video') ? (
+              <video src={currentStory.media_url} autoPlay controls className="w-full h-full object-contain" />
+            ) : (
+              <img src={currentStory.media_url} alt="Highlight story" className="w-full h-full object-contain" />
+            )}
+
+            {/* Header */}
+            <div className="absolute top-0 left-0 w-full p-4 bg-gradient-to-b from-black/60 to-transparent">
+              <div className="flex items-center gap-2">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={currentStory.profile_pic_url} />
+                  <AvatarFallback>{currentStory.username[0]}</AvatarFallback>
+                </Avatar>
+                <span className="text-white font-semibold text-sm">{currentStory.username}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        {currentIndex > 0 && (
+          <button onClick={prevStory} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/50 rounded-full p-1 text-black">
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+        )}
+        {currentIndex < stories.length - 1 && (
+          <button onClick={nextStory} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/50 rounded-full p-1 text-black">
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ⭐️ --- CreateHighlightModal Component --- ⭐️
+function CreateHighlightModal({
+  onClose,
+  archivedStories,
+  onCreate,
+  isLoading
+}) {
+  const [title, setTitle] = useState("");
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [coverStoryId, setCoverStoryId] = useState(null);
+
+  const toggleStorySelect = (id) => {
+    const newIds = selectedIds.includes(id)
+      ? selectedIds.filter(storyId => storyId !== id)
+      : [...selectedIds, id];
+    
+    setSelectedIds(newIds);
+
+    // If the cover was unselected, reset it
+    if (coverStoryId === id && !newIds.includes(id)) {
+      setCoverStoryId(null);
+    }
+    // If this is the first story selected, make it the cover
+    if (!coverStoryId && newIds.length > 0) {
+      setCoverStoryId(newIds[0]);
+    }
+  };
+
+  const handleSetCover = (id) => {
+    if (selectedIds.includes(id)) {
+      setCoverStoryId(id);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!title || selectedIds.length === 0 || !coverStoryId) {
+      // You can add a toast here if you like
+      return;
+    }
+    onCreate({
+      title,
+      story_ids: selectedIds,
+      cover_story_id: coverStoryId,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="relative w-full max-w-lg h-[90vh] bg-white rounded-xl shadow-lg flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b">
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
+            <X className="w-6 h-6" />
+          </button>
+          <h2 className="text-lg font-semibold text-center text-[#1D0C69]">Create Highlight</h2>
+          <Button onClick={handleSubmit} disabled={isLoading || !title || selectedIds.length === 0} size="sm">
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create"}
+          </Button>
+        </div>
+
+        {/* Title Input */}
+        <div className="p-4">
+          <Input
+            placeholder="Highlight Title..."
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="border-purple-300 focus-visible:ring-purple-500"
+          />
+        </div>
+
+        {/* Story Selection Grid */}
+        <div className="flex-1 overflow-y-auto p-4 grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {archivedStories.map(story => (
+            <div
+              key={story.story_id}
+              className="relative aspect-square cursor-pointer rounded-lg overflow-hidden group"
+              onClick={() => toggleStorySelect(story.story_id)}
+            >
+              <img src={story.media_url} alt="Story" className="w-full h-full object-cover" />
+              {selectedIds.includes(story.story_id) ? (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center border-4 border-purple-500">
+                  {coverStoryId === story.story_id ? (
+                    <span className="text-white text-xs font-bold bg-purple-600 px-2 py-1 rounded">Cover</span>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSetCover(story.story_id);
+                      }}
+                      className="text-white text-xs bg-black/70 px-2 py-1 rounded hover:bg-black"
+                    >
+                      Set Cover
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -23,12 +187,20 @@ export default function Profile() {
   const [savedPosts, setSavedPosts] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
+  const [highlights, setHighlights] = useState([]); // ⭐️ ADDED
   
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalLoading, setIsModalLoading] = useState(false); // ⭐️ ADDED for modal actions
   const [selectedPost, setSelectedPost] = useState(null);
   const [modalType, setModalType] = useState(null);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const settingsMenuRef = useRef(null);
+
+  // --- ⭐️ Highlight Modal States ⭐️ ---
+  const [isCreateHighlightModalOpen, setCreateHighlightModalOpen] = useState(false);
+  const [archivedStories, setArchivedStories] = useState([]);
+  const [isViewHighlightModalOpen, setViewHighlightModalOpen] = useState(false);
+  const [viewingHighlightStories, setViewingHighlightStories] = useState([]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -39,14 +211,13 @@ export default function Profile() {
     }
   }, [navigate]);
 
-  // --- Fetch All Profile Data (Highlights removed) ---
+  // --- Fetch All Profile Data (Highlights ⭐️ ADDED) ---
   useEffect(() => {
-    if (!user) return; 
+    if (!user) return;
 
     const fetchProfile = async () => {
       setIsLoading(true);
       try {
-        // Fetch only the profile data, posts, and saved posts
         const profileRes = await fetch(`${API_URL}/api/profile/${user.username}?loggedInUserId=${user.id}`);
         const profileJson = await profileRes.json();
 
@@ -54,6 +225,7 @@ export default function Profile() {
           setProfileData(profileJson.user);
           setPosts(profileJson.posts);
           setSavedPosts(profileJson.savedPosts);
+          setHighlights(profileJson.highlights || []); // ⭐️ ADDED
         } else {
           throw new Error(profileJson.message);
         }
@@ -90,7 +262,7 @@ export default function Profile() {
   
   const handleUserClick = (username) => {
     setModalType(null);
-    if (username === user.username) return; 
+    if (username === user.username) return;
     navigate(`/user/${username}`);
   };
 
@@ -144,7 +316,7 @@ export default function Profile() {
       if (!data.success || data.action !== 'unsaved') throw new Error(data.message);
 
       setSavedPosts(prev => prev.filter(post => post.post_id !== postId));
-      setSelectedPost(null); 
+      setSelectedPost(null);
     } catch (err) {
       console.error("Failed to unsave post", err);
       toast({ title: "Error", description: "Failed to unsave post", variant: "destructive" });
@@ -185,6 +357,74 @@ export default function Profile() {
     }
   };
 
+  // --- ⭐️ Highlight Handlers ⭐️ ---
+  const handleOpenCreateHighlightModal = async () => {
+    if (!user) return;
+    setIsModalLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/stories/archive?userId=${user.id}`);
+      const data = await res.json();
+      if (data.success) {
+        setArchivedStories(data.stories);
+        setCreateHighlightModalOpen(true);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to fetch stories archive.", variant: "destructive" });
+    } finally {
+      setIsModalLoading(false);
+    }
+  };
+
+  const handleCreateHighlight = async ({ title, story_ids, cover_story_id }) => {
+    setIsModalLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/highlights/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          title,
+          story_ids,
+          cover_story_id,
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setHighlights(prev => [...prev, data.highlight]);
+        setCreateHighlightModalOpen(false);
+        setArchivedStories([]);
+        toast({ title: "Success", description: "Highlight created!" });
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (err) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setIsModalLoading(false);
+    }
+  };
+
+  const openHighlight = async (highlightId) => {
+    setIsModalLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/highlights/${highlightId}/stories`);
+      const data = await res.json();
+      if (data.success) {
+        setViewingHighlightStories(data.stories);
+        setViewHighlightModalOpen(true);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Could not load highlight stories.", variant: "destructive" });
+    } finally {
+      setIsModalLoading(false);
+    }
+  };
+
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
@@ -195,15 +435,15 @@ export default function Profile() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showSettingsMenu]);
 
-  // Updated to remove highlight states
+  // Updated to include highlight modals
   useEffect(() => {
-    if (selectedPost || modalType) {
+    if (selectedPost || modalType || isCreateHighlightModalOpen || isViewHighlightModalOpen) {
       document.body.style.overflow = 'hidden';
     }
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [selectedPost, modalType]);
+  }, [selectedPost, modalType, isCreateHighlightModalOpen, isViewHighlightModalOpen]);
 
   if (isLoading || !profileData) {
     return (
@@ -215,7 +455,7 @@ export default function Profile() {
 
   return (
     <>
-      {/* --- ALL MODALS (Highlights Removed) --- */}
+      {/* --- ALL MODALS (Highlights ⭐️ ADDED) --- */}
       {selectedPost && (
         <PostDetailModal
           post={selectedPost}
@@ -240,6 +480,23 @@ export default function Profile() {
         />
       )}
       
+      {/* ⭐️ ADDED: Highlight Modals ⭐️ */}
+      {isCreateHighlightModalOpen && (
+        <CreateHighlightModal
+          onClose={() => setCreateHighlightModalOpen(false)}
+          archivedStories={archivedStories}
+          onCreate={handleCreateHighlight}
+          isLoading={isModalLoading}
+        />
+      )}
+
+      {isViewHighlightModalOpen && (
+        <ViewHighlightModal
+          stories={viewingHighlightStories}
+          onClose={() => setViewHighlightModalOpen(false)}
+        />
+      )}
+      
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-4xl mx-auto">
           <Card className="p-4 sm:p-8 shadow-lg border-2 border-purple-300">
@@ -259,14 +516,14 @@ export default function Profile() {
                       <span className="font-bold text-md sm:text-lg text-[#1D0C69]">{profileData.post_count}</span>{" "}
                       <span className="text-[#5A0395]">posts</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => openFollowModal("followers")}
                       className="hover:bg-purple-50 px-2 py-1 rounded-md transition-colors cursor-pointer"
                     >
                       <span className="font-bold text-md sm:text-lg text-[#1D0C69]">{profileData.follower_count}</span>{" "}
                       <span className="text-[#5A0395] hover:text-[#1D0C69] transition-colors">followers</span>
                     </button>
-                    <button 
+                    <button
                       onClick={() => openFollowModal("following")}
                       className="hover:bg-purple-50 px-2 py-1 rounded-md transition-colors cursor-pointer"
                     >
@@ -277,8 +534,8 @@ export default function Profile() {
                 </div>
               </div>
               <div className="relative" ref={settingsMenuRef}>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   onClick={() => setShowSettingsMenu(!showSettingsMenu)}
                   className="hover:bg-purple-100 hover:text-[#5A0395]"
@@ -322,7 +579,37 @@ export default function Profile() {
               </p>
             </div>
 
-            {/* --- HIGHLIGHTS SECTION REMOVED --- */}
+            {/* --- ⭐️ HIGHLIGHTS SECTION ADDED ⭐️ --- */}
+            <div className="mb-6">
+              <div className="flex items-center gap-4 overflow-x-auto p-2">
+                {/* "New" Highlight Button */}
+                <button
+                  onClick={handleOpenCreateHighlightModal}
+                  disabled={isModalLoading}
+                  className="flex flex-col items-center justify-start gap-1 w-20 flex-shrink-0"
+                >
+                  <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                    {isModalLoading ? <Loader2 className="w-6 h-6 text-gray-500 animate-spin" /> : <Plus className="w-6 h-6 text-gray-500" />}
+                  </div>
+                  <p className="text-xs font-medium text-center truncate w-full text-gray-600">New</p>
+                </button>
+
+                {/* Existing Highlights */}
+                {highlights.map((hl) => (
+                  <button
+                    key={hl.highlight_id}
+                    onClick={() => openHighlight(hl.highlight_id)}
+                    className="flex flex-col items-center justify-start gap-1 w-20 flex-shrink-0"
+                  >
+                    <Avatar className="w-16 h-16 border-2 border-purple-300">
+                      <AvatarImage src={hl.cover_media_url || ''} />
+                      <AvatarFallback>{hl.title[0]}</AvatarFallback>
+                    </Avatar>
+                    <p className="text-xs font-medium text-center truncate w-full text-[#1D0C69]">{hl.title}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* --- Posts/Saved Tabs --- */}
             <Tabs defaultValue="posts" className="w-full">
@@ -378,7 +665,7 @@ export default function Profile() {
                          <img src={post.media_url} alt={post.caption || 'post'} className="w-full h-full object-cover rounded-xl" />
                        ) : (
                         <div className="w-full h-full flex items-center justify-center bg-secondary">
-                          <span className="text-muted-foreground">No Media</span>
+                           <span className="text-muted-foreground">No Media</span>
                         </div>
                        )}
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">

@@ -1,5 +1,5 @@
 // =================================================================
-//                SERVER.JS (FINAL DEPLOYMENT VERSION)
+//         SERVER.JS (FINAL DEPLOYMENT VERSION)
 // =================================================================
 
 require('dotenv').config(); // Loads .env variables
@@ -11,7 +11,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const nodemailer = require('nodemailer');
-const crypto = require('crypto'); 
+const crypto = require('crypto');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
@@ -23,29 +23,29 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const app = express();
 
 // =================================================================
-//          CONTENT FILTERING (DATABASE TRIGGERS)
+//         CONTENT FILTERING (DATABASE TRIGGERS)
 // =================================================================
 //Trigger
 //Trigger
 const ABUSIVE_PATTERNS = [
-  /f+\W*?u+\W*?c+\W*?k+/i,              // fuck variations
-  /s+\W*?h+\W*?i+\W*?t+/i,              // shit variations
-  /b+\W*?i+\W*?t+\W*?c+\W*?h+/i,        // bitch variations
+  /f+\W*?u+\W*?c+\W*?k+/i,          // fuck variations
+  /s+\W*?h+\W*?i+\W*?t+/i,          // shit variations
+  /b+\W*?i+\W*?t+\W*?c+\W*?h+/i,      // bitch variations
   /a+\W*?s+\W*?s+\W*?h+\W*?o+\W*?l+\W*?e+/i, // asshole
-  /d+\W*?i+\W*?c+\W*?k+/i,              // dick
-  /c+\W*?o+\W*?c+\W*?k+/i,              // cock
-  /p+\W*?u+\W*?s+\W*?s+\W*?y+/i,        // pussy
-  /s+\W*?l+\W*?u+\W*?t+/i,              // slut
-  /w+\W*?h+\W*?o+\W*?r+\W*?e+/i,        // whore
+  /d+\W*?i+\W*?c+\W*?k+/i,          // dick
+  /c+\W*?o+\W*?c+\W*?k+/i,          // cock
+  /p+\W*?u+\W*?s+\W*?s+\W*?y+/i,      // pussy
+  /s+\W*?l+\W*?u+\W*?t+/i,          // slut
+  /w+\W*?h+\W*?o+\W*?r+\W*?e+/i,      // whore
   /b+\W*?a+\W*?s+\W*?t+\W*?a+\W*?r+\W*?d+/i, // bastard
-  /f+\W*?a+\W*?g+/i,                    // fag variations
-  /c+\W*?u+\W*?m+/i,                    // cum
-  /s+\W*?e+\W*?x+/i,                    // sex, s3x, s*x
-  /s+\W*?e+\W*?x+\W*?y+/i,              // sexy
-  /p+\W*?o+\W*?r+\W*?n+/i,              // porn
-  /h+\W*?o+\W*?r+\W*?n+/i,              // horny
-  /n+\W*?i+\W*?g+\W*?g+\W*?a+/i,        // nigga
-  /n+\W*?i+\W*?g+\W*?g+\W*?e+\W*?r+/i   // nigger
+  /f+\W*?a+\W*?g+/i,              // fag variations
+  /c+\W*?u+\W*?m+/i,              // cum
+  /s+\W*?e+\W*?x+/i,              // sex, s3x, s*x
+  /s+\W*?e+\W*?x+\W*?y+/i,          // sexy
+  /p+\W*?o+\W*?r+\W*?n+/i,          // porn
+  /h+\W*?o+\W*?r+\W*?n+/i,          // horny
+  /n+\W*?i+\W*?g+\W*?g+\W*?a+/i,      // nigga
+  /n+\W*?i+\W*?g+\W*?g+\W*?e+\W*?r+/i  // nigger
 ];
 
 function containsAbusiveContent(text) {
@@ -77,8 +77,8 @@ cloudinary.config({
 // --- 2. Deployment Ready CORS ---
 // Allows Localhost AND your future Frontend URL
 const allowedOrigins = [
-  "http://localhost:8080", 
-  "http://localhost:5173", 
+  "http://localhost:8080",
+  "http://localhost:5173",
   process.env.FRONTEND_URL // e.g., https://your-app.vercel.app
 ];
 
@@ -94,7 +94,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
-app.use(express.json()); 
+app.use(express.json());
 app.set('trust proxy', 1); // Required for Render cookies
 
 // --- Legacy Directory Creation (Kept as requested, though not used for Cloudinary) ---
@@ -107,7 +107,7 @@ if (!fs.existsSync(storiesDir)) fs.mkdirSync(storiesDir);
 app.use('/uploads', express.static(uploadsDir));
 
 // --- 3. Database Connection (TiDB Cloud Ready) ---
-const db = mysql.createPool({ 
+const db = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -146,7 +146,7 @@ transporter.verify((error, success) => {
 });
 
 // =================================================================
-//                 FILE UPLOAD (CLOUDINARY) CONFIG
+//         FILE UPLOAD (CLOUDINARY) CONFIG
 // =================================================================
 
 // Storage for POSTS
@@ -172,7 +172,7 @@ const storyStorage = new CloudinaryStorage({
 const uploadStory = multer({ storage: storyStorage });
 
 // =================================================================
-//                 PASSPORT & SESSION
+//         PASSPORT & SESSION
 // =================================================================
 
 app.use(session({
@@ -181,7 +181,7 @@ app.use(session({
   saveUninitialized: false,
   proxy: true, // Important for Render
   cookie: {
-    maxAge: 24 * 60 * 60 * 1000, 
+    maxAge: 24 * 60 * 60 * 1000,
     secure: process.env.NODE_ENV === 'production', // True in HTTPS
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
@@ -193,7 +193,7 @@ app.use(passport.session());
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "/api/auth/google/callback", 
+    callbackURL: "/api/auth/google/callback",
   },
   async (accessToken, refreshToken, profile, done) => {
     const email = profile.emails[0].value;
@@ -231,7 +231,7 @@ passport.deserializeUser(async (id, done) => {
 });
 
 // =================================================================
-//                 ROUTES
+//         ROUTES
 // =================================================================
 
 // --- Auth Routes ---
@@ -268,9 +268,9 @@ app.post("/api/register/verify", async (req, res) => {
   
   // Validate username for abusive content
   if (containsAbusiveContent(username)) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Inappropriate username is not allowed." 
+    return res.status(400).json({
+      success: false,
+      message: "Inappropriate username is not allowed."
     });
   }
   
@@ -318,7 +318,7 @@ app.post("/api/login", async (req, res) => {
 
 app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-app.get('/api/auth/google/callback', 
+app.get('/api/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login?error=google' }),
   (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:8080";
@@ -348,9 +348,9 @@ app.post("/api/posts/create", uploadPost.array('media', 10), async (req, res) =>
   
   // 1. Validate caption for abusive content
   if (caption && containsAbusiveContent(caption)) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Caption contains inappropriate language." 
+    return res.status(400).json({
+      success: false,
+      message: "Caption contains inappropriate language."
     });
   }
   
@@ -386,7 +386,7 @@ app.post("/api/posts/create", uploadPost.array('media', 10), async (req, res) =>
         // We must expand the array into "?, ?, ?" manually so the database sees all items
         const selectPlaceholders = tagList.map(() => '?').join(', ');
         const [hRows] = await conn.query(
-            `SELECT hashtag_id FROM HASHTAG WHERE hashtag_text IN (${selectPlaceholders})`, 
+            `SELECT hashtag_id FROM HASHTAG WHERE hashtag_text IN (${selectPlaceholders})`,
             tagList
         );
 
@@ -410,9 +410,9 @@ app.post("/api/posts/like", async (req, res) => {
   const { userId, postId } = req.body;
   
   if (!userId || !postId) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "userId and postId are required" 
+    return res.status(400).json({
+      success: false,
+      message: "userId and postId are required"
     });
   }
   
@@ -422,14 +422,14 @@ app.post("/api/posts/like", async (req, res) => {
     await conn.beginTransaction();
     
     const [existing] = await conn.query(
-      "SELECT * FROM POST_LIKE WHERE user_id = ? AND post_id = ?", 
+      "SELECT * FROM POST_LIKE WHERE user_id = ? AND post_id = ?",
       [userId, postId]
     );
     
     if (existing.length > 0) {
       // UNLIKE
       await conn.query(
-        "DELETE FROM POST_LIKE WHERE user_id = ? AND post_id = ?", 
+        "DELETE FROM POST_LIKE WHERE user_id = ? AND post_id = ?",
         [userId, postId]
       );
       await conn.commit();
@@ -437,7 +437,7 @@ app.post("/api/posts/like", async (req, res) => {
     } else {
       // LIKE
       await conn.query(
-        "INSERT INTO POST_LIKE (user_id, post_id) VALUES (?, ?)", 
+        "INSERT INTO POST_LIKE (user_id, post_id) VALUES (?, ?)",
         [userId, postId]
       );
       await conn.commit();
@@ -457,9 +457,9 @@ app.post("/api/posts/save", async (req, res) => {
   const { userId, postId } = req.body;
   
   if (!userId || !postId) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "userId and postId are required" 
+    return res.status(400).json({
+      success: false,
+      message: "userId and postId are required"
     });
   }
   
@@ -469,14 +469,14 @@ app.post("/api/posts/save", async (req, res) => {
     await conn.beginTransaction();
     
     const [existing] = await conn.query(
-      "SELECT * FROM Saved_posts WHERE user_id = ? AND post_id = ?", 
+      "SELECT * FROM Saved_posts WHERE user_id = ? AND post_id = ?",
       [userId, postId]
     );
     
     if (existing.length > 0) {
       // UNSAVE
       await conn.query(
-        "DELETE FROM Saved_posts WHERE user_id = ? AND post_id = ?", 
+        "DELETE FROM Saved_posts WHERE user_id = ? AND post_id = ?",
         [userId, postId]
       );
       await conn.commit();
@@ -484,7 +484,7 @@ app.post("/api/posts/save", async (req, res) => {
     } else {
       // SAVE
       await conn.query(
-        "INSERT INTO Saved_posts (user_id, post_id) VALUES (?, ?)", 
+        "INSERT INTO Saved_posts (user_id, post_id) VALUES (?, ?)",
         [userId, postId]
       );
       await conn.commit();
@@ -512,9 +512,9 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
   const { userId, commentText } = req.body;
 
   if (!userId || !commentText) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "userId and commentText are required" 
+    return res.status(400).json({
+      success: false,
+      message: "userId and commentText are required"
     });
   }
 
@@ -525,8 +525,8 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
 
     // Step 1: Check for duplicate comment
     const [existing] = await conn.query(
-      `SELECT COUNT(*) AS count 
-       FROM COMMENT 
+      `SELECT COUNT(*) AS count
+       FROM COMMENT
        WHERE user_id = ? AND post_id = ? AND comment_text = ?`,
       [userId, postId, commentText]
     );
@@ -548,7 +548,7 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
     // Step 3: Fetch inserted comment with user info
     const [newComment] = await conn.query(
       `SELECT c.comment_id, c.comment_text, c.created_at,
-              u.user_id, u.username, u.profile_pic_url
+          u.user_id, u.username, u.profile_pic_url
        FROM COMMENT c
        JOIN USER u ON c.user_id = u.user_id
        WHERE c.comment_id = ?`,
@@ -624,18 +624,37 @@ app.get("/api/stories/:storyId", async (req, res) => {
   } catch (err) { res.status(500).json({success:false}); }
 });
 
+// --- NEW ROUTE: Get story archive for highlights ---
+app.get("/api/stories/archive", async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) {
+    return res.status(400).json({ success: false, message: "User ID is required" });
+  }
+  try {
+    // Fetches ALL stories for a user, even expired ones
+    const [stories] = await db.query(
+      "SELECT story_id, media_url, media_type, created_at FROM STORY WHERE user_id = ? ORDER BY created_at DESC",
+      [userId]
+    );
+    res.json({ success: true, stories });
+  } catch (err) {
+    console.error("Story archive error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 // --- Feed & Search ---
 app.get("/api/feed/posts", async (req, res) => {
   const { userId } = req.query;
   try {
     const [posts] = await db.query(
-      `SELECT p.*, u.username, u.profile_pic_url, 
+      `SELECT p.*, u.username, u.profile_pic_url,
       (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count,
       (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count,
       EXISTS(SELECT 1 FROM POST_LIKE pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_has_liked,
       EXISTS(SELECT 1 FROM Saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?) AS user_has_saved
-      FROM POST p JOIN USER u ON p.user_id = u.user_id JOIN FOLLOW f ON p.user_id = f.following_id 
-      WHERE f.follower_id = ? ORDER BY p.created_at DESC LIMIT 20`, 
+      FROM POST p JOIN USER u ON p.user_id = u.user_id JOIN FOLLOW f ON p.user_id = f.following_id
+      WHERE f.follower_id = ? ORDER BY p.created_at DESC LIMIT 20`,
       [userId, userId, userId]
     );
     
@@ -670,10 +689,10 @@ app.get("/api/search/suggested-users", async (req, res) => {
     // If no userId provided (not logged in), show top users by follower count
     if (!userId) {
       const [users] = await db.query(
-        `SELECT user_id, username, full_name, profile_pic_url, follower_count 
-         FROM USER 
-         WHERE is_deleted = FALSE 
-         ORDER BY follower_count DESC 
+        `SELECT user_id, username, full_name, profile_pic_url, follower_count
+         FROM USER
+         WHERE is_deleted = FALSE
+         ORDER BY follower_count DESC
          LIMIT 5`
       );
       return res.json({ success: true, users });
@@ -681,14 +700,14 @@ app.get("/api/search/suggested-users", async (req, res) => {
     
     // If userId provided, exclude current user and users they already follow
     const [users] = await db.query(
-      `SELECT u.user_id, u.username, u.full_name, u.profile_pic_url, u.follower_count 
-       FROM USER u 
-       WHERE u.is_deleted = FALSE 
-       AND u.user_id != ? 
+      `SELECT u.user_id, u.username, u.full_name, u.profile_pic_url, u.follower_count
+       FROM USER u
+       WHERE u.is_deleted = FALSE
+       AND u.user_id != ?
        AND u.user_id NOT IN (
          SELECT following_id FROM FOLLOW WHERE follower_id = ?
        )
-       ORDER BY u.follower_count DESC 
+       ORDER BY u.follower_count DESC
        LIMIT 5`,
       [userId, userId]
     );
@@ -803,6 +822,18 @@ app.get("/api/profile/:username", async (req, res) => {
     const [following] = await db.query("SELECT COUNT(*) as c FROM FOLLOW WHERE follower_id = ?", [user.user_id]);
     const [posts] = await db.query("SELECT p.post_id, p.caption, (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url FROM POST p WHERE p.user_id = ? ORDER BY created_at DESC", [user.user_id]);
     
+    // --- ⭐️ UPDATED: Fetch Highlights ---
+    const [h] = await db.query(
+      `SELECT h.highlight_id, h.title, s.media_url AS cover_media_url
+       FROM HIGHLIGHT h
+       LEFT JOIN STORY s ON h.cover_story_id = s.story_id
+       WHERE h.user_id = ?
+       ORDER BY h.created_at ASC`,
+      [user.user_id]
+    );
+    const highlights = h;
+    // --- ⭐️ END UPDATE ---
+
     let saved = [];
     if (user.user_id == loggedInUserId) {
       const [s] = await db.query("SELECT p.post_id, p.caption, (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url FROM Saved_posts sp JOIN POST p ON sp.post_id = p.post_id WHERE sp.user_id = ? ORDER BY sp.created_at DESC", [user.user_id]);
@@ -811,13 +842,17 @@ app.get("/api/profile/:username", async (req, res) => {
     
     const [isF] = await db.query("SELECT 1 FROM FOLLOW WHERE follower_id = ? AND following_id = ?", [loggedInUserId, user.user_id]);
     
-    res.json({ 
-      success: true, 
-      user: { ...user, following_count: following[0].c, post_count: posts.length, isFollowing: isF.length > 0 }, 
-      posts, 
-      savedPosts: saved 
+    res.json({
+      success: true,
+      user: { ...user, following_count: following[0].c, post_count: posts.length, isFollowing: isF.length > 0 },
+      posts,
+      savedPosts: saved,
+      highlights: highlights // ⭐️ ADDED
     });
-  } catch (err) { res.status(500).json({success:false}); }
+  } catch (err) {
+    console.error(err); // ⭐️ Added better logging
+    res.status(500).json({success:false});
+  }
 });
 
 app.post("/api/follow", async (req, res) => {
@@ -844,16 +879,16 @@ app.post("/api/follow-back", async (req, res) => {
   const { followerId, followingId } = req.body;
   
   if (!followerId || !followingId) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "followerId and followingId are required" 
+    return res.status(400).json({
+      success: false,
+      message: "followerId and followingId are required"
     });
   }
   
   if (followerId == followingId) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Cannot follow yourself" 
+    return res.status(400).json({
+      success: false,
+      message: "Cannot follow yourself"
     });
   }
   
@@ -863,42 +898,42 @@ app.post("/api/follow-back", async (req, res) => {
     await conn.beginTransaction();
     
     const [existing] = await conn.query(
-      "SELECT * FROM FOLLOW WHERE follower_id = ? AND following_id = ?", 
+      "SELECT * FROM FOLLOW WHERE follower_id = ? AND following_id = ?",
       [followerId, followingId]
     );
     
     if (existing.length > 0) {
       await conn.commit();
-      return res.json({ 
-        success: true, 
+      return res.json({
+        success: true,
         action: 'already_following',
-        message: "Already following this user" 
+        message: "Already following this user"
       });
     }
     
     await conn.query(
-      "INSERT INTO FOLLOW (follower_id, following_id) VALUES (?, ?)", 
+      "INSERT INTO FOLLOW (follower_id, following_id) VALUES (?, ?)",
       [followerId, followingId]
     );
     
     await conn.query(
-      "UPDATE USER SET follower_count = follower_count + 1 WHERE user_id = ?", 
+      "UPDATE USER SET follower_count = follower_count + 1 WHERE user_id = ?",
       [followingId]
     );
     
     await conn.commit();
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       action: 'followed',
-      message: "Successfully followed back" 
+      message: "Successfully followed back"
     });
     
   } catch (err) {
     console.error("Follow back error:", err);
     if (conn) await conn.rollback();
-    res.status(500).json({ 
-      success: false, 
-      message: "Internal server error" 
+    res.status(500).json({
+      success: false,
+      message: "Internal server error"
     });
   } finally {
     if (conn) conn.release();
@@ -942,9 +977,9 @@ app.put("/api/profile/:userId", async (req, res) => {
   const { fullName, bio } = req.body;
   
   if (containsAbusiveContent(fullName) || containsAbusiveContent(bio)) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Profile contains inappropriate language." 
+    return res.status(400).json({
+      success: false,
+      message: "Profile contains inappropriate language."
     });
   }
   
@@ -960,6 +995,78 @@ app.delete("/api/profile/:userId", async (req, res) => {
     res.json({ success: true, message: "Account deleted" });
   } catch (err) { res.status(500).json({ success: false }); }
 });
+
+
+// --- ⭐️ NEW HIGHLIGHT ROUTES ⭐️ ---
+
+app.post("/api/highlights/create", async (req, res) => {
+  const { user_id, title, story_ids, cover_story_id } = req.body;
+
+  if (!user_id || !title || !story_ids || !story_ids.length || !cover_story_id) {
+    return res.status(400).json({ success: false, message: "Missing required fields." });
+  }
+  
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // 1. Create the Highlight
+    const [hResult] = await conn.query(
+      "INSERT INTO HIGHLIGHT (user_id, title, cover_story_id) VALUES (?, ?, ?)",
+      [user_id, title, cover_story_id]
+    );
+    const highlightId = hResult.insertId;
+
+    // 2. Link stories to the highlight
+    const storyLinks = story_ids.map(story_id => [highlightId, story_id]);
+    await conn.query(
+      "INSERT INTO HIGHLIGHT_STORY (highlight_id, story_id) VALUES ?",
+      [storyLinks]
+    );
+    
+    // 3. Get the newly created highlight data to return
+    const [newHighlight] = await conn.query(
+      `SELECT h.highlight_id, h.title, s.media_url AS cover_media_url
+       FROM HIGHLIGHT h
+       LEFT JOIN STORY s ON h.cover_story_id = s.story_id
+       WHERE h.highlight_id = ?`,
+      [highlightId]
+    );
+
+    await conn.commit();
+    res.status(201).json({ success: true, highlight: newHighlight[0] });
+
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error("Create Highlight Error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+app.get("/api/highlights/:highlightId/stories", async (req, res) => {
+  const { highlightId } = req.params;
+  try {
+    const [stories] = await db.query(
+      `SELECT s.story_id, s.media_url, s.media_type, s.created_at, u.username, u.profile_pic_url
+       FROM STORY s
+       JOIN HIGHLIGHT_STORY hs ON s.story_id = hs.story_id
+       JOIN USER u ON s.user_id = u.user_id
+       WHERE hs.highlight_id = ?
+       ORDER BY s.created_at ASC`,
+      [highlightId]
+    );
+    res.json({ success: true, stories });
+  } catch (err) {
+    console.error("Get Highlight Stories Error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// --- ⭐️ END NEW HIGHLIGHT ROUTES ⭐️ ---
+
 
 // --- Start Server ---
 const PORT = process.env.PORT || 5000;
