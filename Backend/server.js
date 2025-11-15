@@ -545,9 +545,21 @@ app.post("/api/posts/save", async (req, res) => {
 
 app.get("/api/posts/:postId/comments", async (req, res) => {
   try {
-    const [comments] = await db.query(`SELECT c.*, u.username, u.profile_pic_url FROM COMMENT c JOIN USER u ON c.user_id = u.user_id WHERE c.post_id = ? ORDER BY c.created_at ASC`, [req.params.postId]);
+    const [comments] = await db.query(
+      `SELECT c.*, 
+      CONVERT_TZ(c.created_at, '+00:00', '+05:30') as created_at,
+      u.username, u.profile_pic_url 
+      FROM COMMENT c 
+      JOIN USER u ON c.user_id = u.user_id 
+      WHERE c.post_id = ? 
+      ORDER BY c.created_at ASC`, 
+      [req.params.postId]
+    );
     res.json({ success: true, comments });
-  } catch (err) { res.status(500).json({success:false}); }
+  } catch (err) { 
+    console.error("Get comments error:", err);
+    res.status(500).json({success:false}); 
+  }
 });
 
 app.post("/api/posts/:postId/comments", async (req, res) => {
@@ -691,7 +703,9 @@ app.get("/api/feed/posts", async (req, res) => {
   const { userId } = req.query;
   try {
     const [posts] = await db.query(
-      `SELECT p.*, u.username, u.profile_pic_url,
+      `SELECT p.*, 
+      CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
+      u.username, u.profile_pic_url,
       (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count,
       (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count,
       EXISTS(SELECT 1 FROM POST_LIKE pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_has_liked,
@@ -707,14 +721,31 @@ app.get("/api/feed/posts", async (req, res) => {
       return { ...p, media, hashtags: tags.map(t => t.hashtag_text), user_has_liked: !!p.user_has_liked, user_has_saved: !!p.user_has_saved };
     }));
     res.json({ success: true, posts: detailedPosts });
-  } catch (err) { res.status(500).json({success:false}); }
+  } catch (err) { 
+    console.error("Feed posts error:", err);
+    res.status(500).json({success:false}); 
+  }
 });
 
 app.get("/api/feed/stories", async (req, res) => {
   try {
-    const [stories] = await db.query(`SELECT s.*, u.username, u.profile_pic_url FROM STORY s JOIN USER u ON s.user_id = u.user_id JOIN FOLLOW f ON s.user_id = f.following_id WHERE s.expires_at > NOW() AND f.follower_id = ? ORDER BY s.created_at DESC`, [req.query.userId]);
+    const [stories] = await db.query(
+      `SELECT s.*, 
+      CONVERT_TZ(s.created_at, '+00:00', '+05:30') as created_at,
+      CONVERT_TZ(s.expires_at, '+00:00', '+05:30') as expires_at,
+      u.username, u.profile_pic_url 
+      FROM STORY s 
+      JOIN USER u ON s.user_id = u.user_id 
+      JOIN FOLLOW f ON s.user_id = f.following_id 
+      WHERE s.expires_at > NOW() AND f.follower_id = ? 
+      ORDER BY s.created_at DESC`, 
+      [req.query.userId]
+    );
     res.json({ success: true, stories });
-  } catch (err) { res.status(500).json({success:false}); }
+  } catch (err) { 
+    console.error("Feed stories error:", err);
+    res.status(500).json({success:false}); 
+  }
 });
 
 app.get("/api/search/users", async (req, res) => {
@@ -790,7 +821,21 @@ app.get("/api/hashtag/:hashtag_text", async (req, res) => {
     const [hRows] = await db.query("SELECT hashtag_id FROM HASHTAG WHERE hashtag_text = ?", [hashtag_text]);
     if (hRows.length === 0) return res.json({ success: true, posts: [] });
     
-    const [posts] = await db.query(`SELECT p.*, u.username, u.profile_pic_url, (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count, (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count, EXISTS(SELECT 1 FROM POST_LIKE pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_has_liked, EXISTS(SELECT 1 FROM Saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?) AS user_has_saved FROM POST p JOIN USER u ON p.user_id = u.user_id JOIN POST_HASHTAG ph ON p.post_id = ph.post_id WHERE ph.hashtag_id = ? ORDER BY p.created_at DESC`, [userId, userId, hRows[0].hashtag_id]);
+    const [posts] = await db.query(
+      `SELECT p.*, 
+      CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
+      u.username, u.profile_pic_url, 
+      (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count, 
+      (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count, 
+      EXISTS(SELECT 1 FROM POST_LIKE pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_has_liked, 
+      EXISTS(SELECT 1 FROM Saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?) AS user_has_saved 
+      FROM POST p 
+      JOIN USER u ON p.user_id = u.user_id 
+      JOIN POST_HASHTAG ph ON p.post_id = ph.post_id 
+      WHERE ph.hashtag_id = ? 
+      ORDER BY p.created_at DESC`, 
+      [userId, userId, hRows[0].hashtag_id]
+    );
     
     const detailed = await Promise.all(posts.map(async (p) => {
        const [media] = await db.query("SELECT media_url, media_type FROM MEDIA WHERE post_id = ?", [p.post_id]);
@@ -798,27 +843,67 @@ app.get("/api/hashtag/:hashtag_text", async (req, res) => {
        return { ...p, media, hashtags: tags.map(t => t.hashtag_text), user_has_liked: !!p.user_has_liked, user_has_saved: !!p.user_has_saved };
     }));
     res.json({ success: true, posts: detailed });
-  } catch (err) { res.status(500).json({success:false}); }
+  } catch (err) { 
+    console.error("Hashtag posts error:", err);
+    res.status(500).json({success:false}); 
+  }
 });
 
 app.get("/api/activity/:userId", async (req, res) => {
   const { userId } = req.params;
   try {
     const [activities] = await db.query(
-      `SELECT 'like' AS type, pl.post_id, NULL AS story_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, pl.created_at, pl.user_id AS actor_id FROM POST_LIKE pl JOIN POST p ON pl.post_id = p.post_id JOIN USER u ON pl.user_id = u.user_id WHERE p.user_id = ? AND pl.user_id != ?
+      `SELECT 'like' AS type, pl.post_id, NULL AS story_id, NULL AS text_preview, 
+      u.username AS actor_username, u.profile_pic_url AS actor_pic, 
+      CONVERT_TZ(pl.created_at, '+00:00', '+05:30') as created_at, 
+      pl.user_id AS actor_id 
+      FROM POST_LIKE pl 
+      JOIN POST p ON pl.post_id = p.post_id 
+      JOIN USER u ON pl.user_id = u.user_id 
+      WHERE p.user_id = ? AND pl.user_id != ?
        UNION
-       SELECT 'comment' AS type, c.post_id, NULL AS story_id, c.comment_text AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, c.created_at, c.user_id AS actor_id FROM COMMENT c JOIN POST p ON c.post_id = p.post_id JOIN USER u ON c.user_id = u.user_id WHERE p.user_id = ? AND c.user_id != ?
+       SELECT 'comment' AS type, c.post_id, NULL AS story_id, c.comment_text AS text_preview, 
+       u.username AS actor_username, u.profile_pic_url AS actor_pic, 
+       CONVERT_TZ(c.created_at, '+00:00', '+05:30') as created_at, 
+       c.user_id AS actor_id 
+       FROM COMMENT c 
+       JOIN POST p ON c.post_id = p.post_id 
+       JOIN USER u ON c.user_id = u.user_id 
+       WHERE p.user_id = ? AND c.user_id != ?
        UNION
-       SELECT 'follow' AS type, NULL AS post_id, NULL AS story_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, f.created_at, f.follower_id AS actor_id FROM FOLLOW f JOIN USER u ON f.follower_id = u.user_id WHERE f.following_id = ?
+       SELECT 'follow' AS type, NULL AS post_id, NULL AS story_id, NULL AS text_preview, 
+       u.username AS actor_username, u.profile_pic_url AS actor_pic, 
+       CONVERT_TZ(f.created_at, '+00:00', '+05:30') as created_at, 
+       f.follower_id AS actor_id 
+       FROM FOLLOW f 
+       JOIN USER u ON f.follower_id = u.user_id 
+       WHERE f.following_id = ?
        UNION
-       SELECT 'save' AS type, sp.post_id, NULL AS story_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, sp.created_at, sp.user_id AS actor_id FROM Saved_posts sp JOIN POST p ON sp.post_id = p.post_id JOIN USER u ON sp.user_id = u.user_id WHERE p.user_id = ? AND sp.user_id != ?
+       SELECT 'save' AS type, sp.post_id, NULL AS story_id, NULL AS text_preview, 
+       u.username AS actor_username, u.profile_pic_url AS actor_pic, 
+       CONVERT_TZ(sp.created_at, '+00:00', '+05:30') as created_at, 
+       sp.user_id AS actor_id 
+       FROM Saved_posts sp 
+       JOIN POST p ON sp.post_id = p.post_id 
+       JOIN USER u ON sp.user_id = u.user_id 
+       WHERE p.user_id = ? AND sp.user_id != ?
        UNION
-       SELECT 'story_tag' AS type, NULL AS post_id, st.story_id, NULL AS text_preview, u.username AS actor_username, u.profile_pic_url AS actor_pic, st.created_at, s.user_id AS actor_id FROM STORY_TAG st JOIN STORY s ON st.story_id = s.story_id JOIN USER u ON s.user_id = u.user_id WHERE st.tagged_user_id = ? AND s.user_id != ?
+       SELECT 'story_tag' AS type, NULL AS post_id, st.story_id, NULL AS text_preview, 
+       u.username AS actor_username, u.profile_pic_url AS actor_pic, 
+       CONVERT_TZ(st.created_at, '+00:00', '+05:30') as created_at, 
+       s.user_id AS actor_id 
+       FROM STORY_TAG st 
+       JOIN STORY s ON st.story_id = s.story_id 
+       JOIN USER u ON s.user_id = u.user_id 
+       WHERE st.tagged_user_id = ? AND s.user_id != ?
        ORDER BY created_at DESC LIMIT 50`,
       [userId, userId, userId, userId, userId, userId, userId, userId, userId]
     );
     res.json({ success: true, activities });
-  } catch (err) { res.status(500).json({success:false}); }
+  } catch (err) { 
+    console.error("Activity error:", err);
+    res.status(500).json({success:false}); 
+  }
 });
 
 // --- Chat Routes ---
@@ -878,9 +963,16 @@ app.get("/api/profile/:username", async (req, res) => {
     const user = u[0];
 
     const [following] = await db.query("SELECT COUNT(*) as c FROM FOLLOW WHERE follower_id = ?", [user.user_id]);
-    const [posts] = await db.query("SELECT p.post_id, p.caption, (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url FROM POST p WHERE p.user_id = ? ORDER BY created_at DESC", [user.user_id]);
+    const [posts] = await db.query(
+      `SELECT p.post_id, p.caption, 
+      CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
+      (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url 
+      FROM POST p 
+      WHERE p.user_id = ? 
+      ORDER BY created_at DESC`, 
+      [user.user_id]
+    );
     
-    // --- ⭐️ UPDATED: Fetch Highlights ---
     const [h] = await db.query(
       `SELECT h.highlight_id, h.title, s.media_url AS cover_media_url
        FROM HIGHLIGHT h
@@ -890,11 +982,19 @@ app.get("/api/profile/:username", async (req, res) => {
       [user.user_id]
     );
     const highlights = h;
-    // --- ⭐️ END UPDATE ---
 
     let saved = [];
     if (user.user_id == loggedInUserId) {
-      const [s] = await db.query("SELECT p.post_id, p.caption, (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url FROM Saved_posts sp JOIN POST p ON sp.post_id = p.post_id WHERE sp.user_id = ? ORDER BY sp.created_at DESC", [user.user_id]);
+      const [s] = await db.query(
+        `SELECT p.post_id, p.caption, 
+        CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
+        (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url 
+        FROM Saved_posts sp 
+        JOIN POST p ON sp.post_id = p.post_id 
+        WHERE sp.user_id = ? 
+        ORDER BY sp.created_at DESC`, 
+        [user.user_id]
+      );
       saved = s;
     }
     
@@ -905,10 +1005,10 @@ app.get("/api/profile/:username", async (req, res) => {
       user: { ...user, following_count: following[0].c, post_count: posts.length, isFollowing: isF.length > 0 },
       posts,
       savedPosts: saved,
-      highlights: highlights // ⭐️ ADDED
+      highlights: highlights
     });
   } catch (err) {
-    console.error(err); // ⭐️ Added better logging
+    console.error("Profile error:", err);
     res.status(500).json({success:false});
   }
 });
