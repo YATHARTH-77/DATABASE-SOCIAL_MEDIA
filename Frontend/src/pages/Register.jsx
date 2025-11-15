@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.png";
-import textLogo from "@/assets/text_logo_dbis.png";
+import textLogo from "@/assets/white_text_logo.png";
 import { Loader2 } from "lucide-react"; 
 
 export default function Register() {
@@ -114,11 +114,6 @@ export default function Register() {
         {/* Logos (unchanged) */}
         <div className="flex flex-col items-center mb-8">
           <img
-            src={logo}
-            alt="ConnectIT Logo"
-            className="w-40 h-40 object-contain -mt-12 -mb-12"
-          />
-          <img
             src={textLogo}
             alt="ConnectIT"
             className="h-[17rem] -mt-20 -mb-20"
@@ -144,7 +139,7 @@ export default function Register() {
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="rounded-xl"
+                    className="rounded-xl bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white placeholder:text-white/70 px-3 py-2 border-0"
                     required
                     disabled={isLoading}
                   />
@@ -159,7 +154,7 @@ export default function Register() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="rounded-xl"
+                    className="rounded-xl bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white placeholder:text-white/70 px-3 py-2 border-0"
                     required
                     disabled={isLoading}
                   />
@@ -174,7 +169,7 @@ export default function Register() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="rounded-xl"
+                    className="rounded-xl bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white placeholder:text-white/70 px-3 py-2 border-0"
                     required
                     disabled={isLoading}
                   />
@@ -189,7 +184,7 @@ export default function Register() {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="rounded-xl"
+                    className="rounded-xl bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white placeholder:text-white/70 px-3 py-2 border-0"
                     required
                     disabled={isLoading}
                   />
@@ -259,7 +254,7 @@ export default function Register() {
             Already have an account?{" "}
             <Link
               to="/login"
-              className="text-primary font-semibold hover:underline"
+              className="text-sm font-semibold bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF] bg-clip-text text-transparent hover:underline hover:brightness-125 drop-shadow-sm transition duration-150 ease-out focus:outline-none"
             >
               Login
             </Link>
