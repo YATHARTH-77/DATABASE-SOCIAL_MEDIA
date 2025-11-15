@@ -22,6 +22,51 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 
+// =================================================================
+//          CONTENT FILTERING (DATABASE TRIGGERS)
+// =================================================================
+//Trigger
+//Trigger
+const ABUSIVE_PATTERNS = [
+  /f+\W*?u+\W*?c+\W*?k+/i,              // fuck variations
+  /s+\W*?h+\W*?i+\W*?t+/i,              // shit variations
+  /b+\W*?i+\W*?t+\W*?c+\W*?h+/i,        // bitch variations
+  /a+\W*?s+\W*?s+\W*?h+\W*?o+\W*?l+\W*?e+/i, // asshole
+  /d+\W*?i+\W*?c+\W*?k+/i,              // dick
+  /c+\W*?o+\W*?c+\W*?k+/i,              // cock
+  /p+\W*?u+\W*?s+\W*?s+\W*?y+/i,        // pussy
+  /s+\W*?l+\W*?u+\W*?t+/i,              // slut
+  /w+\W*?h+\W*?o+\W*?r+\W*?e+/i,        // whore
+  /b+\W*?a+\W*?s+\W*?t+\W*?a+\W*?r+\W*?d+/i, // bastard
+  /f+\W*?a+\W*?g+/i,                    // fag variations
+  /c+\W*?u+\W*?m+/i,                    // cum
+  /s+\W*?e+\W*?x+/i,                    // sex, s3x, s*x
+  /s+\W*?e+\W*?x+\W*?y+/i,              // sexy
+  /p+\W*?o+\W*?r+\W*?n+/i,              // porn
+  /h+\W*?o+\W*?r+\W*?n+/i,              // horny
+  /n+\W*?i+\W*?g+\W*?g+\W*?a+/i,        // nigga
+  /n+\W*?i+\W*?g+\W*?g+\W*?e+\W*?r+/i   // nigger
+];
+
+function containsAbusiveContent(text) {
+  if (!text || typeof text !== 'string') return false;
+  const lowerText = text.toLowerCase();
+  for (const pattern of ABUSIVE_PATTERNS) {
+    if (pattern.test(lowerText)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+async function isDuplicateComment(db, userId, postId, commentText) {
+  const [existing] = await db.query(
+    "SELECT COUNT(*) as count FROM `COMMENT` WHERE user_id = ? AND post_id = ? AND comment_text = ?",
+    [userId, postId, commentText]
+  );
+  return existing[0].count > 0;
+}
+//Trigger ends
 // --- 1. Cloudinary Configuration ---
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -220,6 +265,15 @@ app.post("/api/register/send-otp", async (req, res) => {
 
 app.post("/api/register/verify", async (req, res) => {
   const { username, email, password, otp } = req.body;
+  
+  // Validate username for abusive content
+  if (containsAbusiveContent(username)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Inappropriate username is not allowed." 
+    });
+  }
+  
   let conn;
   try {
     conn = await db.getConnection();
@@ -290,6 +344,15 @@ app.get('/api/auth/logout', (req, res, next) => {
 app.post("/api/posts/create", uploadPost.array('media', 10), async (req, res) => {
   const { user_id, caption, hashtags } = req.body;
   const files = req.files;
+  
+  // Validate caption for abusive content
+  if (caption && containsAbusiveContent(caption)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Caption contains inappropriate language." 
+    });
+  }
+  
   let conn;
   try {
     conn = await db.getConnection();
@@ -358,7 +421,26 @@ app.get("/api/posts/:postId/comments", async (req, res) => {
 
 app.post("/api/posts/:postId/comments", async (req, res) => {
   const { userId, commentText } = req.body;
+  const postId = req.params.postId;
+  
+  // Validate comment for abusive content
+  if (containsAbusiveContent(commentText)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Abusive or inappropriate language detected." 
+    });
+  }
+  
   try {
+    // Check for duplicate comment
+    const isDuplicate = await isDuplicateComment(db, userId, postId, commentText);
+    if (isDuplicate) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Duplicate comment not allowed." 
+      });
+    }
+    
     const [resDb] = await db.query("INSERT INTO COMMENT (user_id, post_id, comment_text) VALUES (?, ?, ?)", [userId, req.params.postId, commentText]);
     const [newComment] = await db.query(`SELECT c.*, u.username, u.profile_pic_url FROM COMMENT c JOIN USER u ON c.user_id = u.user_id WHERE c.comment_id = ?`, [resDb.insertId]);
     res.status(201).json({ success: true, comment: newComment[0] });
@@ -624,6 +706,16 @@ app.get("/api/profile/:userId/following", async (req, res) => {
 });
 
 app.put("/api/profile/:userId", async (req, res) => {
+  const { fullName, bio } = req.body;
+  
+  // Validate full name and bio for abusive content
+  if (containsAbusiveContent(fullName) || containsAbusiveContent(bio)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Profile contains inappropriate language." 
+    });
+  }
+  
   try {
     await db.query("UPDATE USER SET full_name = ?, bio = ? WHERE user_id = ?", [req.body.fullName, req.body.bio, req.params.userId]);
     res.json({ success: true, message: "Updated" });
