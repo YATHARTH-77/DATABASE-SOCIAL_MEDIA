@@ -665,11 +665,40 @@ app.get("/api/search/users", async (req, res) => {
 
 app.get("/api/search/suggested-users", async (req, res) => {
   try {
-    const [users] = await db.query("SELECT user_id, username, full_name, profile_pic_url, follower_count FROM USER WHERE is_deleted = FALSE ORDER BY follower_count DESC LIMIT 5");
+    const { userId } = req.query; // ✅ Get userId from query parameters
+    
+    // If no userId provided (not logged in), show top users by follower count
+    if (!userId) {
+      const [users] = await db.query(
+        `SELECT user_id, username, full_name, profile_pic_url, follower_count 
+         FROM USER 
+         WHERE is_deleted = FALSE 
+         ORDER BY follower_count DESC 
+         LIMIT 5`
+      );
+      return res.json({ success: true, users });
+    }
+    
+    // If userId provided, exclude current user and users they already follow
+    const [users] = await db.query(
+      `SELECT u.user_id, u.username, u.full_name, u.profile_pic_url, u.follower_count 
+       FROM USER u 
+       WHERE u.is_deleted = FALSE 
+       AND u.user_id != ? 
+       AND u.user_id NOT IN (
+         SELECT following_id FROM FOLLOW WHERE follower_id = ?
+       )
+       ORDER BY u.follower_count DESC 
+       LIMIT 5`,
+      [userId, userId]
+    );
+    
     res.json({ success: true, users });
-  } catch (err) { res.status(500).json({ success: false, message: "Server error" }); }
+  } catch (err) {
+    console.error("Suggested users error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
 });
-
 app.get("/api/search/trending-hashtags", async (req, res) => {
   try {
     const [hashtags] = await db.query("SELECT h.hashtag_text, COUNT(ph.hashtag_id) as count FROM POST_HASHTAG ph JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id GROUP BY ph.hashtag_id ORDER BY count DESC LIMIT 10");
