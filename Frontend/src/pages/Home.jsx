@@ -9,26 +9,38 @@ import { StoryViewer } from "@/components/StoryViewer";
 import { CommentSection } from "@/components/CommentSection";
 
 // --- Base URL (Dynamic for Deployment) ---
-// On Vercel, this uses your .env variable. On localhost, it defaults to 5000.
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// --- Helper: Format timestamp ---
+// Use this replacement in Home.jsx and Post.jsx
 function formatTimeAgo(dateString) {
   if (!dateString) return "";
-  const date = new Date(dateString);
+
+  // 1. Force the date string to be treated as UTC
+  // MySQL often returns "2024-11-15 10:30:00" without the 'Z'
+  let safeDateString = dateString;
+  if (typeof dateString === 'string' && !dateString.endsWith("Z")) {
+      safeDateString = dateString.replace(" ", "T") + "Z";
+  }
+
+  const date = new Date(safeDateString);
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  // If the calculated time is negative (meaning server time is ahead), 
+  // simply show "Just now" instead of "-5h ago"
+  if (seconds < 0) return "Just now";
 
   let interval = seconds / 31536000;
   if (interval > 1) return Math.floor(interval) + "y ago";
   interval = seconds / 2592000;
   if (interval > 1) return Math.floor(interval) + "mo ago";
-  interval = seconds / 86400; 
+  interval = seconds / 86400;
   if (interval > 1) return Math.floor(interval) + "d ago";
-  interval = seconds / 3600; 
+  interval = seconds / 3600;
   if (interval > 1) return Math.floor(interval) + "h ago";
-  interval = seconds / 60; 
+  interval = seconds / 60;
   if (interval > 1) return Math.floor(interval) + "m ago";
+  
   return "Just now";
 }
 
@@ -95,7 +107,7 @@ export default function Home() {
             id: s.story_id,
             username: s.username,
             avatar: s.profile_pic_url,
-            src: s.media_url, // FIXED: Removed extra curly braces
+            src: s.media_url,
             type: s.media_url && s.media_url.endsWith('.mp4') ? 'video' : 'photo',
             timestamp: s.created_at,
             userId: s.user_id
@@ -276,7 +288,6 @@ export default function Home() {
                     >
                       <div className="w-full h-full rounded-full bg-background p-1">
                         <Avatar className="w-full h-full">
-                          {/* FIXED: Removed curly braces from src */}
                           <AvatarImage src={user.profile_pic_url || ''} />
                           <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
                         </Avatar>
@@ -314,7 +325,6 @@ export default function Home() {
                   >
                     <div className="w-full h-full rounded-full bg-background p-1">
                       <Avatar className="w-full h-full">
-                         {/* FIXED: Removed curly braces from src */}
                         <AvatarImage src={moment.avatar || ''} />
                         <AvatarFallback>{moment.username[0].toUpperCase()}</AvatarFallback>
                       </Avatar>
@@ -351,7 +361,6 @@ export default function Home() {
                     onClick={() => handleUserClick(post.username)}
                   >
                     <Avatar className="w-8 h-8">
-                      {/* FIXED: Removed curly braces from src */}
                       <AvatarImage src={post.profile_pic_url || ''} />
                       <AvatarFallback className="bg-blue-500 text-white">
                         {post.username[0].toUpperCase()}
@@ -363,19 +372,17 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* --- DYNAMIC MEDIA (FIXED) --- */}
+                {/* --- DYNAMIC MEDIA --- */}
                 <div className="bg-black max-h-[500px] flex items-center justify-center border-b">
                   {post.media && post.media.length > 0 ? (
                     post.media[0].media_type.startsWith('video') ? (
                       <video 
-                        /* FIXED: Use variable directly */
                         src={post.media[0].media_url} 
                         controls 
                         className="w-full max-h-[500px] object-contain" 
                       />
                     ) : (
                       <img 
-                        /* FIXED: Use variable directly */
                         src={post.media[0].media_url} 
                         alt="Post media" 
                         className="w-full max-h-[500px] object-contain" 
