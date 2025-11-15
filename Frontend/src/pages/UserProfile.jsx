@@ -3,13 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Grid, Loader2 } from "lucide-react";
+import { ArrowLeft, Grid, Loader2, Bookmark } from "lucide-react";
 import { PostDetailModal } from "@/components/PostDetailModal";
 import { FollowerModal } from "@/components/FollowerModal";
 import { StoryViewer } from "@/components/StoryViewer";
 import { useToast } from "@/hooks/use-toast";
 
 // --- Base URL (Dynamic for Deployment) ---
+// Ensure your .env file has VITE_API_URL=https://your-backend.onrender.com
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function UserProfile() {
@@ -43,6 +44,7 @@ export default function UserProfile() {
     }
   }, [navigate]);
 
+  // --- Fetch All Profile Data ---
   useEffect(() => {
     if (!user || !username) return; 
     if (user.username === username) {
@@ -53,13 +55,28 @@ export default function UserProfile() {
     const fetchProfile = async () => {
       setIsLoading(true);
       try {
-        const [profileRes, highlightsRes] = await Promise.all([
-          fetch(`${API_URL}/api/profile/${username}?loggedInUserId=${user.id}`),
-          fetch(`${API_URL}/api/profile/${username}/highlights`)
-        ]);
+        // 1. Fetch Profile Data
+        const profileRes = await fetch(`${API_URL}/api/profile/${username}?loggedInUserId=${user.id}`);
         
+        // --- FIX: Handle 404 (User Not Found) specifically ---
+        if (profileRes.status === 404) {
+             toast({ title: "User not found", description: "This user does not exist.", variant: "destructive" });
+             navigate("/home"); // Redirect back to home
+             return;
+        }
+        
+        if (!profileRes.ok) {
+             throw new Error(`Server error: ${profileRes.status}`);
+        }
         const profileJson = await profileRes.json();
-        const highlightsJson = await highlightsRes.json();
+
+        // 2. Fetch Highlights
+        const highlightsRes = await fetch(`${API_URL}/api/profile/${username}/highlights`);
+        // Highlights might be 404 if none exist, which is fine, so we check ok OR just parse safely
+        let highlightsJson = { success: false, highlights: [] };
+        if (highlightsRes.ok) {
+            highlightsJson = await highlightsRes.json();
+        }
         
         if (profileJson.success) {
           setProfileData(profileJson.user);
@@ -74,9 +91,9 @@ export default function UserProfile() {
         
       } catch (err) {
         console.error(err);
-        toast({ title: "Error", description: err.message, variant: "destructive" });
-        if (err.message === "User not found") {
-          navigate("/home");
+        // Don't show toast if we already redirected for 404
+        if (err.message !== "Server error: 404") {
+             toast({ title: "Error", description: "Could not load profile.", variant: "destructive" });
         }
       } finally {
         setIsLoading(false);
@@ -131,8 +148,8 @@ export default function UserProfile() {
     }
   };
   
-  const handleLike = (postId) => { /* ... API call to /api/posts/like ... */ };
-  const handleSave = (postId) => { /* ... API call to /api/posts/save ... */ };
+  const handleLike = (postId) => { /* Implement Like logic if needed here, currently handled in modal */ };
+  const handleSave = (postId) => { /* Implement Save logic if needed here */ };
 
   const handleUserClick = (navUsername) => {
     if (navUsername && username && navUsername.toLowerCase() !== username.toLowerCase()) {
@@ -151,7 +168,7 @@ export default function UserProfile() {
           id: s.story_id,
           username: s.username,
           avatar: s.profile_pic_url,
-          src: s.media_url, // FIXED: Removed API_URL prefix
+          src: s.media_url, // FIXED: Removed API_URL prefix (Cloudinary is absolute)
           type: s.media_type && s.media_type.startsWith('video') ? 'video' : 'photo',
           timestamp: s.created_at,
         }));
