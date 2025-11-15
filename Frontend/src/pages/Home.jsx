@@ -15,16 +15,16 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 // --- Helper: Format timestamp (Final Timezone Fix) ---
 function formatTimeAgo(dateString) {
   if (!dateString) return "";
-  let safeString = String(dateString);
-  if (!safeString.includes("T") && !safeString.includes("Z")) {
-    safeString = safeString.replace(" ", "T") + "Z";
-  } else if (safeString.includes("T") && !safeString.includes("Z")) {
-    safeString += "Z";
-  }
-  const date = new Date(safeString);
+  
+  // Parse the date as-is (already in IST from backend)
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "Invalid date";
+  
   const now = new Date();
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const seconds = Math.floor((now - date) / 1000);
+  
   if (seconds < 0) return "Just now";
+  
   let interval = seconds / 31536000;
   if (interval > 1) return Math.floor(interval) + "y ago";
   interval = seconds / 2592000;
@@ -35,6 +35,7 @@ function formatTimeAgo(dateString) {
   if (interval > 1) return Math.floor(interval) + "h ago";
   interval = seconds / 60;
   if (interval > 1) return Math.floor(interval) + "m ago";
+  
   return "Just now";
 }
 
