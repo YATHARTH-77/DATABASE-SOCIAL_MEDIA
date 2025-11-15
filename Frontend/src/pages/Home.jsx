@@ -226,9 +226,9 @@ export default function Home() {
     navigate(`/user/${username}`);
   };
 
-  // --- *** MODIFICATION 1: Simplified function *** ---
+  // --- *** 1. FIX: Simplified function *** ---
+  // The server sends a clean string (e.g., "react"), so we just use it.
   const handleHashtagClick = (tagText) => {
-    // The server sends a clean string (e.g., "react"), so we just use it.
     navigate(`/hashtag/${tagText}`);
   };
   
@@ -284,6 +284,7 @@ export default function Home() {
                       >
                         <div className="w-full h-full rounded-full bg-background p-1">
                           <Avatar className="w-full h-full">
+                            {/* Use profile_pic_url from user object */}
                             <AvatarImage src={user.profile_pic_url || ''} />
                             <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
                           </Avatar>
@@ -432,23 +433,21 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* --- *** MODIFICATION 2: Simplified Hashtag Rendering *** --- */}
+                  {/* --- *** 2. FIX: Simplified Hashtag Rendering *** --- */}
                   {post.hashtags && post.hashtags.length > 0 && (
                     <div className="border-t pt-3 border-purple-200">
                       <p className="font-semibold text-sm mb-1 text-[#1D0C69]">#Hashtags:</p>
                       <div className="flex flex-wrap gap-2">
                         {/* The server sends an array of strings, so we just map it */}
-                        {post.hashtags.map((tagText, idx) => {
-                          return (
-                            <span
-                              key={idx}
-                              className="text-sm text-[#5A0395] hover:underline cursor-pointer font-medium"
-                              onClick={() => handleHashtagClick(tagText)}
-                            >
-                              #{tagText}
-                            </span>
-                          );
-                        })}
+                        {post.hashtags.map((tagText, idx) => (
+                          <span
+                            key={idx}
+                            className="text-sm text-[#5A0395] hover:underline cursor-pointer font-medium"
+                            onClick={() => handleHashtagClick(tagText)}
+                          >
+                            #{tagText}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   )}

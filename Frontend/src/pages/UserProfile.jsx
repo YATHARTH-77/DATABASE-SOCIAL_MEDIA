@@ -9,7 +9,8 @@ import { FollowerModal } from "@/components/FollowerModal";
 import { StoryViewer } from "@/components/StoryViewer";
 import { useToast } from "@/hooks/use-toast";
 
-const API_URL = "http://localhost:5000";
+// --- Base URL (Dynamic for Deployment) ---
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function UserProfile() {
   const { username } = useParams();
@@ -150,7 +151,7 @@ export default function UserProfile() {
           id: s.story_id,
           username: s.username,
           avatar: s.profile_pic_url,
-          src: `${API_URL}${s.media_url}`,
+          src: s.media_url, // FIXED: Removed API_URL prefix
           type: s.media_type && s.media_type.startsWith('video') ? 'video' : 'photo',
           timestamp: s.created_at,
         }));
@@ -224,7 +225,8 @@ export default function UserProfile() {
             {/* --- Profile Header --- */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-6">
               <Avatar className="w-24 h-24 flex-shrink-0">
-                <AvatarImage src={profileData.profile_pic_url ? `${API_URL}${profileData.profile_pic_url}` : ''} />
+                {/* FIXED: Removed API_URL prefix */}
+                <AvatarImage src={profileData.profile_pic_url || ''} />
                 <AvatarFallback className="bg-[#5A0395] text-white text-3xl">
                   {profileData.username[0].toUpperCase()}
                 </AvatarFallback>
@@ -275,7 +277,8 @@ export default function UserProfile() {
                       <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-br from-purple-400 via-purple-500 to-purple-600">
                         <div className="w-full h-full rounded-full bg-background p-1">
                           <Avatar className="w-full h-full">
-                            <AvatarImage src={highlight.cover_media_url ? `${API_URL}${highlight.cover_media_url}` : ''} />
+                            {/* FIXED: Removed API_URL prefix */}
+                            <AvatarImage src={highlight.cover_media_url || ''} />
                             <AvatarFallback>{highlight.title[0]}</AvatarFallback>
                           </Avatar>
                         </div>
@@ -300,7 +303,8 @@ export default function UserProfile() {
                     className="aspect-square bg-muted rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-md relative group"
                   >
                     {post.media_url ? (
-                      <img src={`${API_URL}${post.media_url}`} alt={post.caption || 'post'} className="w-full h-full object-cover rounded-xl" />
+                      /* FIXED: Removed API_URL prefix */
+                      <img src={post.media_url} alt={post.caption || 'post'} className="w-full h-full object-cover rounded-xl" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-secondary">
                         <span className="text-muted-foreground">No Media</span>
