@@ -762,9 +762,24 @@ app.get("/api/search/suggested-users", async (req, res) => {
 });
 app.get("/api/search/trending-hashtags", async (req, res) => {
   try {
-    const [hashtags] = await db.query("SELECT h.hashtag_text, COUNT(ph.hashtag_id) as count FROM POST_HASHTAG ph JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id GROUP BY ph.hashtag_id ORDER BY count DESC LIMIT 5");
+    const [hashtags] = await db.query(
+      `SELECT h.hashtag_text, 
+              COUNT(ph.hashtag_id) as post_count 
+       FROM POST_HASHTAG ph 
+       JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id 
+       GROUP BY ph.hashtag_id, h.hashtag_text 
+       ORDER BY post_count DESC 
+       LIMIT 5`
+    );
+    
+    // Debug log
+    console.log("📊 Trending hashtags:", hashtags);
+    
     res.json({ success: true, hashtags });
-  } catch (err) { res.status(500).json({success:false}); }
+  } catch (err) {
+    console.error("Trending hashtags error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
 });
 
 app.get("/api/hashtag/:hashtag_text", async (req, res) => {
