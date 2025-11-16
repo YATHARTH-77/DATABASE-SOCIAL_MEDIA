@@ -925,8 +925,6 @@ app.get("/api/feed/posts", async (req, res) => {
   }
 });
 
-// Replace the existing /api/feed/stories endpoint in server.js with this:
-
 app.get("/api/feed/stories", async (req, res) => {
   try {
     const [stories] = await db.query(
@@ -936,15 +934,10 @@ app.get("/api/feed/stories", async (req, res) => {
       u.username, u.profile_pic_url 
       FROM STORY s 
       JOIN USER u ON s.user_id = u.user_id 
-      WHERE s.expires_at > NOW() 
-      AND (
-        s.user_id = ? 
-        OR s.user_id IN (
-          SELECT following_id FROM FOLLOW WHERE follower_id = ?
-        )
-      )
+      JOIN FOLLOW f ON s.user_id = f.following_id 
+      WHERE s.expires_at > NOW() AND f.follower_id = ? 
       ORDER BY s.created_at DESC`, 
-      [req.query.userId, req.query.userId]
+      [req.query.userId]
     );
     res.json({ success: true, stories });
   } catch (err) { 
