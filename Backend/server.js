@@ -615,6 +615,7 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
       message: "userId and commentText are required"
     });
   }
+  
 
   // 🚫 CHECK 1: Abusive Content (same as post caption)
   if (containsAbusiveContent(commentText)) {
@@ -677,6 +678,19 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
   }
 });
 
+// --- Add this to server.js ---
+app.delete("/api/posts/:postId", async (req, res) => {
+  try {
+    const [result] = await db.query("DELETE FROM POST WHERE post_id = ?", [req.params.postId]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+    res.json({ success: true, message: "Post deleted successfully" });
+  } catch (err) {
+    console.error("Delete Post Error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 // --- Story Routes (UPDATED: Uses Cloudinary file.path) ---
 app.post("/api/stories/create", uploadStory.single('media'), async (req, res) => {
   const { user_id, tags } = req.body;
