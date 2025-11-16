@@ -45,7 +45,8 @@ const ABUSIVE_PATTERNS = [
   /p+\W*?o+\W*?r+\W*?n+/i,          // porn
   /h+\W*?o+\W*?r+\W*?n+/i,          // horny
   /n+\W*?i+\W*?g+\W*?g+\W*?a+/i,      // nigga
-  /n+\W*?i+\W*?g+\W*?g+\W*?e+\W*?r+/i  // nigger
+  /n+\W*?i+\W*?g+\W*?g+\W*?e+\W*?r+/i,  // nigger
+  /a+\W*?s+\W*?s+/i
 ];
 
 function containsAbusiveContent(text) {
@@ -59,12 +60,55 @@ function containsAbusiveContent(text) {
   return false;
 }
 
-async function isDuplicateComment(db, userId, postId, commentText) {
-  const [existing] = await db.query(
-    "SELECT COUNT(*) as count FROM `COMMENT` WHERE user_id = ? AND post_id = ? AND comment_text = ?",
-    [userId, postId, commentText]
-  );
-  return existing[0].count > 0;
+async function isSpamComment(db, userId, postId, commentText) {
+  try {
+    // Check for exact duplicate in last 5 minutes
+    const [recentDuplicates] = await db.query(
+      `SELECT COUNT(*) as count 
+       FROM COMMENT 
+       WHERE user_id = ? 
+       AND post_id = ? 
+       AND comment_text = ? 
+       AND created_at > NOW() - INTERVAL 5 MINUTE`,
+      [userId, postId, commentText]
+    );
+    
+    if (recentDuplicates[0].count > 0) {
+      return { isSpam: true, reason: "Duplicate comment detected" };
+    }
+    
+    // Check for rapid commenting (more than 5 comments in 1 minute)
+    const [rapidComments] = await db.query(
+      `SELECT COUNT(*) as count 
+       FROM COMMENT 
+       WHERE user_id = ? 
+       AND created_at > NOW() - INTERVAL 1 MINUTE`,
+      [userId]
+    );
+    
+    if (rapidComments[0].count >= 5) {
+      return { isSpam: true, reason: "Too many comments in short time. Please slow down." };
+    }
+    
+    // Check for repetitive characters (e.g., "aaaaaaa", "hahahaha")
+    const repeatedChars = /(.)\1{5,}/gi;
+    if (repeatedChars.test(commentText)) {
+      return { isSpam: true, reason: "Spam detected: Repetitive characters" };
+    }
+    
+    // Check for all caps (more than 70% uppercase)
+    const uppercaseCount = (commentText.match(/[A-Z]/g) || []).length;
+    const letterCount = (commentText.match(/[A-Za-z]/g) || []).length;
+    if (letterCount > 10 && (uppercaseCount / letterCount) > 0.7) {
+      return { isSpam: true, reason: "Please don't use excessive caps" };
+    }
+    
+    return { isSpam: false };
+    
+  } catch (err) {
+    console.error("Spam detection error:", err);
+    return { isSpam: false }; // Don't block on error
+  }
 }
 //Trigger ends
 // --- 1. Cloudinary Configuration ---
@@ -171,6 +215,26 @@ const storyStorage = new CloudinaryStorage({
   },
 });
 const uploadStory = multer({ storage: storyStorage });
+
+// Storage for PROFILE PICTURES
+const profilePicStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'social_media_profile_pics',
+    resource_type: 'image',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'webp'],
+    transformation: [{ width: 400, height: 400, crop: 'fill' }] // Square crop
+  },
+});
+const uploadProfilePic = multer({ storage: profilePicStorage });
+
+const isAuthenticated = (req, res, next) => {
+  if (req.user) {
+    // req.user is set by passport from the session
+    return next();
+  }
+  res.status(401).json({ success: false, message: 'Not authenticated' });
+};
 
 // =================================================================
 //         PASSPORT & SESSION
@@ -572,38 +636,41 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
       message: "userId and commentText are required"
     });
   }
+  
+
+  // 🚫 CHECK 1: Abusive Content (same as post caption)
+  if (containsAbusiveContent(commentText)) {
+    return res.status(400).json({
+      success: false,
+      message: "Comment contains inappropriate language."
+    });
+  }
+
+  // 🚫 CHECK 2: Spam Detection
+  const spamCheck = await isSpamComment(db, userId, postId, commentText);
+  if (spamCheck.isSpam) {
+    return res.status(400).json({
+      success: false,
+      message: spamCheck.reason
+    });
+  }
 
   let conn;
   try {
     conn = await db.getConnection();
     await conn.beginTransaction();
 
-    // Step 1: Check for duplicate comment
-    const [existing] = await conn.query(
-      `SELECT COUNT(*) AS count
-       FROM COMMENT
-       WHERE user_id = ? AND post_id = ? AND comment_text = ?`,
-      [userId, postId, commentText]
-    );
-
-    if (existing[0].count > 0) {
-      await conn.rollback();
-      return res.status(400).json({
-        success: false,
-        message: "Duplicate comment not allowed."
-      });
-    }
-
-    // Step 2: Insert the new comment
+    // Insert the new comment
     const [resDb] = await conn.query(
       "INSERT INTO COMMENT (user_id, post_id, comment_text) VALUES (?, ?, ?)",
       [userId, postId, commentText]
     );
 
-    // Step 3: Fetch inserted comment with user info
+    // Fetch inserted comment with user info
     const [newComment] = await conn.query(
-      `SELECT c.comment_id, c.comment_text, c.created_at,
-          u.user_id, u.username, u.profile_pic_url
+      `SELECT c.comment_id, c.comment_text, 
+              CONVERT_TZ(c.created_at, '+00:00', '+05:30') as created_at,
+              u.user_id, u.username, u.profile_pic_url
        FROM COMMENT c
        JOIN USER u ON c.user_id = u.user_id
        WHERE c.comment_id = ?`,
@@ -622,14 +689,6 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
 
     if (conn) await conn.rollback();
 
-    // Handle trigger errors (spam, abusive, etc.)
-    if (err.code === "ER_SIGNAL_EXCEPTION" || err.errno === 1644) {
-      return res.status(400).json({
-        success: false,
-        message: err.sqlMessage
-      });
-    }
-
     return res.status(500).json({
       success: false,
       message: "Internal server error"
@@ -639,36 +698,175 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
     if (conn) conn.release();
   }
 });
+app.get("/api/posts/:postId", async (req, res) => {
+  const { postId } = req.params;
+  const { loggedInUserId } = req.query; // Get logged in user ID from query
+  
+  if (!loggedInUserId) {
+    return res.status(400).json({ success: false, message: "loggedInUserId is required" });
+  }
+
+  try {
+    const [posts] = await db.query(
+      `SELECT p.*, 
+        CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
+        u.username, u.profile_pic_url,
+        (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count,
+        (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count,
+        EXISTS(SELECT 1 FROM POST_LIKE pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_has_liked,
+        EXISTS(SELECT 1 FROM Saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?) AS user_has_saved
+       FROM POST p 
+       JOIN USER u ON p.user_id = u.user_id
+       WHERE p.post_id = ?`,
+      [loggedInUserId, loggedInUserId, postId]
+    );
+
+    if (posts.length === 0) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    const post = posts[0];
+    
+    // Also fetch media and hashtags
+    const [media] = await db.query("SELECT media_url, media_type FROM MEDIA WHERE post_id = ?", [post.post_id]);
+    const [tags] = await db.query("SELECT h.hashtag_text FROM POST_HASHTAG ph JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id WHERE ph.post_id = ?", [post.post_id]);
+    
+    const detailedPost = { 
+      ...post, 
+      media, 
+      hashtags: tags.map(t => t.hashtag_text), 
+      user_has_liked: !!post.user_has_liked, 
+      user_has_saved: !!post.user_has_saved 
+    };
+
+    // Use first media as the default `media_url` for simplicity in the modal
+    if (media.length > 0) {
+      detailedPost.media_url = media[0].media_url;
+      detailedPost.media_type = media[0].media_type;
+    }
+
+    res.json({ success: true, post: detailedPost });
+
+  } catch (err) {
+    console.error("Get single post error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+// --- DELETE POST ROUTE (Missing previously) ---
+app.delete("/api/posts/:postId", isAuthenticated, async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user.user_id; // Get user ID from session
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Not authenticated" });
+  }
+
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // The query now checks for BOTH post_id AND user_id
+    // This ensures you can only delete your own posts
+    const [result] = await conn.query(
+      "DELETE FROM POST WHERE post_id = ? AND user_id = ?",
+      [postId, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      // This means either the post wasn't found OR it wasn't owned by this user
+      await conn.rollback();
+      return res.status(403).json({ success: false, message: "Post not found or you don't have permission to delete it" });
+    }
+    
+    // Note: This also automatically deletes media, likes, comments, etc.
+    // if you have `ON DELETE CASCADE` set up in your database.
+    // If not, you would need to delete those manually here.
+
+    await conn.commit();
+    res.json({ success: true, message: "Post deleted" });
+
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error("Delete post error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
 
 // --- Story Routes (UPDATED: Uses Cloudinary file.path) ---
+// --- Story Routes (UPDATED: Cloudinary + Repost Support) ---
 app.post("/api/stories/create", uploadStory.single('media'), async (req, res) => {
-  const { user_id, tags } = req.body;
+  const { user_id, tags, repost_story_id } = req.body;
   const file = req.file;
+  
   let conn;
   try {
     conn = await db.getConnection();
     await conn.beginTransaction();
     
-    // Cloudinary Change: Use file.path
-    const [sRes] = await conn.query(`INSERT INTO STORY (user_id, media_url, media_type, expires_at) VALUES (?, ?, ?, NOW() + INTERVAL 1 DAY)`, [user_id, file.path, file.mimetype]);
+    let mediaUrl, mediaType;
     
+    // If reposting, use original story's media
+    if (repost_story_id) {
+      const [originalStory] = await conn.query(
+        "SELECT media_url, media_type FROM STORY WHERE story_id = ?", 
+        [repost_story_id]
+      );
+      
+      if (originalStory.length === 0) {
+        await conn.rollback();
+        return res.status(404).json({ success: false, message: "Original story not found" });
+      }
+      
+      mediaUrl = originalStory[0].media_url;
+      mediaType = originalStory[0].media_type;
+    } else if (file) {
+      // New upload - Cloudinary
+      mediaUrl = file.path;
+      mediaType = file.mimetype;
+    } else {
+      await conn.rollback();
+      return res.status(400).json({ success: false, message: "No media provided" });
+    }
+    
+    // Insert story
+    const [sRes] = await conn.query(
+      `INSERT INTO STORY (user_id, media_url, media_type, expires_at) 
+       VALUES (?, ?, ?, NOW() + INTERVAL 1 DAY)`, 
+      [user_id, mediaUrl, mediaType]
+    );
+    
+    // Handle tags
     if (tags) {
       const usernames = tags.split(' ').map(t => t.trim()).filter(t => t);
       if (usernames.length > 0) {
-        const [users] = await conn.query("SELECT user_id FROM USER WHERE username IN (?)", [usernames]);
+        const [users] = await conn.query(
+          "SELECT user_id FROM USER WHERE username IN (?)", 
+          [usernames]
+        );
         if (users.length > 0) {
-           const tVals = users.map(u => [sRes.insertId, u.user_id]);
-           await conn.query("INSERT INTO STORY_TAG (story_id, tagged_user_id) VALUES ?", [tVals]);
+          const tVals = users.map(u => [sRes.insertId, u.user_id]);
+          await conn.query(
+            "INSERT INTO STORY_TAG (story_id, tagged_user_id) VALUES ?", 
+            [tVals]
+          );
         }
       }
     }
+    
     await conn.commit();
     res.status(201).json({ success: true, message: "Story created!" });
+    
   } catch (err) {
     if (conn) await conn.rollback();
-    console.error(err);
+    console.error("Create Story Error:", err);
     res.status(500).json({ success: false, message: "Server error" });
-  } finally { if (conn) conn.release(); }
+  } finally { 
+    if (conn) conn.release(); 
+  }
 });
 app.get("/api/stories/archive", async (req, res) => {
   const { userId } = req.query;
@@ -727,6 +925,8 @@ app.get("/api/feed/posts", async (req, res) => {
   }
 });
 
+// Replace the existing /api/feed/stories endpoint in server.js with this:
+
 app.get("/api/feed/stories", async (req, res) => {
   try {
     const [stories] = await db.query(
@@ -736,10 +936,15 @@ app.get("/api/feed/stories", async (req, res) => {
       u.username, u.profile_pic_url 
       FROM STORY s 
       JOIN USER u ON s.user_id = u.user_id 
-      JOIN FOLLOW f ON s.user_id = f.following_id 
-      WHERE s.expires_at > NOW() AND f.follower_id = ? 
+      WHERE s.expires_at > NOW() 
+      AND (
+        s.user_id = ? 
+        OR s.user_id IN (
+          SELECT following_id FROM FOLLOW WHERE follower_id = ?
+        )
+      )
       ORDER BY s.created_at DESC`, 
-      [req.query.userId]
+      [req.query.userId, req.query.userId]
     );
     res.json({ success: true, stories });
   } catch (err) { 
@@ -954,6 +1159,8 @@ app.post("/api/messages", async (req, res) => {
 });
 
 // --- Profile Routes ---
+// --- Profile Route (FIXED: Added like_count & comment_count) ---
+// --- Profile Route (FIXED: Fetches Like & Comment Counts) ---
 app.get("/api/profile/:username", async (req, res) => {
   const { username } = req.params;
   const { loggedInUserId } = req.query;
@@ -963,39 +1170,43 @@ app.get("/api/profile/:username", async (req, res) => {
     const user = u[0];
 
     const [following] = await db.query("SELECT COUNT(*) as c FROM FOLLOW WHERE follower_id = ?", [user.user_id]);
+    
+    // 1. Get User's Posts (With Like & Comment Counts)
     const [posts] = await db.query(
       `SELECT p.post_id, p.caption, 
-      CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
-      (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url 
-      FROM POST p 
-      WHERE p.user_id = ? 
-      ORDER BY created_at DESC`, 
-      [user.user_id]
+       CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
+       (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url,
+       (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count,
+       (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count,
+       EXISTS(SELECT 1 FROM POST_LIKE pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_has_liked,
+       EXISTS(SELECT 1 FROM Saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?) AS user_has_saved
+       FROM POST p 
+       WHERE p.user_id = ? 
+       ORDER BY created_at DESC`, 
+      [loggedInUserId, loggedInUserId, user.user_id]
     );
     
-    const [h] = await db.query(
-      `SELECT h.highlight_id, h.title, s.media_url AS cover_media_url
-       FROM HIGHLIGHT h
-       LEFT JOIN STORY s ON h.cover_story_id = s.story_id
-       WHERE h.user_id = ?
-       ORDER BY h.created_at ASC`,
-      [user.user_id]
-    );
-    const highlights = h;
+    // 2. Get Highlights
+    const [h] = await db.query(`SELECT h.highlight_id, h.title, s.media_url AS cover_media_url FROM HIGHLIGHT h LEFT JOIN STORY s ON h.cover_story_id = s.story_id WHERE h.user_id = ? ORDER BY h.created_at ASC`, [user.user_id]);
 
+    // 3. Get Saved Posts (With Like & Comment Counts)
     let saved = [];
     if (user.user_id == loggedInUserId) {
-      const [s] = await db.query(
-        `SELECT p.post_id, p.caption, 
-        CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
-        (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url 
-        FROM Saved_posts sp 
-        JOIN POST p ON sp.post_id = p.post_id 
-        WHERE sp.user_id = ? 
-        ORDER BY sp.created_at DESC`, 
-        [user.user_id]
-      );
-      saved = s;
+       const [s] = await db.query(
+         `SELECT p.post_id, p.caption, 
+          CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
+          (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url,
+          (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count,
+          (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count,
+          EXISTS(SELECT 1 FROM POST_LIKE pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_has_liked,
+          EXISTS(SELECT 1 FROM Saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?) AS user_has_saved
+          FROM Saved_posts sp 
+          JOIN POST p ON sp.post_id = p.post_id 
+          WHERE sp.user_id = ? 
+          ORDER BY sp.created_at DESC`, 
+         [loggedInUserId, loggedInUserId, user.user_id]
+       );
+       saved = s;
     }
     
     const [isF] = await db.query("SELECT 1 FROM FOLLOW WHERE follower_id = ? AND following_id = ?", [loggedInUserId, user.user_id]);
@@ -1003,9 +1214,9 @@ app.get("/api/profile/:username", async (req, res) => {
     res.json({
       success: true,
       user: { ...user, following_count: following[0].c, post_count: posts.length, isFollowing: isF.length > 0 },
-      posts,
-      savedPosts: saved,
-      highlights: highlights
+      posts: posts.map(p => ({...p, user_has_liked: !!p.user_has_liked, user_has_saved: !!p.user_has_saved})),
+      savedPosts: saved.map(p => ({...p, user_has_liked: !!p.user_has_liked, user_has_saved: !!p.user_has_saved})),
+      highlights: h
     });
   } catch (err) {
     console.error("Profile error:", err);
@@ -1147,6 +1358,65 @@ app.put("/api/profile/:userId", async (req, res) => {
   } catch (err) { res.status(500).json({success:false}); }
 });
 
+// --- UPDATE PROFILE PICTURE ---
+app.post("/api/profile/:userId/picture", uploadProfilePic.single('profilePic'), async (req, res) => {
+  const { userId } = req.params;
+  const file = req.file;
+  
+  if (!file) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No image file provided" 
+    });
+  }
+  
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+    
+    // Get old profile pic URL to delete from Cloudinary (optional)
+    const [oldProfile] = await conn.query(
+      "SELECT profile_pic_url FROM USER WHERE user_id = ?",
+      [userId]
+    );
+    
+    // Update with new Cloudinary URL
+    await conn.query(
+      "UPDATE USER SET profile_pic_url = ? WHERE user_id = ?",
+      [file.path, userId] // file.path is the Cloudinary URL
+    );
+    
+    // Optional: Delete old image from Cloudinary if it exists
+    if (oldProfile[0]?.profile_pic_url && oldProfile[0].profile_pic_url.includes('cloudinary')) {
+      try {
+        const publicId = oldProfile[0].profile_pic_url.split('/').pop().split('.')[0];
+        await cloudinary.uploader.destroy(`social_media_profile_pics/${publicId}`);
+      } catch (deleteErr) {
+        console.log("Could not delete old image:", deleteErr);
+        // Continue anyway - don't fail the upload
+      }
+    }
+    
+    await conn.commit();
+    
+    res.json({ 
+      success: true, 
+      message: "Profile picture updated!",
+      profile_pic_url: file.path
+    });
+    
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error("Profile pic update error:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to update profile picture" 
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+});
 app.delete("/api/profile/:userId", async (req, res) => {
   try {
     await db.query("DELETE FROM USER WHERE user_id = ?", [req.params.userId]);
