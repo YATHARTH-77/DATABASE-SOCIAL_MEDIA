@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Search, Plus, Loader2 } from "lucide-react";
 import { relativeTime } from "@/lib/time";
 
-const API_URL = "https://backend-sm-seven.vercel.app";
+const API_URL = "http://localhost:5000";
 
 export default function Messages() {
   const navigate = useNavigate();
@@ -105,17 +105,17 @@ export default function Messages() {
   });
 
   return (
-    <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
+    <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 md:ml-64 lg:ml-72 xl:ml-80 2xl:ml-[22rem] pb-20 md:pb-8 transition-all duration-300">
         <div className="max-w-4xl mx-auto">
           <Card className="shadow-lg rounded-lg overflow-hidden border-2 border-purple-300">
             {/* Header Section */}
-            <div className="p-4 border-b-2 border-purple-300 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] flex items-center gap-3">
+            <div className="p-3 sm:p-4 border-b-2 border-purple-300 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 <Input
                   placeholder="Search by username"
                   aria-label="Search by username"
-                  className="w-full pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/70 rounded-full focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="w-full pl-9 sm:pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/70 rounded-full focus-visible:ring-0 focus-visible:ring-offset-0 text-sm sm:text-base h-9 sm:h-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
@@ -132,12 +132,12 @@ export default function Messages() {
               {/* --- NEW CHAT UI --- */}
               <div className="flex items-center gap-2">
                 {isCreating ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Input
                       ref={inputRef}
                       placeholder="username"
                       aria-label="New username"
-                      className="w-40 bg-white/10 text-white placeholder:text-white/60 rounded-md px-2 py-1 border-white/30 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="flex-1 sm:w-32 md:w-40 bg-white/10 text-white placeholder:text-white/60 rounded-md px-2 py-1 border-white/30 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm h-8 sm:h-9"
                       value={newUser}
                       onChange={(e) => setNewUser(e.target.value)}
                       onKeyDown={(e) => {
@@ -151,7 +151,7 @@ export default function Messages() {
                       }}
                     />
                     <button
-                      className="text-white px-2 py-1 rounded-md hover:bg-white/10"
+                      className="text-white px-2 py-1 rounded-md hover:bg-white/10 text-xs sm:text-sm whitespace-nowrap"
                       onClick={() => { setIsCreating(false); setCreateError(""); }}
                       aria-label="Cancel"
                     >
@@ -160,19 +160,19 @@ export default function Messages() {
                   </div>
                 ) : (
                   <button
-                    className="bg-white/10 p-2 rounded-md hover:bg-white/20"
+                    className="bg-white/10 p-1.5 sm:p-2 rounded-md hover:bg-white/20"
                     onClick={() => { setIsCreating(true); setTimeout(()=> inputRef.current?.focus?.(), 40); }}
                     aria-label="Start new chat"
                     title="Start new chat"
                   >
-                    <Plus className="w-4 h-4 text-white" />
+                    <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </button>
                 )}
               </div>
             </div>
             
             {createError && (
-              <div className="p-2 text-xs text-center text-white bg-gradient-to-r from-red-500 to-red-600 border-b-2 border-red-700">
+              <div className="p-2 text-xs sm:text-sm text-center text-white bg-gradient-to-r from-red-500 to-red-600 border-b-2 border-red-700">
                 {createError}
               </div>
             )}
@@ -180,18 +180,18 @@ export default function Messages() {
             {/* --- DYNAMIC LIST --- */}
             <div className="divide-y-2 divide-purple-200 bg-white">
               {isLoading ? (
-                <div className="flex justify-center p-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#5A0395]" />
+                <div className="flex justify-center p-6 sm:p-8">
+                  <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-[#5A0395]" />
                 </div>
               ) : filteredConversations.length > 0 ? (
                 filteredConversations.map((conversation) => (
                   <div
                     key={conversation.chat_id}
-                    className="p-4 flex items-center gap-4 cursor-pointer transition-all duration-150 bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-150"
+                    className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4 cursor-pointer transition-all duration-150 bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-150"
                     onClick={() => navigate(`/messages/${conversation.chat_id}`)}
                   >
                     <Avatar
-                      className="w-12 h-12 cursor-pointer border-2 border-purple-200"
+                      className="w-10 h-10 sm:w-12 sm:h-12 cursor-pointer border-2 border-purple-200 flex-shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/user/${encodeURIComponent(conversation.name)}`);
@@ -200,25 +200,25 @@ export default function Messages() {
                       title={`View ${conversation.name}`}
                     >
                       <AvatarImage src={conversation.profile_pic_url ||''} />
-                      <AvatarFallback className="bg-[#5A0395] text-white">
+                      <AvatarFallback className="bg-[#5A0395] text-white text-sm sm:text-base">
                         {conversation.name[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-semibold truncate text-[#1D0C69]">
+                      <div className="flex items-center justify-between mb-0.5 sm:mb-1 gap-2">
+                        <h3 className="font-semibold truncate text-[#1D0C69] text-sm sm:text-base">
                           {conversation.name}
                         </h3>
-                        <span className="text-xs text-[#5A0395]">{relativeTime(conversation.time)}</span>
+                        <span className="text-[10px] sm:text-xs text-[#5A0395] flex-shrink-0">{relativeTime(conversation.time)}</span>
                       </div>
-                      <p className="text-sm truncate text-gray-600">
+                      <p className="text-xs sm:text-sm truncate text-gray-600">
                         {conversation.lastMessage}
                       </p>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="p-8 text-center text-gray-600">
+                <div className="p-6 sm:p-8 text-center text-gray-600 text-sm sm:text-base">
                   No conversations found.
                 </div>
               )}

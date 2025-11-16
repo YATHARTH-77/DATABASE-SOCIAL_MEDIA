@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, SearchIcon, Hash, User } from "lucide-react";
 
 // --- Base URL for our API ---
-const API_URL = "https://backend-sm-seven.vercel.app";
+const API_URL = "http://localhost:5000";
 
 // --- Helper Component for User Cards (MODIFIED) ---
 function UserCard({ user, onUserClick }) {
@@ -196,7 +196,7 @@ export default function Search() {
   );
 
   return (
-    <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
+    <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 md:ml-64 lg:ml-72 xl:ml-80 2xl:ml-[22rem] pb-20 md:pb-8 transition-all duration-300">
         <div className="max-w-4xl mx-auto space-y-6">
           
           {/* --- Search Bar --- */}

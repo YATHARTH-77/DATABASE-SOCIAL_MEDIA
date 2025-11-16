@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import { relativeTime } from "@/lib/time";
 
-const API_URL = "https://backend-sm-seven.vercel.app";
+const API_URL = "http://localhost:5000";
 
 export default function Conversation() {
   const { chatId } = useParams();
@@ -22,7 +22,9 @@ export default function Conversation() {
   // --- Auto-scroll to bottom ---
   useEffect(() => {
     if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
+      setTimeout(() => {
+        listRef.current.scrollTop = listRef.current.scrollHeight;
+      }, 100);
     }
   }, [messages]);
 
@@ -78,6 +80,13 @@ export default function Conversation() {
 
     setMessages(prev => [...prev, optimisticMessage]);
     setNewMessage("");
+    
+    // Scroll to bottom after sending
+    setTimeout(() => {
+      if (listRef.current) {
+        listRef.current.scrollTop = listRef.current.scrollHeight;
+      }
+    }, 100);
 
     try {
       const res = await fetch(`${API_URL}/api/messages`, {
@@ -114,9 +123,9 @@ export default function Conversation() {
 
   if (!user || (!otherUser && !isLoading)) {
     return (
-      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
-        <div className="max-w-2xl mx-auto text-center">
-          <h1 className="text-2xl md:text-3xl font-bold mb-4">Conversation not found</h1>
+      <main className="flex-1 p-0 sm:p-4 md:p-6 lg:p-8 md:ml-64 lg:ml-72 xl:ml-80 2xl:ml-[22rem] md:pb-8 transition-all duration-300">
+        <div className="max-w-2xl mx-auto text-center p-4">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4">Conversation not found</h1>
           <Button onClick={() => navigate("/messages")}>Back to Messages</Button>
         </div>
       </main>
@@ -125,77 +134,77 @@ export default function Conversation() {
 
   return (
     <>
-      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
-        <div className="max-w-2xl mx-auto h-[calc(100vh-4rem)]">
-          <Card className="shadow-lg h-full flex flex-col">
+      <main className="flex-1 p-0 sm:p-4 md:p-6 lg:p-8 md:ml-64 lg:ml-72 xl:ml-80 2xl:ml-[22rem] md:pb-8 pb-16 transition-all duration-300">
+        <div className="max-w-2xl mx-auto h-[calc(100vh-4rem)] sm:h-[calc(100vh-6rem)] md:h-[calc(100vh-4rem)]">
+          <Card className="shadow-lg h-full flex flex-col rounded-none sm:rounded-lg">
             {/* --- HEADER --- */}
-            <div className="p-3 md:p-4 border-b gradient-sidebar flex items-center gap-3 md:gap-4">
+            <div className="p-2 sm:p-3 md:p-4 border-b gradient-sidebar flex items-center gap-2 sm:gap-3 md:gap-4">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate("/messages")}
-                className="text-white hover:bg-white/20"
+                className="text-white hover:bg-white/20 h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
 
               {otherUser ? (
                 <Link
                   to={`/user/${encodeURIComponent(otherUser.username)}`}
-                  className="flex items-center gap-3"
+                  className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1"
                 >
                   <Avatar
-                    className="w-8 h-8 md:w-10 md:h-10 cursor-pointer transition-transform duration-150 transform hover:-translate-y-0.5 hover:shadow-md hover:ring-1 hover:ring-primary/10"
+                    className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 cursor-pointer transition-transform duration-150 transform hover:-translate-y-0.5 hover:shadow-md hover:ring-1 hover:ring-primary/10 flex-shrink-0"
                     title={`View ${otherUser.username}`}
                     aria-label={`Open profile for ${otherUser.username}`}
                   >
                     <AvatarImage
                       src={otherUser.profile_pic_url ||''}
                     />
-                    <AvatarFallback className="bg-white text-primary">
+                    <AvatarFallback className="bg-white text-primary text-xs sm:text-sm">
                       {otherUser.username[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <h2 className="text-sm md:text-lg font-bold text-white truncate">
+                  <h2 className="text-xs sm:text-sm md:text-lg font-bold text-white truncate">
                     {otherUser.username}
                   </h2>
                 </Link>
               ) : (
-                <Loader2 className="w-5 h-5 text-white animate-spin ml-2" />
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-spin ml-2" />
               )}
             </div>
 
             {/* --- MESSAGES AREA --- */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
               {isLoading ? (
                 <div className="flex justify-center items-center h-full">
-                  <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                  <Loader2 className="w-8 h-8 sm:w-10 sm:h-10 text-primary animate-spin" />
                 </div>
               ) : (
-                <div ref={listRef} className="space-y-4">
+                <div ref={listRef} className="space-y-3 sm:space-y-4">
                   {messages.map((msg) => (
                     <div
                       key={msg.message_id}
                       className={`flex ${msg.sender_id === user.id ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-2 ${
+                        className={`max-w-[85%] sm:max-w-[80%] md:max-w-[70%] rounded-2xl px-3 py-2 sm:px-4 sm:py-2 ${
                           msg.sender_id === user.id
                             ? "gradient-sidebar text-white"
                             : "bg-muted"
                         }`}
                       >
-                        <p className="text-sm break-words">{msg.message_text}</p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs sm:text-sm break-words">{msg.message_text}</p>
+                        <div className="flex items-center gap-1 sm:gap-2 mt-1">
                           <span
-                            className={`text-xs ${
+                            className={`text-[10px] sm:text-xs ${
                               msg.sender_id === user.id ? "text-white/70" : "text-muted-foreground"
                             }`}
                           >
                             {relativeTime(msg.created_at)}
                           </span>
                           {msg.sender_id === user.id && (
-                            <span className="text-xs text-white/60">
+                            <span className="text-[10px] sm:text-xs text-white/60">
                               {msg.read ? "✓✓" : "✓"}
                             </span>
                           )}
@@ -208,21 +217,21 @@ export default function Conversation() {
             </div>
 
             {/* --- INPUT AREA --- */}
-            <div className="p-3 md:p-4 border-t">
+            <div className="p-2 sm:p-3 md:p-4 border-t">
               <form className="flex gap-2 items-center" onSubmit={handleSendMessage}>
                 <Input
                   placeholder="Type a message..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="flex-1 min-w-0"
+                  className="flex-1 min-w-0 text-sm sm:text-base h-9 sm:h-10 focus-visible:ring-purple-500 focus-visible:ring-2"
                 />
                 <Button
                   type="submit"
                   disabled={!newMessage.trim()}
-                  className="gradient-sidebar text-white"
+                  className="gradient-sidebar text-white h-9 w-9 sm:h-10 sm:w-10 p-0"
                 >
-                  <Send className="w-5 h-5" />
+                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
               </form>
             </div>
