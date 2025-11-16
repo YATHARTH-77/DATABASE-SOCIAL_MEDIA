@@ -1,8 +1,7 @@
 // =================================================================
 //         SERVER.JS (FINAL DEPLOYMENT VERSION)
 // =================================================================
-const serverless = require('serverless-http'); 
-// ... all your other imports (express, cors, etc.)
+
 require('dotenv').config(); // Loads .env variables
 const express = require("express");
 const cors = require("cors");
@@ -1549,8 +1548,5 @@ app.get("/api/highlights/:highlightId/stories", async (req, res) => {
 
 
 // --- Start Server ---
-// const PORT = process.env.PORT || 5000;
-// app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
-
-// --- Netlify Handler Export ---
-module.exports.handler = serverless(app);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
