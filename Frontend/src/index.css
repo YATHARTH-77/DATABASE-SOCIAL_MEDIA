@@ -8,42 +8,38 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 255 43% 8%; /* #0E0B1F */
-    --foreground: 0 0% 100%;
+    --background: 210 40% 98%;
+    --foreground: 0 0% 10%;
 
-    --card: 240 100% 30%;
-    --card-foreground: 0 0% 100%;
+    --card: 210 40% 99%;
+    --card-foreground: 0 0% 10%;
 
-    --popover: 240 100% 30%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 210 40% 99%;
+    --popover-foreground: 0 0% 10%;
 
-    /* Blue to Green to Gold gradient theme */
-    --primary: 195 100% 50%; /* Deep Sky Blue */
+    --primary: 195 100% 50%;
     --primary-foreground: 0 0% 100%;
     
-    --primary-gradient-start: 195 100% 50%; /* Deep Sky Blue */
-    --primary-gradient-middle: 120 61% 50%; /* Lime Green */
-    --primary-gradient-end: 51 100% 50%; /* Gold */
+    --primary-gradient-start: 195 100% 50%;
+    --primary-gradient-middle: 120 61% 50%;
+    --primary-gradient-end: 51 100% 50%;
 
-    --secondary: 120 61% 50%; /* Lime Green accent */
+    --secondary: 120 61% 50%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 240 28% 15%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 51 100% 50%; /* Gold */
+    --accent: 51 100% 50%;
     --accent-foreground: 0 0% 10%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 28% 20%;
-    --input: 240 28% 13%;
+    --border: 210 30% 90%;
+    --input: 210 30% 95%;
     --ring: 195 100% 50%;
 
-    --radius: 0.75rem;
-
-    /* Sidebar with gradient */
     --sidebar-background: 195 100% 50%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 0 0% 100%;
