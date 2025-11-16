@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; // ⭐️ ADDED
+import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Grid, Bookmark, UserPen, LogOut, Trash2, Loader2, Plus, X, ChevronLeft, ChevronRight } from "lucide-react"; // ⭐️ ADDED ICONS
+import { Settings, Grid, Bookmark, UserPen, LogOut, Trash2, Loader2, Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { PostDetailModal } from "@/components/PostDetailModal";
 import { FollowerModal } from "@/components/FollowerModal";
 import { useToast } from "@/hooks/use-toast";
@@ -81,6 +81,7 @@ function CreateHighlightModal({
   const [title, setTitle] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [coverStoryId, setCoverStoryId] = useState(null);
+  const { toast } = useToast();
 
   const toggleStorySelect = (id) => {
     const newIds = selectedIds.includes(id)
@@ -105,17 +106,39 @@ function CreateHighlightModal({
     }
   };
 
-  const handleSubmit = () => {
-    if (!title || selectedIds.length === 0 || !coverStoryId) {
-      // You can add a toast here if you like
-      return;
-    }
-    onCreate({
-      title,
-      story_ids: selectedIds,
-      cover_story_id: coverStoryId,
+  const handleTitleChange = (e) => {
+  const inputValue = e.target.value;
+  
+  // Limit to 50 characters
+  if (inputValue.length <= 15) {
+    setTitle(inputValue);
+  } else {
+    toast({ 
+      title: "Character Limit Exceeded", 
+      description: "Title cannot exceed 15 characters.", 
+      variant: "destructive" 
     });
-  };
+  }
+};
+
+  const handleSubmit = () => {
+  if (!title || title.trim().length === 0) {
+    toast({ title: "Title Required", description: "Please enter a title.", variant: "destructive" });
+    return;
+  }
+  if (title.length > 15) {
+    toast({ title: "Character Limit Exceeded", description: "Title cannot exceed 50 characters.", variant: "destructive" });
+    return;
+  }
+  if (selectedIds.length === 0 || !coverStoryId) {
+    return;
+  }
+  onCreate({
+    title,
+    story_ids: selectedIds,
+    cover_story_id: coverStoryId,
+  });
+};
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
@@ -125,7 +148,12 @@ function CreateHighlightModal({
             <X className="w-6 h-6" />
           </button>
           <h2 className="text-lg font-semibold text-center text-[#1D0C69]">Create Highlight</h2>
-          <Button onClick={handleSubmit} disabled={isLoading || !title || selectedIds.length === 0} size="sm">
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isLoading || !title || selectedIds.length === 0} 
+            size="sm"
+            className="bg-gradient-to-r from-[#5A0395] to-[#7C3AED] hover:from-[#4A0285] hover:to-[#6C2ADD] text-white"
+          >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create"}
           </Button>
         </div>
@@ -133,11 +161,14 @@ function CreateHighlightModal({
         {/* Title Input */}
         <div className="p-4">
           <Input
-            placeholder="Highlight Title..."
+            placeholder="Highlight Title (max 15 characters)..."
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={handleTitleChange}
             className="border-purple-300 focus-visible:ring-purple-500"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            {title.length}/15 characters
+          </p>
         </div>
 
         {/* Story Selection Grid */}
@@ -187,10 +218,10 @@ export default function Profile() {
   const [savedPosts, setSavedPosts] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
-  const [highlights, setHighlights] = useState([]); // ⭐️ ADDED
+  const [highlights, setHighlights] = useState([]);
   
   const [isLoading, setIsLoading] = useState(true);
-  const [isModalLoading, setIsModalLoading] = useState(false); // ⭐️ ADDED for modal actions
+  const [isModalLoading, setIsModalLoading] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [modalType, setModalType] = useState(null);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -225,7 +256,7 @@ export default function Profile() {
           setProfileData(profileJson.user);
           setPosts(profileJson.posts);
           setSavedPosts(profileJson.savedPosts);
-          setHighlights(profileJson.highlights || []); // ⭐️ ADDED
+          setHighlights(profileJson.highlights || []);
         } else {
           throw new Error(profileJson.message);
         }
@@ -455,6 +486,25 @@ export default function Profile() {
 
   return (
     <>
+      <style>{`
+        /* Custom Purple Scrollbar for Highlights Section */
+        .highlights-scroll::-webkit-scrollbar {
+          height: 8px;
+        }
+        .highlights-scroll::-webkit-scrollbar-track {
+          background: linear-gradient(to right, #f3e8ff, #faf5ff);
+          border-radius: 10px;
+        }
+        .highlights-scroll::-webkit-scrollbar-thumb {
+          background: linear-gradient(to right, #7C3AED, #5A0395);
+          border-radius: 10px;
+          border: 2px solid #f3e8ff;
+        }
+        .highlights-scroll::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(to right, #6C2ADD, #4A0285);
+        }
+      `}</style>
+
       {/* --- ALL MODALS (Highlights ⭐️ ADDED) --- */}
       {selectedPost && (
         <PostDetailModal
@@ -579,9 +629,9 @@ export default function Profile() {
               </p>
             </div>
 
-            {/* --- ⭐️ HIGHLIGHTS SECTION ADDED ⭐️ --- */}
+            {/* --- ⭐️ HIGHLIGHTS SECTION WITH CUSTOM SCROLLBAR ⭐️ --- */}
             <div className="mb-6">
-              <div className="flex items-center gap-4 overflow-x-auto p-2">
+              <div className="flex items-center gap-4 overflow-x-auto p-2 highlights-scroll">
                 {/* "New" Highlight Button */}
                 <button
                   onClick={handleOpenCreateHighlightModal}
