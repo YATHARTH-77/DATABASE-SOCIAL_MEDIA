@@ -1136,26 +1136,60 @@ app.post("/api/conversations/start", async (req, res) => {
 
 app.get("/api/conversations", async (req, res) => {
   try {
-    const [convos] = await db.query(`SELECT c.chat_id, u.user_id AS other_user_id, u.username AS name, u.profile_pic_url, (SELECT message_text FROM DIRECT_MESSAGE WHERE chat_id = c.chat_id ORDER BY created_at DESC LIMIT 1) AS lastMessage, (SELECT created_at FROM DIRECT_MESSAGE WHERE chat_id = c.chat_id ORDER BY created_at DESC LIMIT 1) AS time FROM CHAT c JOIN USER_CHAT uc ON c.chat_id = uc.chat_id JOIN USER_CHAT uc2 ON c.chat_id = uc2.chat_id AND uc2.user_id != ? JOIN USER u ON uc2.user_id = u.user_id WHERE uc.user_id = ? GROUP BY c.chat_id, u.user_id ORDER BY time DESC`, [req.query.userId, req.query.userId]);
+    const [convos] = await db.query(
+      `SELECT c.chat_id, u.user_id AS other_user_id, u.username AS name, u.profile_pic_url, 
+       (SELECT message_text FROM DIRECT_MESSAGE WHERE chat_id = c.chat_id ORDER BY created_at DESC LIMIT 1) AS lastMessage, 
+       (SELECT CONVERT_TZ(created_at, '+00:00', '+05:30') FROM DIRECT_MESSAGE WHERE chat_id = c.chat_id ORDER BY created_at DESC LIMIT 1) AS time 
+       FROM CHAT c 
+       JOIN USER_CHAT uc ON c.chat_id = uc.chat_id 
+       JOIN USER_CHAT uc2 ON c.chat_id = uc2.chat_id AND uc2.user_id != ? 
+       JOIN USER u ON uc2.user_id = u.user_id 
+       WHERE uc.user_id = ? 
+       GROUP BY c.chat_id, u.user_id, u.username, u.profile_pic_url 
+       ORDER BY time DESC`, 
+      [req.query.userId, req.query.userId]
+    );
     res.json({ success: true, conversations: convos });
-  } catch (err) { res.status(500).json({success:false}); }
+  } catch (err) { 
+    console.error("Get Conversations Error:", err);
+    res.status(500).json({success:false}); 
+  }
 });
 
 app.get("/api/conversations/:chatId", async (req, res) => {
   try {
-    const [msgs] = await db.query("SELECT * FROM DIRECT_MESSAGE WHERE chat_id = ? ORDER BY created_at ASC", [req.params.chatId]);
+    const [msgs] = await db.query(
+      `SELECT message_id, chat_id, sender_id, message_text, media_url, 
+       CONVERT_TZ(created_at, '+00:00', '+05:30') as created_at 
+       FROM DIRECT_MESSAGE 
+       WHERE chat_id = ? 
+       ORDER BY created_at ASC`, 
+      [req.params.chatId]
+    );
     const [u] = await db.query("SELECT u.user_id, u.username, u.profile_pic_url FROM USER u JOIN USER_CHAT uc ON u.user_id = uc.user_id WHERE uc.chat_id = ? AND uc.user_id != ?", [req.params.chatId, req.query.userId]);
     res.json({ success: true, messages: msgs, otherUser: u[0] });
-  } catch (err) { res.status(500).json({success:false}); }
+  } catch (err) { 
+    console.error("Get Messages Error:", err);
+    res.status(500).json({success:false}); 
+  }
 });
 
 app.post("/api/messages", async (req, res) => {
   const { chatId, senderId, messageText } = req.body;
   try {
     const [r] = await db.query("INSERT INTO DIRECT_MESSAGE (chat_id, sender_id, message_text) VALUES (?, ?, ?)", [chatId, senderId, messageText]);
-    const [m] = await db.query("SELECT * FROM DIRECT_MESSAGE WHERE message_id = ?", [r.insertId]);
+    const [m] = await db.query(
+      `SELECT message_id, chat_id, sender_id, message_text, media_url, 
+       CONVERT_TZ(created_at, '+00:00', '+05:30') as created_at 
+       FROM DIRECT_MESSAGE 
+       WHERE message_id = ?`, 
+      [r.insertId]
+    );
     res.status(201).json({ success: true, message: m[0] });
-  } catch (err) { res.status(500).json({success:false}); }
+  } catch (err) { 
+    console.error("Send Message Error:", err);
+    res.status(500).json({success:false}); 
+  }
 });
 
 // --- Profile Routes ---
@@ -1342,6 +1376,18 @@ app.get("/api/profile/:userId/following", async (req, res) => {
   } catch (err) { res.status(500).json({success:false}); }
 });
 
+app.put("/api/profile/:userId/photo", uploadProfilePic.single('profile_pic'), async (req, res) => {
+  const { userId } = req.params;
+  if (!req.file) return res.status(400).json({ success: false, message: "No file" });
+  try {
+    await db.query("UPDATE USER SET profile_pic_url = ? WHERE user_id = ?", [req.file.path, userId]);
+    res.json({ success: true, profile_pic_url: req.file.path });
+  } catch (err) { 
+      console.error("Photo upload error:", err);
+      res.status(500).json({ success: false }); 
+  }
+});
+
 app.put("/api/profile/:userId", async (req, res) => {
   const { fullName, bio } = req.body;
   
@@ -1351,7 +1397,6 @@ app.put("/api/profile/:userId", async (req, res) => {
       message: "Profile contains inappropriate language."
     });
   }
-  
   try {
     await db.query("UPDATE USER SET full_name = ?, bio = ? WHERE user_id = ?", [req.body.fullName, req.body.bio, req.params.userId]);
     res.json({ success: true, message: "Updated" });
@@ -1359,7 +1404,7 @@ app.put("/api/profile/:userId", async (req, res) => {
 });
 
 // --- UPDATE PROFILE PICTURE ---
-app.post("/api/profile/:userId/picture", uploadProfilePic.single('profilePic'), async (req, res) => {
+app.put("/api/profile/:userId/picture", uploadProfilePic.single('profilePic'), async (req, res) => {
   const { userId } = req.params;
   const file = req.file;
   
