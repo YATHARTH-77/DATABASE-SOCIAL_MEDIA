@@ -45,7 +45,8 @@ const ABUSIVE_PATTERNS = [
   /p+\W*?o+\W*?r+\W*?n+/i,          // porn
   /h+\W*?o+\W*?r+\W*?n+/i,          // horny
   /n+\W*?i+\W*?g+\W*?g+\W*?a+/i,      // nigga
-  /n+\W*?i+\W*?g+\W*?g+\W*?e+\W*?r+/i  // nigger
+  /n+\W*?i+\W*?g+\W*?g+\W*?e+\W*?r+/i,  // nigger
+  /a+\W*?s+\W*?s+/i
 ];
 
 function containsAbusiveContent(text) {
