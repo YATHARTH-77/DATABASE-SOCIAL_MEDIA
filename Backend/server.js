@@ -1227,5 +1227,5 @@ app.get("/api/highlights/:highlightId/stories", async (req, res) => {
 
 
 // --- Start Server ---
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
+// Export the app for Vercel
+module.exports = app;
