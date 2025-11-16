@@ -956,9 +956,15 @@ app.get("/api/feed/stories", async (req, res) => {
 app.get("/api/search/users", async (req, res) => {
   try {
     const q = `%${req.query.q}%`;
-    const [users] = await db.query("SELECT user_id, username, full_name, profile_pic_url FROM USER WHERE (username LIKE ? OR full_name LIKE ?) AND is_deleted = FALSE", [q, q]);
+    const [users] = await db.query(
+      "SELECT user_id, username, full_name, profile_pic_url, follower_count FROM USER WHERE (username LIKE ? OR full_name LIKE ?) AND is_deleted = FALSE", 
+      [q, q]
+    );
     res.json({ success: true, users });
-  } catch (err) { res.status(500).json({success:false}); }
+  } catch (err) { 
+    console.error("Search users error:", err);
+    res.status(500).json({success:false}); 
+  }
 });
 
 app.get("/api/search/suggested-users", async (req, res) => {
