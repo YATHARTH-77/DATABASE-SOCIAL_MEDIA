@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.png";
-import textLogo from "@/assets/white_text_logo.png";
-import { Loader2 } from "lucide-react"; 
+import textLogo from "@/assets/white_text_logo1.png";
+import { Loader2 } from "lucide-react";
+import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation.jsx";
 
 export default function Register() {
   // --- Step 1 Fields ---
@@ -21,6 +22,7 @@ export default function Register() {
   // --- UI State ---
   const [step, setStep] = useState(1); // 1 for details, 2 for OTP
   const [isLoading, setIsLoading] = useState(false);
+  const [cursor, setCursor] = useState({ x: 0, y: 0 });
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -108,169 +110,203 @@ export default function Register() {
     }
   };
 
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCursor({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/20 to-background">
-      <div className="w-full max-w-md p-8">
-        {/* Logos (unchanged) */}
-        <div className="flex flex-col items-center mb-8">
-          <img
-            src={textLogo}
-            alt="ConnectIT"
-            className="h-[17rem] -mt-20 -mb-20"
-          />
-        </div>
+    <>
+      <style>{`
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: white !important;
+          transition: background-color 5000s ease-in-out 0s;
+          box-shadow: inset 0 0 20px 20px rgba(255, 255, 255, 0.1) !important;
+          background-color: rgba(255, 255, 255, 0.1) !important;
+        }
+      `}</style>
+      <div 
+        className="min-h-screen flex items-center justify-center relative overflow-hidden"
+        onMouseMove={handleMouseMove}
+      >
+        <BackgroundGradientAnimation containerClassName="absolute inset-0" interactive={true} cursor={cursor}>
+          <div className="min-h-screen flex items-center justify-center py-8 px-4">
+            <div className="w-full max-w-md relative z-10">
+              {/* Logo */}
+              <div className="flex flex-col items-center mb-6">
+                <img
+                  src={textLogo}
+                  alt="ConnectIT"
+                  className="w-64 h-auto object-contain"
+                />
+              </div>
 
-        <div className="bg-card rounded-2xl shadow-2xl p-8 border border-border -mt-10">
-          
-          {/* --- Step 1: User Details --- */}
-          {step === 1 && (
-            <>
-              <h2 className="text-2xl font-bold text-center mb-6 text-foreground">
-                Create Account
-              </h2>
-              <form onSubmit={handleSendOtp} className="space-y-4">
-                {/* Username Field */}
-                <div>
-                  <Label htmlFor="username" className="text-bold-foreground text-xs mb-1">
-                    Username
-                  </Label>
-                  <div className={`rounded-xl p-[3px] overflow-hidden transition focus-within:bg-gradient-to-r focus-within:from-[#6B4BFF] focus-within:to-[#C9A8FF] ${username ? 'bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF]' : 'bg-transparent'}`}>
-                    <Input
-                      id="username"
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className={`w-full rounded-lg bg-black text-white placeholder:text-white/70 px-3 py-2 border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 transition-all`}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-                {/* Email Field */}
-                <div>
-                  <Label htmlFor="email" className="text-bold-foreground text-xs mb-1">
-                    Email
-                  </Label>
-                  <div className={`rounded-xl p-[3px] overflow-hidden transition focus-within:bg-gradient-to-r focus-within:from-[#6B4BFF] focus-within:to-[#C9A8FF] ${email ? 'bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF]' : 'bg-transparent'}`}>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={`w-full rounded-lg bg-black text-white placeholder:text-white/70 px-3 py-2 border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 transition-all`}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-                {/* Password Field */}
-                <div>
-                  <Label htmlFor="password" className="text-bold-foreground text-xs mb-1">
-                    Password
-                  </Label>
-                  <div className={`rounded-xl p-[3px] overflow-hidden transition focus-within:bg-gradient-to-r focus-within:from-[#6B4BFF] focus-within:to-[#C9A8FF] ${password ? 'bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF]' : 'bg-transparent'}`}>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={`w-full rounded-lg bg-black text-white placeholder:text-white/70 px-3 py-2 border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 transition-all`}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-                {/* Confirm Password Field */}
-                <div>
-                  <Label htmlFor="confirmPassword" className="text-bold-foreground text-xs mb-1">
-                    Confirm Password
-                  </Label>
-                  <div className={`rounded-xl p-[3px] overflow-hidden transition focus-within:bg-gradient-to-r focus-within:from-[#6B4BFF] focus-within:to-[#C9A8FF] ${confirmPassword ? 'bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF]' : 'bg-transparent'}`}>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className={`w-full rounded-lg bg-black text-white placeholder:text-white/70 px-3 py-2 border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 transition-all`}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full gradient-sidebar text-white font-bold rounded-xl mt-6"
-                  disabled={isLoading}
-                >
-                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send OTP"}
-                </Button>
-              </form>
-            </>
-          )}
-
-          {/* --- Step 2: OTP Verification --- */}
-          {step === 2 && (
-            <>
-              <h2 className="text-2xl font-bold text-center mb-6 text-foreground">
-                Verify Your Email
-              </h2>
-              <p className="text-center text-sm text-muted-foreground -mt-4 mb-6">
-                A 6-digit OTP was sent to {email}.
-              </p>
-              <form onSubmit={handleVerify} className="space-y-4">
-                {/* OTP Field */}
-                <div>
-                  <Label htmlFor="otp" className="text-muted-foreground text-xs mb-1">
-                    6-Digit OTP
-                  </Label>
-                  <div className={`rounded-xl p-[3px] mx-auto overflow-hidden transition focus-within:bg-gradient-to-r focus-within:from-[#6B4BFF] focus-within:to-[#C9A8FF] ${otp ? 'bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF]' : 'bg-transparent'}`}>
-                    <Input
-                      id="otp"
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={6}
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      className="rounded-lg bg-black text-center text-lg tracking-[0.3em] px-6 py-2 border-0 focus:outline-none focus:ring-0 focus-visible:ring-0"
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl p-6 border border-white/20">
                 
-                <Button
-                  type="submit"
-                  className="w-full gradient-sidebar text-white font-bold rounded-xl mt-6"
-                  disabled={isLoading}
-                >
-                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify & Register"}
-                </Button>
+                {/* --- Step 1: User Details --- */}
+                {step === 1 && (
+                  <>
+                    <h2 className="text-2xl font-bold text-center mb-4 text-white">
+                      Create Account
+                    </h2>
+                    <form onSubmit={handleSendOtp} className="space-y-3">
+                      {/* Username Field */}
+                      <div>
+                        <Label htmlFor="username" className="text-white text-sm mb-2 block font-medium">
+                          Username
+                        </Label>
+                        <Input
+                          id="username"
+                          type="text"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          className="w-full rounded-lg bg-white/10 backdrop-blur-sm text-white placeholder:text-white/60 px-4 py-3 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 focus-visible:ring-2 focus-visible:ring-white/50 transition-all"
+                          required
+                          disabled={isLoading}
+                        />
+                      </div>
 
-                <Button
-                  type="button"
-                  variant="link"
-                  className="w-full text-muted-foreground"
-                  onClick={() => setStep(1)}
-                  disabled={isLoading}
-                >
-                  Go Back
-                </Button>
-              </form>
-            </>
-          )}
+                      {/* Email Field */}
+                      <div>
+                        <Label htmlFor="email" className="text-white text-sm mb-2 block font-medium">
+                          Email
+                        </Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full rounded-lg bg-white/10 backdrop-blur-sm text-white placeholder:text-white/60 px-4 py-3 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 focus-visible:ring-2 focus-visible:ring-white/50 transition-all"
+                          required
+                          disabled={isLoading}
+                        />
+                      </div>
 
-          {/* Login Link (unchanged) */}
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            Already have an account?{" "}
-            <Link
-              to="/login"
-              className="text-sm font-semibold bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF] bg-clip-text text-transparent hover:underline hover:brightness-125 drop-shadow-sm transition duration-150 ease-out focus:outline-none"
-            >
-              Login
-            </Link>
-          </p>
-        </div>
+                      {/* Password Field */}
+                      <div>
+                        <Label htmlFor="password" className="text-white text-sm mb-2 block font-medium">
+                          Password
+                        </Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          onInvalid={(e) => {
+                            e.target.setCustomValidity('Password must be at least 8 characters long');
+                          }}
+                          onInput={(e) => {
+                            e.target.setCustomValidity('');
+                          }}
+                          className="w-full rounded-lg bg-white/10 backdrop-blur-sm text-white placeholder:text-white/60 px-4 py-3 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 focus-visible:ring-2 focus-visible:ring-white/50 transition-all"
+                          minLength={8}
+                          required
+                          disabled={isLoading}
+                        />
+                      </div>
+
+                      {/* Confirm Password Field */}
+                      <div>
+                        <Label htmlFor="confirmPassword" className="text-white text-sm mb-2 block font-medium">
+                          Confirm Password
+                        </Label>
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          onInvalid={(e) => {
+                            e.target.setCustomValidity('Password must be at least 8 characters long');
+                          }}
+                          onInput={(e) => {
+                            e.target.setCustomValidity('');
+                          }}
+                          className="w-full rounded-lg bg-white/10 backdrop-blur-sm text-white placeholder:text-white/60 px-4 py-3 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 focus-visible:ring-2 focus-visible:ring-white/50 transition-all mb-2"
+                          minLength={8}
+                          required
+                          disabled={isLoading}
+                        />
+                      </div>
+
+                      <Button
+                        type="submit"
+                        className="w-full gradient-sidebar text-white font-bold rounded-xl py-5 text-base mt-4"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send OTP"}
+                      </Button>
+                    </form>
+                  </>
+                )}
+
+                {/* --- Step 2: OTP Verification --- */}
+                {step === 2 && (
+                  <>
+                    <h2 className="text-2xl font-bold text-center mb-4 text-white">
+                      Verify Your Email
+                    </h2>
+                    <p className="text-center text-sm text-white/80 mb-6">
+                      A 6-digit OTP was sent to {email}.
+                    </p>
+                    <form onSubmit={handleVerify} className="space-y-4">
+                      {/* OTP Field */}
+                      <div>
+                        <Label htmlFor="otp" className="text-white text-sm mb-2 block font-medium">
+                          6-Digit OTP
+                        </Label>
+                        <Input
+                          id="otp"
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value)}
+                          className="w-full rounded-lg bg-white/10 backdrop-blur-sm text-white text-center text-lg tracking-[0.3em] placeholder:text-white/60 px-4 py-3 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 focus-visible:ring-2 focus-visible:ring-white/50 transition-all"
+                          required
+                          disabled={isLoading}
+                        />
+                      </div>
+                      
+                      <Button
+                        type="submit"
+                        className="w-full gradient-sidebar text-white font-bold rounded-xl py-5 text-base mt-2"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify & Register"}
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="w-full text-white/80 hover:text-white"
+                        onClick={() => setStep(1)}
+                        disabled={isLoading}
+                      >
+                        Go Back
+                      </Button>
+                    </form>
+                  </>
+                )}
+
+                {/* Login Link */}
+                <p className="text-center text-sm text-white/80 mt-6">
+                  Already have an account?{" "}
+                  <Link
+                    to="/login"
+                    className="text-sm font-semibold bg-gradient-to-r from-[#6B4BFF] to-[#C9A8FF] bg-clip-text text-transparent hover:underline hover:brightness-125 drop-shadow-sm transition duration-150 ease-out focus:outline-none"
+                  >
+                    Login
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </div>
+        </BackgroundGradientAnimation>
       </div>
-    </div>
+    </>
   );
 }
