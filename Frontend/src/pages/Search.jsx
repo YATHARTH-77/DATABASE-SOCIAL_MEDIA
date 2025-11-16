@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, SearchIcon, Hash, User } from "lucide-react";
 
 // --- Base URL for our API ---
-const API_URL = "http://localhost:5000";
+const API_URL = "https://backend-sm-seven.vercel.app";
 
 // --- Helper Component for User Cards (MODIFIED) ---
 function UserCard({ user, onUserClick }) {

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, ChevronLeft, ChevronRight, Heart, ArrowLeft, Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "https://backend-sm-seven.vercel.app";
 
 // Format timestamp to relative time (e.g., "2h ago", "5m ago")
 const formatTimestamp = (timestamp) => {
