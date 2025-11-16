@@ -17,7 +17,7 @@ function UserCard({ user, onUserClick }) {
     >
       <div className="flex items-center gap-3 min-w-0">
         <Avatar className="w-10 h-10">
-          <AvatarImage src={user.profile_pic_url ? `${API_URL}${user.profile_pic_url}` : ''} />
+          <AvatarImage src={user.profile_pic_url ||''} />
           <AvatarFallback className="bg-[#5A0395] text-white">{user.username[0].toUpperCase()}</AvatarFallback>
         </Avatar>
         <div className="min-w-0">

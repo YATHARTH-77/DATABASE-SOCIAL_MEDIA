@@ -238,7 +238,7 @@ export default function HashtagPosts() {
                     onClick={() => handleUserClick(post.username)}
                   >
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={post.profile_pic_url ? `${API_URL}${post.profile_pic_url}` : ''} />
+                      <AvatarImage src={post.profile_pic_url ||''} />
                       <AvatarFallback className="bg-blue-500 text-white">
                         {post.username[0].toUpperCase()}
                       </AvatarFallback>
