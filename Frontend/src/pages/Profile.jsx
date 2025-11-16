@@ -12,7 +12,7 @@ import { FollowerModal } from "@/components/FollowerModal";
 import { useToast } from "@/hooks/use-toast";
 
 // --- Base URL (Dynamic for Deployment) ---
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "https://backend-socialmedia-omega.vercel.app/";
 
 // ⭐️ --- ViewHighlightModal Component --- ⭐️
 function ViewHighlightModal({ stories, onClose }) {

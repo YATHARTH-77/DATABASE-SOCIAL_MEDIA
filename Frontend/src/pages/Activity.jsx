@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Heart, MessageCircle, UserPlus, Bookmark, Loader2, AtSign } from "lucide-react";
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://backend-socialmedia-omega.vercel.app/";
 
 // --- Helper: Format timestamp (e.g., "5m ago") ---
 function formatTimeAgo(dateString) {

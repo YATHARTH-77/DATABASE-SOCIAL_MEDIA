@@ -40,7 +40,7 @@ export default function Register() {
     setIsLoading(true);
     try {
       // We only need to send username and email to check for duplicates and send the OTP
-      const res = await fetch("http://localhost:5000/api/register/send-otp", {
+      const res = await fetch("https://backend-socialmedia-omega.vercel.app//api/register/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email }),
@@ -77,7 +77,7 @@ export default function Register() {
     setIsLoading(true);
     try {
       // Now we send all the data, including the password and OTP
-      const res = await fetch("http://localhost:5000/api/register/verify", {
+      const res = await fetch("https://backend-socialmedia-omega.vercel.app//api/register/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, password, otp }),
