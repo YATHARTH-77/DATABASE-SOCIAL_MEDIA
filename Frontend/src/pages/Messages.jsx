@@ -199,7 +199,7 @@ export default function Messages() {
                       aria-label={`Open profile for ${conversation.name}`}
                       title={`View ${conversation.name}`}
                     >
-                      <AvatarImage src={conversation.profile_pic_url ? `${API_URL}${conversation.profile_pic_url}` : ''} />
+                      <AvatarImage src={conversation.profile_pic_url ||''} />
                       <AvatarFallback className="bg-[#5A0395] text-white">
                         {conversation.name[0].toUpperCase()}
                       </AvatarFallback>

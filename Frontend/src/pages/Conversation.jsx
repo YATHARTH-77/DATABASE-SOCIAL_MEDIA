@@ -150,7 +150,7 @@ export default function Conversation() {
                     aria-label={`Open profile for ${otherUser.username}`}
                   >
                     <AvatarImage
-                      src={otherUser.profile_pic_url ? `${API_URL}${otherUser.profile_pic_url}` : ''}
+                      src={otherUser.profile_pic_url ||''}
                     />
                     <AvatarFallback className="bg-white text-primary">
                       {otherUser.username[0].toUpperCase()}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const API_URL = "http://localhost:5000";
@@ -14,6 +14,7 @@ const API_URL = "http://localhost:5000";
 export default function EditProfile() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const fileInputRef = useRef(null);
 
   const [user, setUser] = useState(null);
   const [profileData, setProfileData] = useState(null);
@@ -21,8 +22,9 @@ export default function EditProfile() {
   const [bio, setBio] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingPic, setIsUploadingPic] = useState(false);
 
-  // 1. Get Logged-in User
+  // Get Logged-in User
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
@@ -32,7 +34,7 @@ export default function EditProfile() {
     }
   }, [navigate]);
 
-  // 2. Fetch current profile data
+  // Fetch current profile data
   useEffect(() => {
     if (!user) return;
 
@@ -58,7 +60,64 @@ export default function EditProfile() {
     fetchProfile();
   }, [user, toast]);
 
-  // 3. Handle Save
+  // Handle Profile Picture Upload
+  const handleProfilePicChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({ 
+        title: "Invalid File", 
+        description: "Please upload an image file.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ 
+        title: "File Too Large", 
+        description: "Please upload an image under 5MB.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    setIsUploadingPic(true);
+    const formData = new FormData();
+    formData.append('profilePic', file);
+    
+    try {
+      const res = await fetch(`${API_URL}/api/profile/${user.id}/picture`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        // Update local profile data
+        setProfileData(prev => ({
+          ...prev,
+          profile_pic_url: data.profile_pic_url
+        }));
+        toast({ title: "Success!", description: "Profile picture updated!" });
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (err) {
+      toast({ 
+        title: "Upload Failed", 
+        description: err.message || "Failed to upload profile picture.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsUploadingPic(false);
+    }
+  };
+
+  // Handle Save Profile Info
   const handleSave = async (e) => {
     e.preventDefault();
     if (!user) return;
@@ -79,7 +138,7 @@ export default function EditProfile() {
         throw new Error(data.message);
       }
     } catch (err) {
-      toast({ title: "Error", description: "Failed to save profile.", variant: "destructive" });
+      toast({ title: "Error", description: err.message || "Failed to save profile.", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -114,19 +173,37 @@ export default function EditProfile() {
             <form onSubmit={handleSave}>
               <div className="p-6 space-y-6 bg-white">
                 <div className="flex flex-col items-center gap-4">
-                  <Avatar className="w-24 h-24 border-2 border-purple-200">
-                    <AvatarImage src={profileData.profile_pic_url ? `${API_URL}${profileData.profile_pic_url}` : ''} />
-                    <AvatarFallback className="bg-[#5A0395] text-white text-3xl">
-                      {profileData.username[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="w-24 h-24 border-2 border-purple-200">
+                      <AvatarImage src={profileData.profile_pic_url || ''} />
+                      <AvatarFallback className="bg-[#5A0395] text-white text-3xl">
+                        {profileData.username[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {isUploadingPic && (
+                      <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                        <Loader2 className="w-6 h-6 text-white animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleProfilePicChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  
                   <Button 
                     variant="outline" 
                     type="button" 
-                    onClick={() => toast({title: "Not Implemented"})}
-                    className="border-purple-300 text-[#5A0395] hover:bg-purple-100"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingPic}
+                    className="border-purple-300 text-[#5A0395] hover:bg-purple-100 gap-2"
                   >
-                    Change Photo
+                    <Camera className="w-4 h-4" />
+                    {isUploadingPic ? "Uploading..." : "Change Photo"}
                   </Button>
                 </div>
                 
@@ -139,7 +216,7 @@ export default function EditProfile() {
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Your display name"
                     autoComplete="off"
-                    className="border-purple-300 focus-visible:ring-purple-400 focus-visible:ring-offset-0 bg-white [&:-webkit-autofill]:!bg-white [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0px_1000px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:inherit]"
+                    className="border-purple-300 focus-visible:ring-purple-400 focus-visible:ring-offset-0 bg-white"
                   />
                 </div>
                 

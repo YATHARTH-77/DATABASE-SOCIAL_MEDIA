@@ -198,7 +198,7 @@ export default function Activity() {
                   >
                     <div className="relative">
                       <Avatar className="w-12 h-12 border-2 border-purple-200">
-                        <AvatarImage src={activity.actor_pic ? `${API_URL}${activity.actor_pic}` : ''} />
+                        <AvatarImage src={activity.actor_pic||''} />
                         <AvatarFallback className="bg-[#5A0395] text-white">
                           {activity.actor_username[0].toUpperCase()}
                         </AvatarFallback>
