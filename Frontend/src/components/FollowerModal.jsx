@@ -63,7 +63,7 @@ export function FollowerModal({ type, users, onClose, onRemoveFollower, onUnfoll
                     }}
                   >
                     <Avatar className="w-10 h-10 flex-shrink-0">
-                      <AvatarImage src={user.profile_pic_url ? `${API_URL}${user.profile_pic_url}` : ''} />
+                      <AvatarImage src={user.profile_pic_url || ''} />
                       <AvatarFallback className="bg-[#5A0395] text-white text-sm">
                         {user.username[0].toUpperCase()}
                       </AvatarFallback>
