@@ -8,13 +8,13 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 0%;
+    --background: 255 43% 8%; /* #0E0B1F */
     --foreground: 0 0% 100%;
 
-    --card: 0 0% 6%;
+    --card: 240 100% 30%;
     --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 6%;
+    --popover: 240 100% 30%;
     --popover-foreground: 0 0% 100%;
 
     /* Blue to Green to Gold gradient theme */
@@ -28,7 +28,7 @@ All colors MUST be HSL.
     --secondary: 120 61% 50%; /* Lime Green accent */
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 10%;
+    --muted: 240 28% 15%;
     --muted-foreground: 0 0% 60%;
 
     --accent: 51 100% 50%; /* Gold */
@@ -37,8 +37,8 @@ All colors MUST be HSL.
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 12%;
+    --border: 240 28% 20%;
+    --input: 240 28% 13%;
     --ring: 195 100% 50%;
 
     --radius: 0.75rem;
@@ -55,13 +55,13 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 0 0% 0%;
+    --background: 255 43% 8%; /* #0E0B1F */
     --foreground: 0 0% 100%;
 
-    --card: 0 0% 6%;
+    --card: 240 100% 30%;
     --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 6%;
+    --popover: 240 100% 30%;
     --popover-foreground: 0 0% 100%;
 
     --primary: 195 100% 50%;
@@ -74,7 +74,7 @@ All colors MUST be HSL.
     --secondary: 120 61% 50%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 10%;
+    --muted: 240 28% 15%;
     --muted-foreground: 0 0% 60%;
 
     --accent: 51 100% 50%;
@@ -83,8 +83,8 @@ All colors MUST be HSL.
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 12%;
+    --border: 240 28% 20%;
+    --input: 240 28% 13%;
     --ring: 195 100% 50%;
 
     --sidebar-background: 195 100% 50%;
@@ -99,13 +99,13 @@ All colors MUST be HSL.
   
   /* Light theme override: when `light` class is present on root, use light tokens */
   .light {
-    --background: 0 0% 100%;
+    --background: 210 40% 98%;
     --foreground: 0 0% 10%;
 
-    --card: 0 0% 100%;
+    --card: 210 40% 99%;
     --card-foreground: 0 0% 10%;
 
-    --popover: 0 0% 100%;
+    --popover: 210 40% 99%;
     --popover-foreground: 0 0% 10%;
 
     --primary: 195 100% 50%;
@@ -118,7 +118,7 @@ All colors MUST be HSL.
     --secondary: 120 61% 50%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 96%;
+    --muted: 210 40% 96%;
     --muted-foreground: 0 0% 45%;
 
     --accent: 51 100% 50%;
@@ -127,8 +127,8 @@ All colors MUST be HSL.
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
+    --border: 210 30% 90%;
+    --input: 210 30% 95%;
     --ring: 195 100% 50%;
 
     --sidebar-background: 195 100% 50%;
