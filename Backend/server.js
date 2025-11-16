@@ -1004,6 +1004,7 @@ app.post("/api/messages", async (req, res) => {
 
 // --- Profile Routes ---
 // --- Profile Route (FIXED: Added like_count & comment_count) ---
+// --- Profile Route (FIXED: Fetches Like & Comment Counts) ---
 app.get("/api/profile/:username", async (req, res) => {
   const { username } = req.params;
   const { loggedInUserId } = req.query;
@@ -1014,42 +1015,40 @@ app.get("/api/profile/:username", async (req, res) => {
 
     const [following] = await db.query("SELECT COUNT(*) as c FROM FOLLOW WHERE follower_id = ?", [user.user_id]);
     
-    // ⭐️ FIX: Added line 4 and 5 to count Likes and Comments
+    // 1. Get User's Posts (With Like & Comment Counts)
     const [posts] = await db.query(
       `SELECT p.post_id, p.caption, 
        CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
        (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url,
        (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count,
-       (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count
+       (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count,
+       EXISTS(SELECT 1 FROM POST_LIKE pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_has_liked,
+       EXISTS(SELECT 1 FROM Saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?) AS user_has_saved
        FROM POST p 
        WHERE p.user_id = ? 
        ORDER BY created_at DESC`, 
-      [user.user_id]
+      [loggedInUserId, loggedInUserId, user.user_id]
     );
     
-    const [h] = await db.query(
-      `SELECT h.highlight_id, h.title, s.media_url AS cover_media_url 
-       FROM HIGHLIGHT h 
-       LEFT JOIN STORY s ON h.cover_story_id = s.story_id 
-       WHERE h.user_id = ? 
-       ORDER BY h.created_at ASC`, 
-      [user.user_id]
-    );
-    const highlights = h;
+    // 2. Get Highlights
+    const [h] = await db.query(`SELECT h.highlight_id, h.title, s.media_url AS cover_media_url FROM HIGHLIGHT h LEFT JOIN STORY s ON h.cover_story_id = s.story_id WHERE h.user_id = ? ORDER BY h.created_at ASC`, [user.user_id]);
 
+    // 3. Get Saved Posts (With Like & Comment Counts)
     let saved = [];
     if (user.user_id == loggedInUserId) {
        const [s] = await db.query(
          `SELECT p.post_id, p.caption, 
-          CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at, 
+          CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
           (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url,
           (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count,
-          (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count
+          (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count,
+          EXISTS(SELECT 1 FROM POST_LIKE pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_has_liked,
+          EXISTS(SELECT 1 FROM Saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?) AS user_has_saved
           FROM Saved_posts sp 
           JOIN POST p ON sp.post_id = p.post_id 
           WHERE sp.user_id = ? 
           ORDER BY sp.created_at DESC`, 
-         [user.user_id]
+         [loggedInUserId, loggedInUserId, user.user_id]
        );
        saved = s;
     }
@@ -1059,9 +1058,9 @@ app.get("/api/profile/:username", async (req, res) => {
     res.json({
       success: true,
       user: { ...user, following_count: following[0].c, post_count: posts.length, isFollowing: isF.length > 0 },
-      posts,
-      savedPosts: saved,
-      highlights: highlights
+      posts: posts.map(p => ({...p, user_has_liked: !!p.user_has_liked, user_has_saved: !!p.user_has_saved})),
+      savedPosts: saved.map(p => ({...p, user_has_liked: !!p.user_has_liked, user_has_saved: !!p.user_has_saved})),
+      highlights: h
     });
   } catch (err) {
     console.error("Profile error:", err);

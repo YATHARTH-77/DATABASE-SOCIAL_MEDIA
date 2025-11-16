@@ -7,7 +7,7 @@ import { ArrowLeft, Grid, Loader2, Bookmark, Settings, UserPen, LogOut, Trash2, 
 import { PostDetailModal } from "@/components/PostDetailModal";
 import { FollowerModal } from "@/components/FollowerModal";
 import { StoryViewer } from "@/components/StoryViewer";
-import { CreateHighlightModal } from "@/components/CreateHighlightModal"; // Ensure this is imported
+import { CreateHighlightModal } from "@/components/CreateHighlightModal";
 import { useToast } from "@/hooks/use-toast";
 
 // --- Base URL (Dynamic for Deployment) ---
@@ -36,7 +36,6 @@ export default function UserProfile() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState(null);
-  const [likedPosts, setLikedPosts] = useState([]); 
   const [savedPosts, setSavedPosts] = useState([]); 
   const [modalType, setModalType] = useState(null);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -51,7 +50,7 @@ export default function UserProfile() {
     }
   }, [navigate]);
 
-  // --- Fetch All Profile Data ---
+  // --- Fetch Profile ---
   useEffect(() => {
     if (!user || !username) return; 
     if (user.username === username) {
@@ -62,34 +61,30 @@ export default function UserProfile() {
     const fetchProfile = async () => {
       setIsLoading(true);
       try {
-        // 1. Fetch Main Profile Data (Which includes Highlights now!)
-        const profileRes = await fetch(`${API_URL}/api/profile/${username}?loggedInUserId=${user.id}`);
+        const [profileRes, highlightsRes] = await Promise.all([
+           fetch(`${API_URL}/api/profile/${username}?loggedInUserId=${user.id}`),
+           fetch(`${API_URL}/api/profile/${username}/highlights`)
+        ]);
         
         if (profileRes.status === 404) {
-             toast({ title: "User not found", description: "This user does not exist.", variant: "destructive" });
+             toast({ title: "User not found", variant: "destructive" });
              navigate("/home");
              return;
         }
         
-        if (!profileRes.ok) throw new Error(`Server error: ${profileRes.status}`);
-        
         const profileJson = await profileRes.json();
+        let highlightsJson = { success: false, highlights: [] };
+        if (highlightsRes.ok) highlightsJson = await highlightsRes.json();
         
         if (profileJson.success) {
           setProfileData(profileJson.user);
           setPosts(profileJson.posts);
           setSavedPosts(profileJson.savedPosts || []); 
-          // FIX: Get highlights directly from the profile response
-          setHighlights(profileJson.highlights || []); 
-        } else {
-          throw new Error(profileJson.message);
+          setHighlights(highlightsJson.highlights || []); 
         }
-        
       } catch (err) {
         console.error(err);
-        if (err.message !== "Server error: 404") {
-             toast({ title: "Error", description: "Could not load profile.", variant: "destructive" });
-        }
+        if (err.message !== "Server error: 404") toast({ title: "Error", description: "Could not load profile." });
       } finally {
         setIsLoading(false);
       }
@@ -100,51 +95,87 @@ export default function UserProfile() {
   const openFollowModal = async (type) => {
     if (!profileData) return;
     setModalType(type);
+    if (type === 'followers') setFollowers([]); else setFollowing([]);
     
-    if (type === 'followers') setFollowers([]);
-    else setFollowing([]);
-    
-    const endpoint = type === 'followers' ? 'followers' : 'following';
     try {
-      const res = await fetch(`${API_URL}/api/profile/${profileData.user_id}/${endpoint}`);
+      const res = await fetch(`${API_URL}/api/profile/${profileData.user_id}/${type}`);
       const data = await res.json();
-      if (data.success) {
-        if (type === 'followers') setFollowers(data.followers);
-        if (type === 'following') setFollowing(data.following);
-      }
-    } catch (err) {
-      console.error(`Failed to fetch ${type}`, err);
-    }
+      if (data.success) type === 'followers' ? setFollowers(data.followers) : setFollowing(data.following);
+    } catch (err) { console.error(err); }
   };
   
   const handleFollowToggle = async () => {
     if (!user || !profileData) return;
-    const isCurrentlyFollowing = profileData.isFollowing;
-    setProfileData(prev => ({
-      ...prev,
-      isFollowing: !isCurrentlyFollowing,
-      follower_count: isCurrentlyFollowing ? prev.follower_count - 1 : prev.follower_count + 1
-    }));
+    const isFollowing = profileData.isFollowing;
+    // Optimistic update
+    setProfileData(prev => ({ ...prev, isFollowing: !isFollowing, follower_count: isFollowing ? prev.follower_count - 1 : prev.follower_count + 1 }));
+    
     try {
       const res = await fetch(`${API_URL}/api/follow`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ followerId: user.id, followingId: profileData.user_id })
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
+      if (!res.ok) throw new Error();
     } catch (err) {
-      setProfileData(prev => ({
-        ...prev,
-        isFollowing: isCurrentlyFollowing,
-        follower_count: isCurrentlyFollowing ? prev.follower_count + 1 : prev.follower_count - 1
-      }));
-      toast({ title: "Error", description: "Failed to follow/unfollow", variant: "destructive" });
+      // Revert
+      setProfileData(prev => ({ ...prev, isFollowing: isFollowing, follower_count: isFollowing ? prev.follower_count + 1 : prev.follower_count - 1 }));
+      toast({ title: "Error", description: "Failed to follow", variant: "destructive" });
     }
   };
-  
-  const handleLike = (postId) => { /* Logic handled in modal usually */ };
-  const handleSave = (postId) => { /* Logic handled in modal usually */ };
+
+  // --- LIKE & SAVE HANDLERS (Fixed) ---
+  const handleLike = async (postId) => {
+    if (!user) return;
+    
+    // Helper to update posts array
+    const updatePosts = (postList) => postList.map(p => {
+      if (p.post_id === postId) {
+         const isLiked = p.user_has_liked;
+         return { ...p, user_has_liked: !isLiked, like_count: isLiked ? p.like_count - 1 : p.like_count + 1 };
+      }
+      return p;
+    });
+
+    // Update state locally first
+    setPosts(prev => updatePosts(prev));
+    setSavedPosts(prev => updatePosts(prev));
+    if (selectedPost && selectedPost.post_id === postId) {
+        setSelectedPost(prev => ({ 
+           ...prev, 
+           user_has_liked: !prev.user_has_liked, 
+           like_count: prev.user_has_liked ? prev.like_count - 1 : prev.like_count + 1 
+        }));
+    }
+
+    // API Call
+    try {
+      await fetch(`${API_URL}/api/posts/like`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, postId })
+      });
+    } catch (err) { console.error("Like failed", err); }
+  };
+
+  const handleSave = async (postId) => {
+    if (!user) return;
+    
+    const updatePosts = (postList) => postList.map(p => 
+       p.post_id === postId ? { ...p, user_has_saved: !p.user_has_saved } : p
+    );
+
+    setPosts(prev => updatePosts(prev));
+    setSavedPosts(prev => updatePosts(prev)); // Note: Real saved list logic might imply removing/adding, but toggling flag is safer for UI stability here
+    if (selectedPost && selectedPost.post_id === postId) {
+        setSelectedPost(prev => ({ ...prev, user_has_saved: !prev.user_has_saved }));
+    }
+
+    try {
+      await fetch(`${API_URL}/api/posts/save`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, postId })
+      });
+    } catch (err) { console.error("Save failed", err); }
+  };
 
   const handleUserClick = (navUsername) => {
     if (navUsername && username && navUsername.toLowerCase() !== username.toLowerCase()) {
@@ -160,59 +191,44 @@ export default function UserProfile() {
       const data = await res.json();
       if (data.success) {
         const storiesForViewer = data.stories.map(s => ({
-          id: s.story_id,
-          username: s.username,
-          avatar: s.profile_pic_url,
-          src: s.media_url, 
-          type: s.media_type && s.media_type.startsWith('video') ? 'video' : 'photo',
-          timestamp: s.created_at,
+          id: s.story_id, username: s.username, avatar: s.profile_pic_url, src: s.media_url, 
+          type: s.media_type?.startsWith('video') ? 'video' : 'photo', timestamp: s.created_at,
         }));
         setSelectedHighlightStories(storiesForViewer);
         setShowHighlightViewer(true);
-      } else {
-        throw new Error(data.message);
       }
-    } catch (err) {
-      toast({ title: "Error", description: "Could not load highlight.", variant: "destructive" });
-    }
+    } catch (err) { toast({ title: "Error", description: "Could not load highlight." }); }
   };
 
-  // Handlers for Owner Features (Settings, Create Highlight)
-  // Note: These won't show for other users because of the `isOwnProfile` check, but we keep the functions safe
+  // Owner Handlers (Safe even if hidden)
   const handleEditProfile = () => { setShowSettingsMenu(false); navigate("/profile/edit"); };
   const handleLogout = () => { setShowSettingsMenu(false); localStorage.removeItem('user'); navigate("/login"); };
-  const handleDeleteAccount = async () => { /* ... logic ... */ };
-
-  const handleOpenCreateHighlightModal = async () => {
-     /* Logic for owner only - fetched in Profile.jsx, but safe here */ 
+  const handleDeleteAccount = async () => { /* ... */ };
+  const handleOpenCreateHighlightModal = async () => { /* ... */ };
+  const handleDeletePost = (postId) => {
+     setPosts(prev => prev.filter(p => p.post_id !== postId));
+     setSavedPosts(prev => prev.filter(p => p.post_id !== postId));
+     setSelectedPost(null);
   };
 
+  // UI Helpers
   useEffect(() => {
-    if (selectedPost || modalType || showHighlightViewer) {
-      document.body.style.overflow = 'hidden';
-    }
+    if (selectedPost || modalType || showHighlightViewer) document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = 'unset'; };
   }, [selectedPost, modalType, showHighlightViewer]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
-        setShowSettingsMenu(false);
-      }
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) setShowSettingsMenu(false);
     };
     if (showSettingsMenu) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showSettingsMenu]);
 
   if (isLoading || !profileData) {
-    return (
-      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-primary animate-spin" />
-      </main>
-    );
+    return <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center"><Loader2 className="w-12 h-12 text-primary animate-spin" /></main>;
   }
 
-  // Determine if we are viewing our own profile (though this page is mostly for others)
   const isOwnProfile = user && user.username === profileData.username;
 
   return (
@@ -222,11 +238,12 @@ export default function UserProfile() {
           post={selectedPost}
           onClose={() => setSelectedPost(null)}
           onUserClick={handleUserClick}
-          variant="viewer"
-          isLiked={likedPosts.includes(selectedPost.post_id)}
-          isSaved={savedPosts.includes(selectedPost.post_id)}
+          variant={isOwnProfile ? "owner" : "viewer"}
+          isLiked={selectedPost.user_has_liked}
+          isSaved={selectedPost.user_has_saved}
           onLike={() => handleLike(selectedPost.post_id)}
           onSave={() => handleSave(selectedPost.post_id)}
+          onDelete={handleDeletePost}
         />
       )}
 
@@ -249,8 +266,6 @@ export default function UserProfile() {
           onClose={() => setShowHighlightViewer(false)}
         />
       )}
-
-      {/* We don't render CreateHighlightModal here because this is for VIEWING others */}
       
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -283,16 +298,17 @@ export default function UserProfile() {
                     <span className="text-[#5A0395] hover:text-[#1D0C69] transition-colors">following</span>
                   </button>
                 </div>
-                <Button
-                  onClick={handleFollowToggle}
-                  variant={profileData.isFollowing ? "outline" : "default"}
-                  className={!profileData.isFollowing ? "bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white hover:opacity-90" : "border-[#5A0395] text-[#5A0395] hover:bg-purple-50"}
-                >
-                  {profileData.isFollowing ? "Unfollow" : "Follow"}
-                </Button>
+                {!isOwnProfile && (
+                    <Button
+                    onClick={handleFollowToggle}
+                    variant={profileData.isFollowing ? "outline" : "default"}
+                    className={!profileData.isFollowing ? "bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white hover:opacity-90" : "border-[#5A0395] text-[#5A0395] hover:bg-purple-50"}
+                    >
+                    {profileData.isFollowing ? "Unfollow" : "Follow"}
+                    </Button>
+                )}
               </div>
               
-              {/* Only show settings if for some reason we are on our own profile here */}
               {isOwnProfile && (
                  <div className="relative" ref={settingsMenuRef}>
                     <Button variant="ghost" size="icon" onClick={() => setShowSettingsMenu(!showSettingsMenu)}>
@@ -312,13 +328,11 @@ export default function UserProfile() {
               )}
             </div>
 
-            {/* --- Bio --- */}
             <div className="mb-6 p-4 bg-purple-50 rounded-xl border border-purple-200">
               <p className="font-semibold mb-1 text-[#1D0C69]">{profileData.full_name}</p>
               <p className="text-sm text-gray-600 break-words">{profileData.bio || "No bio available."}</p>
             </div>
             
-            {/* --- HIGHLIGHTS SECTION (FIXED) --- */}
             {highlights.length > 0 && (
               <div className="mb-6">
                 <h2 className="text-sm font-semibold text-[#5A0395] mb-3">Highlights</h2>
@@ -344,7 +358,6 @@ export default function UserProfile() {
               </div>
             )}
 
-            {/* --- Posts Grid --- */}
             <div className="border-t pt-6">
               <h2 className="text-lg font-bold mb-4 flex items-center text-[#1D0C69]">
                 <Grid className="w-4 h-4 mr-2" /> Posts
@@ -353,7 +366,7 @@ export default function UserProfile() {
                 {posts.map((post) => (
                   <div
                     key={post.post_id}
-                    onClick={() => setSelectedPost({ ...post, username: profileData.username })}
+                    onClick={() => setSelectedPost(post)}
                     className="aspect-square bg-muted rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-md relative group"
                   >
                     {post.media_url ? (
