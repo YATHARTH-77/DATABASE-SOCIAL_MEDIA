@@ -203,13 +203,13 @@ export default function Create() {
 
                 if (response.ok && result.success) {
                     setRepostMedia({
-                        url: `${API_URL}${result.story.media_url}`,
-                        type: result.story.media_type,
-                        owner_username: result.story.owner_username
-                    });
+                      url: result.story.media_url,  // ✅ No API_URL prefix (Cloudinary URL is complete)
+                      type: result.story.media_type,
+                      owner_username: result.story.username  // ✅ Change owner_username to username
+                  });
                     toast({
                       title: "Story Loaded",
-                      description: `Reposting ${result.story.owner_username}'s story.`,
+                      description: `Reposting ${result.story.username}'s story.`,
                     });
                 } else {
                     throw new Error(result.message || "Failed to fetch original story.");
@@ -407,23 +407,13 @@ export default function Create() {
     formData.append('user_id', user.id);
 
     try {
-      let fileToUpload;
-      
       if (momentFile) {
-        // Case 1: New file upload
-        fileToUpload = momentFile;
-      } else if (repostMedia) {
-        // Case 2: Reposting - Fetch the original media blob
-        toast({ title: "Processing Repost", description: "Preparing media..." });
-        const response = await fetch(repostMedia.url);
-        const blob = await response.blob();
-        
-        const filename = repostMedia.url.split('/').pop();
-        // Create a File object from the blob
-        fileToUpload = new File([blob], filename, { type: repostMedia.type });
-      }
-      
-      formData.append('media', fileToUpload);
+      // Case 1: New file upload
+      formData.append('media', momentFile);
+    } else if (repostMedia && repostStoryId) {
+      // Case 2: Reposting - just send the story ID
+      formData.append('repost_story_id', repostStoryId);
+    }
 
       if (storyTags) {
         formData.append('tags', storyTags);

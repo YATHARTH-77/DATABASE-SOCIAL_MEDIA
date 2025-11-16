@@ -691,34 +691,76 @@ app.delete("/api/posts/:postId", async (req, res) => {
   }
 });
 // --- Story Routes (UPDATED: Uses Cloudinary file.path) ---
+// --- Story Routes (UPDATED: Cloudinary + Repost Support) ---
 app.post("/api/stories/create", uploadStory.single('media'), async (req, res) => {
-  const { user_id, tags } = req.body;
+  const { user_id, tags, repost_story_id } = req.body;
   const file = req.file;
+  
   let conn;
   try {
     conn = await db.getConnection();
     await conn.beginTransaction();
     
-    // Cloudinary Change: Use file.path
-    const [sRes] = await conn.query(`INSERT INTO STORY (user_id, media_url, media_type, expires_at) VALUES (?, ?, ?, NOW() + INTERVAL 1 DAY)`, [user_id, file.path, file.mimetype]);
+    let mediaUrl, mediaType;
     
+    // If reposting, use original story's media
+    if (repost_story_id) {
+      const [originalStory] = await conn.query(
+        "SELECT media_url, media_type FROM STORY WHERE story_id = ?", 
+        [repost_story_id]
+      );
+      
+      if (originalStory.length === 0) {
+        await conn.rollback();
+        return res.status(404).json({ success: false, message: "Original story not found" });
+      }
+      
+      mediaUrl = originalStory[0].media_url;
+      mediaType = originalStory[0].media_type;
+    } else if (file) {
+      // New upload - Cloudinary
+      mediaUrl = file.path;
+      mediaType = file.mimetype;
+    } else {
+      await conn.rollback();
+      return res.status(400).json({ success: false, message: "No media provided" });
+    }
+    
+    // Insert story
+    const [sRes] = await conn.query(
+      `INSERT INTO STORY (user_id, media_url, media_type, expires_at) 
+       VALUES (?, ?, ?, NOW() + INTERVAL 1 DAY)`, 
+      [user_id, mediaUrl, mediaType]
+    );
+    
+    // Handle tags
     if (tags) {
       const usernames = tags.split(' ').map(t => t.trim()).filter(t => t);
       if (usernames.length > 0) {
-        const [users] = await conn.query("SELECT user_id FROM USER WHERE username IN (?)", [usernames]);
+        const [users] = await conn.query(
+          "SELECT user_id FROM USER WHERE username IN (?)", 
+          [usernames]
+        );
         if (users.length > 0) {
-           const tVals = users.map(u => [sRes.insertId, u.user_id]);
-           await conn.query("INSERT INTO STORY_TAG (story_id, tagged_user_id) VALUES ?", [tVals]);
+          const tVals = users.map(u => [sRes.insertId, u.user_id]);
+          await conn.query(
+            "INSERT INTO STORY_TAG (story_id, tagged_user_id) VALUES ?", 
+            [tVals]
+          );
         }
       }
     }
+    
     await conn.commit();
     res.status(201).json({ success: true, message: "Story created!" });
+    
   } catch (err) {
     if (conn) await conn.rollback();
-    console.error(err);
+    console.error("Create Story Error:", err);
     res.status(500).json({ success: false, message: "Server error" });
-  } finally { if (conn) conn.release(); }
+  } finally { 
+    if (conn) conn.release(); 
+  }
 });
 app.get("/api/stories/archive", async (req, res) => {
   const { userId } = req.query;
