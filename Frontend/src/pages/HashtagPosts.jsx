@@ -217,7 +217,7 @@ export default function HashtagPosts() {
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-2xl mx-auto space-y-6">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="hover:bg-purple-200">
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
