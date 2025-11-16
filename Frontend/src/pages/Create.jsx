@@ -44,7 +44,7 @@ function EmojiPicker({ onEmojiSelect, onClose }) {
   return (
     <div 
       ref={pickerRef}
-      className="absolute bottom-12 left-0 bg-white border-2 border-purple-300 rounded-lg shadow-lg p-3 z-20 w-72 max-h-48 overflow-y-auto emoji-picker-scrollbar"
+      className="absolute bottom-12 left-0 bg-white border-2 border-purple-300 rounded-lg shadow-lg p-2 sm:p-3 z-20 w-60 sm:w-72 max-h-40 sm:max-h-48 overflow-y-auto emoji-picker-scrollbar"
       style={{
         scrollbarWidth: 'thin',
         scrollbarColor: '#9333ea #f3e8ff'
@@ -52,7 +52,7 @@ function EmojiPicker({ onEmojiSelect, onClose }) {
     >
       <style>{`
         .emoji-picker-scrollbar::-webkit-scrollbar {
-          width: 8px;
+          width: 6px;
         }
         
         .emoji-picker-scrollbar::-webkit-scrollbar-track {
@@ -69,13 +69,13 @@ function EmojiPicker({ onEmojiSelect, onClose }) {
           background: #7e22ce;
         }
       `}</style>
-      <div className="grid grid-cols-8 gap-1">
+      <div className="grid grid-cols-6 sm:grid-cols-8 gap-0.5 sm:gap-1">
         {EMOJI_LIST.map((emoji, index) => (
           <button
             key={index}
             type="button"
             onClick={() => onEmojiSelect(emoji)}
-            className="text-2xl hover:bg-purple-100 rounded p-1 transition-colors flex items-center justify-center"
+            className="text-xl sm:text-2xl hover:bg-purple-100 rounded p-0.5 sm:p-1 transition-colors flex items-center justify-center"
           >
             {emoji}
           </button>
@@ -116,7 +116,7 @@ function MediaPreview({ fileUrl, fileType, onRemove }) {
   const isVideo = fileType && fileType.startsWith("video/");
   
   return (
-    <div className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 border-2 border-purple-200">
+    <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden flex-shrink-0 border-2 border-purple-200">
       {isVideo ? (
         <video src={fileUrl} className="w-full h-full object-cover" />
       ) : (
@@ -125,10 +125,10 @@ function MediaPreview({ fileUrl, fileType, onRemove }) {
       <Button
         variant="destructive"
         size="icon"
-        className="absolute top-1 right-1 h-6 w-6 rounded-full"
+        className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 h-5 w-5 sm:h-6 sm:w-6 rounded-full"
         onClick={onRemove}
       >
-        <X className="w-4 h-4" />
+        <X className="w-3 h-3 sm:w-4 sm:h-4" />
       </Button>
     </div>
   );
@@ -203,9 +203,9 @@ export default function Create() {
 
                 if (response.ok && result.success) {
                     setRepostMedia({
-                      url: result.story.media_url,  // ✅ No API_URL prefix (Cloudinary URL is complete)
+                      url: result.story.media_url,
                       type: result.story.media_type,
-                      owner_username: result.story.username  // ✅ Change owner_username to username
+                      owner_username: result.story.username
                   });
                     toast({
                       title: "Story Loaded",
@@ -440,8 +440,8 @@ export default function Create() {
   
   if (!user || repostLoading) {
     return (
-      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-[#5A0395] animate-spin" />
+      <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 md:ml-64 lg:ml-72 xl:ml-80 2xl:ml-[22rem] pb-20 md:pb-8 flex items-center justify-center min-h-screen">
+        <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 text-[#5A0395] animate-spin" />
       </main>
     );
   }
@@ -451,7 +451,7 @@ export default function Create() {
 
   return (
     <>
-      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
+      <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 md:ml-64 lg:ml-72 xl:ml-80 2xl:ml-[22rem] pb-20 md:pb-8 transition-all duration-300">
         <div className="max-w-2xl mx-auto">
           <Tabs value={tabParam} onValueChange={(value) => {
              // Clear repost_id when switching away from moment tab
@@ -462,18 +462,18 @@ export default function Create() {
                navigate(url, { replace: true });
              }
           }} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6 bg-gradient-to-r from-purple-100 to-purple-50 border-2 border-purple-300">
-              <TabsTrigger value="post" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#1D0C69] data-[state=active]:to-[#5A0395] data-[state=active]:text-white">Create Post</TabsTrigger>
-              <TabsTrigger value="moment" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#1D0C69] data-[state=active]:to-[#5A0395] data-[state=active]:text-white">Create Moment</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6 bg-gradient-to-r from-purple-100 to-purple-50 border-2 border-purple-300">
+              <TabsTrigger value="post" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#1D0C69] data-[state=active]:to-[#5A0395] data-[state=active]:text-white">Create Post</TabsTrigger>
+              <TabsTrigger value="moment" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#1D0C69] data-[state=active]:to-[#5A0395] data-[state=active]:text-white">Create Moment</TabsTrigger>
             </TabsList>
 
             {/* --- POST TAB --- */}
             <TabsContent value="post">
               <Card className="shadow-lg overflow-hidden border-2 border-purple-300">
-                <div className="p-6 border-b-2 border-purple-300 bg-gradient-to-r from-[#1D0C69] to-[#5A0395]">
-                  <h1 className="text-2xl font-bold text-white">Create New Post</h1>
+                <div className="p-4 sm:p-5 md:p-6 border-b-2 border-purple-300 bg-gradient-to-r from-[#1D0C69] to-[#5A0395]">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white">Create New Post</h1>
                 </div>
-                <div className="p-6 space-y-6 bg-white">
+                <div className="p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-5 md:space-y-6 bg-white">
                   <input
                     type="file"
                     multiple
@@ -484,19 +484,19 @@ export default function Create() {
                   />
                   <div
                     onClick={() => postInputRef.current.click()}
-                    className="border-2 border-dashed border-purple-300 rounded-xl p-6 text-center hover:border-[#5A0395] transition-colors cursor-pointer bg-gradient-to-br from-purple-50 to-purple-100 md:p-12"
+                    className="border-2 border-dashed border-purple-300 rounded-xl p-4 sm:p-6 md:p-8 lg:p-12 text-center hover:border-[#5A0395] transition-colors cursor-pointer bg-gradient-to-br from-purple-50 to-purple-100"
                   >
-                    <div className="flex justify-center gap-4 mb-4">
-                      <Image className="w-12 h-12 text-[#5A0395]" />
-                      <Film className="w-12 h-12 text-[#5A0395]" />
+                    <div className="flex justify-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                      <Image className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-[#5A0395]" />
+                      <Film className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-[#5A0395]" />
                     </div>
-                    <p className="text-lg font-semibold mb-2 text-[#1D0C69]">Upload Media</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-base sm:text-lg font-semibold mb-1 sm:mb-2 text-[#1D0C69]">Upload Media</p>
+                    <p className="text-xs sm:text-sm text-gray-600">
                       All image & video formats supported (Max 10 files)
                     </p>
                   </div>
                   {postPreviews.length > 0 && (
-                    <div className="flex gap-3 overflow-x-auto p-2 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
+                    <div className="flex gap-2 sm:gap-3 overflow-x-auto p-2 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
                       {postPreviews.map((url, index) => (
                         <MediaPreview
                           key={index}
@@ -508,23 +508,23 @@ export default function Create() {
                     </div>
                   )}
                   <div>
-                    <label className="text-sm font-semibold mb-2 block text-[#1D0C69]">Caption</label>
+                    <label className="text-xs sm:text-sm font-semibold mb-2 block text-[#1D0C69]">Caption</label>
                     <Textarea
                       ref={captionTextareaRef}
                       placeholder="Write a caption..."
                       value={caption}
                       onChange={(e) => setCaption(e.target.value)}
-                      className="min-h-[120px] rounded-xl border-2 border-purple-300 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#5A0395]"
+                      className="min-h-[100px] sm:min-h-[120px] rounded-xl border-2 border-purple-300 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#5A0395] text-sm sm:text-base"
                     />
                     <div className="flex items-center gap-2 mt-2 relative">
                        <Button 
                          type="button"
                          variant="ghost" 
                          size="icon" 
-                         className="h-8 w-8 hover:bg-purple-100 hidden md:flex"
+                         className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-purple-100 hidden md:flex"
                          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                        >
-                         <Smile className="w-4 h-4 text-[#5A0395]" />
+                         <Smile className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#5A0395]" />
                        </Button>
                        {showEmojiPicker && (
                          <EmojiPicker 
@@ -532,31 +532,31 @@ export default function Create() {
                            onClose={() => setShowEmojiPicker(false)}
                          />
                        )}
-                       <span className="text-xs text-gray-600 ml-auto">
+                       <span className="text-[10px] sm:text-xs text-gray-600 ml-auto">
                          {caption.length}/2200
                        </span>
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-semibold mb-2 block text-[#1D0C69]">Hashtags</label>
+                    <label className="text-xs sm:text-sm font-semibold mb-2 block text-[#1D0C69]">Hashtags</label>
                     <Input
                       placeholder="#hashtags (separate with spaces)"
                       value={hashtags}
                       onChange={(e) => setHashtags(e.target.value)}
-                      className="rounded-xl border-2 border-purple-300 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#5A0395]"
+                      className="rounded-xl border-2 border-purple-300 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#5A0395] text-sm sm:text-base"
                     />
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4">
                     <Button
                       onClick={handlePost}
                       disabled={isLoading}
-                      className="flex-1 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white font-semibold rounded-xl h-12 hover:opacity-90"
+                      className="flex-1 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white font-semibold rounded-xl h-10 sm:h-12 hover:opacity-90 text-sm sm:text-base"
                     >
-                      {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Post"}
+                      {isLoading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : "Post"}
                     </Button>
                     <Button
                       variant="outline"
-                      className="flex-1 rounded-xl h-12 border-2 border-purple-300 hover:bg-purple-50"
+                      className="flex-1 rounded-xl h-10 sm:h-12 border-2 border-purple-300 hover:bg-purple-50 text-sm sm:text-base"
                       onClick={clearPostForm}
                       disabled={isLoading}
                     >
@@ -570,11 +570,11 @@ export default function Create() {
             {/* --- MOMENT TAB --- */}
             <TabsContent value="moment">
               <Card className="shadow-lg overflow-hidden border-2 border-purple-300">
-                <div className="p-6 border-b-2 border-purple-300 bg-gradient-to-r from-[#1D0C69] to-[#5A0395]">
-                  <h1 className="text-2xl font-bold text-white">Create New Moment</h1>
+                <div className="p-4 sm:p-5 md:p-6 border-b-2 border-purple-300 bg-gradient-to-r from-[#1D0C69] to-[#5A0395]">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white">Create New Moment</h1>
                 </div>
 
-                <div className="p-6 space-y-6 bg-white">
+                <div className="p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-5 md:space-y-6 bg-white">
                   <input
                     type="file"
                     accept="image/*,video/*,.heic,.heif"
@@ -586,25 +586,25 @@ export default function Create() {
                   {/* --- Upload Area (Changes based on Repost) --- */}
                   <div
                     onClick={() => momentInputRef.current.click()}
-                    className="border-2 border-dashed border-purple-300 rounded-xl p-6 text-center hover:border-[#5A0395] transition-colors cursor-pointer bg-gradient-to-br from-purple-50 to-purple-100 md:p-12"
+                    className="border-2 border-dashed border-purple-300 rounded-xl p-4 sm:p-6 md:p-8 lg:p-12 text-center hover:border-[#5A0395] transition-colors cursor-pointer bg-gradient-to-br from-purple-50 to-purple-100"
                   >
-                    <div className="flex justify-center gap-4 mb-4">
-                      <Image className="w-12 h-12 text-[#5A0395]" />
-                      <Film className="w-12 h-12 text-[#5A0395]" />
+                    <div className="flex justify-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                      <Image className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-[#5A0395]" />
+                      <Film className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-[#5A0395]" />
                     </div>
                     {repostMedia ? (
                         <>
-                            <p className="text-lg font-semibold mb-2 text-[#1D0C69]">
+                            <p className="text-base sm:text-lg font-semibold mb-1 sm:mb-2 text-[#1D0C69]">
                                 Reposting @{repostMedia.owner_username}'s Story
                             </p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-xs sm:text-sm text-gray-600">
                                 Upload new media to override, or click "Share Moment" to repost this.
                             </p>
                         </>
                     ) : (
                         <>
-                            <p className="text-lg font-semibold mb-2 text-[#1D0C69]">Upload Moment Media</p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-base sm:text-lg font-semibold mb-1 sm:mb-2 text-[#1D0C69]">Upload Moment Media</p>
+                            <p className="text-xs sm:text-sm text-gray-600">
                                 All image & video formats supported
                             </p>
                         </>
@@ -613,10 +613,10 @@ export default function Create() {
 
                   {/* --- Preview Area (Shows uploaded OR reposted media) --- */}
                   <div>
-                    <label className="text-sm font-semibold mb-2 block text-[#1D0C69]">Preview</label>
+                    <label className="text-xs sm:text-sm font-semibold mb-2 block text-[#1D0C69]">Preview</label>
                     <div className="flex justify-center">
                       {displayMedia ? (
-                        <div className="relative w-48 aspect-[9/16] rounded-2xl shadow-lg overflow-hidden border-2 border-purple-300">
+                        <div className="relative w-36 sm:w-44 md:w-48 aspect-[9/16] rounded-2xl shadow-lg overflow-hidden border-2 border-purple-300">
                           {displayMedia.type && displayMedia.type.startsWith("video/") ? (
                             <video src={displayMedia.url} autoPlay loop muted className="w-full h-full object-cover" />
                           ) : (
@@ -625,17 +625,17 @@ export default function Create() {
                           <Button
                             variant="destructive"
                             size="icon"
-                            className="absolute top-2 right-2 h-8 w-8 rounded-full z-10"
+                            className="absolute top-2 right-2 h-7 w-7 sm:h-8 sm:w-8 rounded-full z-10"
                             onClick={removeMomentPreview}
                           >
-                            <X className="w-5 h-5" />
+                            <X className="w-4 h-4 sm:w-5 sm:h-5" />
                           </Button>
                         </div>
                       ) : (
-                        <div className="relative w-48 aspect-[9/16] rounded-2xl shadow-lg overflow-hidden bg-gradient-to-br from-[#1D0C69] to-[#5A0395] border-2 border-purple-300">
+                        <div className="relative w-36 sm:w-44 md:w-48 aspect-[9/16] rounded-2xl shadow-lg overflow-hidden bg-gradient-to-br from-[#1D0C69] to-[#5A0395] border-2 border-purple-300">
                           <div className="absolute inset-0 bg-black/20 rounded-2xl z-10 pointer-events-none" />
                           <div className="relative z-20 flex items-center justify-center w-full h-full">
-                            <span className="text-white text-4xl font-bold opacity-30">MOMENT</span>
+                            <span className="text-white text-2xl sm:text-3xl md:text-4xl font-bold opacity-30">MOMENT</span>
                           </div>
                         </div>
                       )}
@@ -644,28 +644,28 @@ export default function Create() {
                   
                   {/* --- Tags Input --- */}
                   <div>
-                    <label className="text-sm font-semibold mb-2 block text-[#1D0C69]">Tag Users</label>
+                    <label className="text-xs sm:text-sm font-semibold mb-2 block text-[#1D0C69]">Tag Users</label>
                     <Input
                       placeholder="username (separate with spaces)"
                       value={storyTags}
                       onChange={(e) => setStoryTags(e.target.value.replace(/@/g, ''))}
-                      className="rounded-xl border-2 border-purple-300 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#5A0395]"
+                      className="rounded-xl border-2 border-purple-300 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#5A0395] text-sm sm:text-base"
                     />
                   </div>
                   
                   {/* --- Buttons --- */}
-                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4">
                     <Button
                       onClick={handleMomentCreate}
                       // Enable button if we have a file OR we are reposting valid media
                       disabled={isLoading || (!momentFile && !repostMedia)}
-                      className="flex-1 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white font-semibold rounded-xl h-12 hover:opacity-90"
+                      className="flex-1 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] text-white font-semibold rounded-xl h-10 sm:h-12 hover:opacity-90 text-sm sm:text-base"
                     >
-                      {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Share Moment"}
+                      {isLoading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : "Share Moment"}
                     </Button>
                     <Button
                       variant="outline"
-                      className="flex-1 rounded-xl h-12 border-2 border-purple-300 hover:bg-purple-50"
+                      className="flex-1 rounded-xl h-10 sm:h-12 border-2 border-purple-300 hover:bg-purple-50 text-sm sm:text-base"
                       onClick={clearMomentForm}
                       disabled={isLoading}
                     >
