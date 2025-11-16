@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { X, ChevronLeft, ChevronRight, Heart, ArrowLeft, Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // Format timestamp to relative time (e.g., "2h ago", "5m ago")
 const formatTimestamp = (timestamp) => {
@@ -18,13 +21,13 @@ const formatTimestamp = (timestamp) => {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
   
-  // For older stories, show date
   return storyTime.toLocaleDateString();
 };
 
 export const StoryViewer = ({ stories, initialIndex, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [liked, setLiked] = useState(false);
+  const [likesList, setLikesList] = useState([]);
   const [progress, setProgress] = useState(0);
   const [showLikesPopup, setShowLikesPopup] = useState(false);
   const videoRef = useRef(null);
@@ -35,8 +38,49 @@ export const StoryViewer = ({ stories, initialIndex, onClose }) => {
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackBlocked, setPlaybackBlocked] = useState(false);
+  const [isLoadingLike, setIsLoadingLike] = useState(false);
 
   const currentStory = stories[currentIndex];
+  const storedUser = localStorage.getItem('user');
+  const user = storedUser ? JSON.parse(storedUser) : null;
+
+  // Fetch like status and likes list when story changes
+  useEffect(() => {
+    if (!currentStory || !user) return;
+
+    // Reset states immediately when story changes
+    setIsLoadingLike(true);
+    setLiked(false);
+    setLikesList([]);
+    setShowLikesPopup(false);
+
+    const fetchLikeData = async () => {
+      try {
+        // Fetch both like status and likes list in parallel
+        const [likedRes, likesRes] = await Promise.all([
+          fetch(`${API_URL}/api/stories/${currentStory.id}/liked?userId=${user.id}`),
+          fetch(`${API_URL}/api/stories/${currentStory.id}/likes`)
+        ]);
+
+        const likedData = await likedRes.json();
+        const likesData = await likesRes.json();
+
+        if (likedData.success) {
+          setLiked(likedData.liked);
+        }
+
+        if (likesData.success) {
+          setLikesList(likesData.likes);
+        }
+      } catch (err) {
+        console.error("Failed to fetch like data:", err);
+      } finally {
+        setIsLoadingLike(false);
+      }
+    };
+
+    fetchLikeData();
+  }, [currentStory?.id, user?.id]); // Added user.id to dependencies
 
   const handlePrevious = () => {
     if (currentIndex > 0) {
@@ -52,10 +96,46 @@ export const StoryViewer = ({ stories, initialIndex, onClose }) => {
     }
   };
 
-  const handleLike = () => {
-    setLiked(!liked);
-    if (currentStory.isOwnStory) {
-      setShowLikesPopup(true);
+  const handleLike = async () => {
+    if (!user || !currentStory || isLoadingLike) return;
+
+    // Optimistic update
+    const newLikedState = !liked;
+    const previousLikedState = liked;
+    const previousLikesList = [...likesList];
+    
+    setLiked(newLikedState);
+
+    // Update likes list optimistically
+    if (newLikedState) {
+      setLikesList(prev => [{
+        user_id: user.id,
+        username: user.username,
+        profile_pic_url: user.profile_pic_url
+      }, ...prev]);
+    } else {
+      setLikesList(prev => prev.filter(like => like.user_id !== user.id));
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/stories/${currentStory.id}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      const data = await res.json();
+      
+      if (!data.success) {
+        // Revert on failure
+        setLiked(previousLikedState);
+        setLikesList(previousLikesList);
+      }
+    } catch (err) {
+      console.error("Like error:", err);
+      // Revert on error
+      setLiked(previousLikedState);
+      setLikesList(previousLikesList);
     }
   };
 
@@ -63,7 +143,7 @@ export const StoryViewer = ({ stories, initialIndex, onClose }) => {
     if (typeof onClose === "function") onClose();
   };
 
-  // Separate keyboard navigation effect
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "ArrowLeft") {
@@ -79,12 +159,11 @@ export const StoryViewer = ({ stories, initialIndex, onClose }) => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentIndex, stories.length]);
 
+  // Progress and auto-advance logic
   useEffect(() => {
-    setLiked(false);
     setProgress(0);
     setMediaLoaded(false);
     setMediaError(false);
-    setShowLikesPopup(false);
 
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -203,13 +282,13 @@ export const StoryViewer = ({ stories, initialIndex, onClose }) => {
     return () => {};
   }, [currentIndex, stories, currentStory, onClose, isMuted]);
 
-  // Group stories by user to show progress segments
-  const userStories = stories.filter(s => s.username === currentStory.username);
+  // Progress segments - show only current user's stories
+  const userStories = stories.filter(s => s.userId === currentStory.userId);
   const currentUserStoryIndex = userStories.findIndex(s => s.id === currentStory.id);
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
-      {/* Back button - always visible */}
+      {/* Back button */}
       <button
         onClick={handleBack}
         className="absolute top-6 left-6 z-50 text-white bg-black/40 hover:bg-black/60 backdrop-blur-sm p-2.5 rounded-full transition-all"
@@ -236,9 +315,12 @@ export const StoryViewer = ({ stories, initialIndex, onClose }) => {
 
         {/* Username header */}
         <div className="absolute top-10 left-4 right-4 flex items-center gap-3 z-40">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-lg">
-            {currentStory.username[0].toUpperCase()}
-          </div>
+          <Avatar className="w-10 h-10 border-2 border-white">
+            <AvatarImage src={currentStory.avatar || ''} />
+            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+              {currentStory.username[0].toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
           <div>
             <p className="text-white font-semibold text-sm drop-shadow-lg">
               {currentStory.username}
@@ -286,7 +368,7 @@ export const StoryViewer = ({ stories, initialIndex, onClose }) => {
                 </button>
               )}
 
-              {/* Mute button for videos - bottom right of video */}
+              {/* Mute button for videos */}
               <button
                 onClick={() => {
                   const v = videoRef.current;
@@ -330,19 +412,43 @@ export const StoryViewer = ({ stories, initialIndex, onClose }) => {
             </div>
           )}
 
-          {/* Like button - bottom left of image */}
-          <button
-            onClick={handleLike}
-            className={`absolute bottom-6 left-6 p-3 rounded-full backdrop-blur-sm transition-all z-20 ${
-              liked ? "bg-purple-500/80" : "bg-black/40 hover:bg-black/60"
-            }`}
-            aria-label="Like"
-          >
-            <Heart className={`w-7 h-7 ${liked ? "fill-white text-white" : "text-white"}`} />
-          </button>
+          {/* Like button and count */}
+          <div className="absolute bottom-6 left-6 z-20 flex items-center gap-3">
+            <button
+              onClick={handleLike}
+              disabled={isLoadingLike}
+              className={`p-3 rounded-full backdrop-blur-sm transition-all ${
+                isLoadingLike 
+                  ? "bg-black/40 cursor-not-allowed" 
+                  : liked 
+                    ? "bg-red-500/80 hover:bg-red-600/80" 
+                    : "bg-black/40 hover:bg-black/60"
+              }`}
+              aria-label="Like"
+            >
+              <Heart 
+                className={`w-7 h-7 transition-all ${
+                  isLoadingLike 
+                    ? "text-white/50" 
+                    : liked 
+                      ? "fill-white text-white" 
+                      : "text-white"
+                }`} 
+              />
+            </button>
+            
+            {likesList.length > 0 && !isLoadingLike && (
+              <button
+                onClick={() => setShowLikesPopup(true)}
+                className="px-4 py-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm transition-all text-white font-medium"
+              >
+                {likesList.length} {likesList.length === 1 ? 'like' : 'likes'}
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Navigation buttons - screen edges */}
+        {/* Navigation buttons */}
         {currentIndex > 0 && (
           <button
             onClick={handlePrevious}
@@ -364,24 +470,27 @@ export const StoryViewer = ({ stories, initialIndex, onClose }) => {
         )}
       </div>
 
-      {/* Likes popup for own stories */}
-      {showLikesPopup && currentStory.isOwnStory && (
+      {/* Likes popup */}
+      {showLikesPopup && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50" onClick={() => setShowLikesPopup(false)}>
           <div className="bg-white rounded-t-3xl w-full max-w-md p-6 max-h-[60vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Liked by</h3>
+              <h3 className="text-lg font-semibold text-gray-800">Liked by</h3>
               <button onClick={() => setShowLikesPopup(false)} className="text-gray-500 hover:text-gray-700">
                 <X className="w-6 h-6" />
               </button>
             </div>
             <div className="space-y-3">
-              {currentStory.likes && currentStory.likes.length > 0 ? (
-                currentStory.likes.map((userId, idx) => (
-                  <div key={idx} className="flex items-center gap-3 py-2">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-semibold">
-                      {userId[0].toUpperCase()}
-                    </div>
-                    <span className="font-medium">{userId}</span>
+              {likesList.length > 0 ? (
+                likesList.map((like) => (
+                  <div key={like.user_id} className="flex items-center gap-3 py-2">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={like.profile_pic_url || ''} />
+                      <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white">
+                        {like.username[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium text-gray-800">{like.username}</span>
                   </div>
                 ))
               ) : (
