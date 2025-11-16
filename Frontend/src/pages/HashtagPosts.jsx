@@ -176,7 +176,7 @@ export default function HashtagPosts() {
 
   if (isLoading) {
     return (
-      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
+      <main className="flex-1 p-4 md:p-8 ml-0 md:ml-[22rem] pb-24 md:pb-8 flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-primary animate-spin" />
       </main>
     );
@@ -184,7 +184,7 @@ export default function HashtagPosts() {
 
   if (error) {
     return (
-      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
+      <main className="flex-1 p-4 md:p-8 ml-0 md:ml-[22rem] pb-24 md:pb-8 flex items-center justify-center">
         <p className="text-red-500">Error: {error}</p>
       </main>
     );
@@ -192,7 +192,8 @@ export default function HashtagPosts() {
 
   return (
     <>
-      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
+      {/* RESPONSIVE FIX: ml-0 md:ml-[22rem] pb-24 md:pb-8 */}
+      <main className="flex-1 p-4 md:p-8 ml-0 md:ml-[22rem] pb-24 md:pb-8 transition-all duration-300">
         <div className="max-w-2xl mx-auto space-y-6">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="hover:bg-purple-200">
@@ -227,7 +228,7 @@ export default function HashtagPosts() {
                   </div>
                 </div>
 
-                {/* --- DYNAMIC MEDIA (FIXED: Removed API_URL) --- */}
+                {/* --- DYNAMIC MEDIA --- */}
                 <div className="bg-black max-h-[500px] flex items-center justify-center border-b">
                   {post.media && post.media.length > 0 ? (
                     post.media[0].media_type.startsWith('video') ? (
@@ -291,7 +292,7 @@ export default function HashtagPosts() {
                     </div>
                   </div>
 
-                  {/* Hashtags (FIXED: Robust Rendering) */}
+                  {/* Hashtags */}
                   {post.hashtags && post.hashtags.length > 0 && (
                     <div className="border-t pt-3 border-purple-200">
                       <p className="font-semibold text-sm mb-1 text-[#1D0C69]">#Hashtags:</p>
