@@ -641,17 +641,15 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
   }
 });
 
-// --- Add this to server.js ---
+// --- DELETE POST ROUTE (Missing previously) ---
 app.delete("/api/posts/:postId", async (req, res) => {
   try {
     const [result] = await db.query("DELETE FROM POST WHERE post_id = ?", [req.params.postId]);
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "Post not found" });
-    }
-    res.json({ success: true, message: "Post deleted successfully" });
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, message: "Post not found" });
+    res.json({ success: true, message: "Post deleted" });
   } catch (err) {
-    console.error("Delete Post Error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Delete error:", err);
+    res.status(500).json({ success: false });
   }
 });
 // --- Story Routes (UPDATED: Uses Cloudinary file.path) ---
@@ -968,6 +966,7 @@ app.post("/api/messages", async (req, res) => {
 });
 
 // --- Profile Routes ---
+// --- Profile Route (FIXED: Added like_count & comment_count) ---
 app.get("/api/profile/:username", async (req, res) => {
   const { username } = req.params;
   const { loggedInUserId } = req.query;
@@ -977,39 +976,45 @@ app.get("/api/profile/:username", async (req, res) => {
     const user = u[0];
 
     const [following] = await db.query("SELECT COUNT(*) as c FROM FOLLOW WHERE follower_id = ?", [user.user_id]);
+    
+    // ⭐️ FIX: Added line 4 and 5 to count Likes and Comments
     const [posts] = await db.query(
       `SELECT p.post_id, p.caption, 
-      CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
-      (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url 
-      FROM POST p 
-      WHERE p.user_id = ? 
-      ORDER BY created_at DESC`, 
+       CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
+       (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url,
+       (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count,
+       (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count
+       FROM POST p 
+       WHERE p.user_id = ? 
+       ORDER BY created_at DESC`, 
       [user.user_id]
     );
     
     const [h] = await db.query(
-      `SELECT h.highlight_id, h.title, s.media_url AS cover_media_url
-       FROM HIGHLIGHT h
-       LEFT JOIN STORY s ON h.cover_story_id = s.story_id
-       WHERE h.user_id = ?
-       ORDER BY h.created_at ASC`,
+      `SELECT h.highlight_id, h.title, s.media_url AS cover_media_url 
+       FROM HIGHLIGHT h 
+       LEFT JOIN STORY s ON h.cover_story_id = s.story_id 
+       WHERE h.user_id = ? 
+       ORDER BY h.created_at ASC`, 
       [user.user_id]
     );
     const highlights = h;
 
     let saved = [];
     if (user.user_id == loggedInUserId) {
-      const [s] = await db.query(
-        `SELECT p.post_id, p.caption, 
-        CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
-        (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url 
-        FROM Saved_posts sp 
-        JOIN POST p ON sp.post_id = p.post_id 
-        WHERE sp.user_id = ? 
-        ORDER BY sp.created_at DESC`, 
-        [user.user_id]
-      );
-      saved = s;
+       const [s] = await db.query(
+         `SELECT p.post_id, p.caption, 
+          CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at, 
+          (SELECT m.media_url FROM MEDIA m WHERE m.post_id = p.post_id LIMIT 1) as media_url,
+          (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count,
+          (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count
+          FROM Saved_posts sp 
+          JOIN POST p ON sp.post_id = p.post_id 
+          WHERE sp.user_id = ? 
+          ORDER BY sp.created_at DESC`, 
+         [user.user_id]
+       );
+       saved = s;
     }
     
     const [isF] = await db.query("SELECT 1 FROM FOLLOW WHERE follower_id = ? AND following_id = ?", [loggedInUserId, user.user_id]);

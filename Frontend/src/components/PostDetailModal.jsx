@@ -13,7 +13,6 @@ function formatTimeAgo(dateString) {
   const date = new Date(dateString);
   const now = new Date();
   const seconds = Math.floor((now - date) / 1000);
-  
   if (seconds < 0) return "Just now";
   let interval = seconds / 31536000;
   if (interval > 1) return Math.floor(interval) + "y ago";
@@ -42,13 +41,12 @@ export function PostDetailModal({
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState(null);
 
-  // 1. Get Current User
   useEffect(() => {
     const stored = localStorage.getItem('user');
     if (stored) setCurrentUser(JSON.parse(stored));
   }, []);
 
-  // 2. Fetch Comments
+  // Fetch Comments
   useEffect(() => {
     const fetchComments = async () => {
       setIsLoadingComments(true);
@@ -67,7 +65,6 @@ export function PostDetailModal({
     if (post.post_id) fetchComments();
   }, [post.post_id]);
 
-  // 3. Handle Add Comment
   const handleAddComment = async (e) => {
     if (e.key !== 'Enter') return;
     const commentText = e.target.value.trim();
@@ -82,7 +79,7 @@ export function PostDetailModal({
       const data = await res.json();
       if (data.success) {
         setComments(prev => [...prev, data.comment]);
-        e.target.value = ""; // Clear input
+        e.target.value = ""; 
       } else {
         throw new Error(data.message);
       }
@@ -91,7 +88,6 @@ export function PostDetailModal({
     }
   };
 
-  // 4. Handle Delete Post
   const handleDeletePost = async () => {
     if (!window.confirm("Are you sure you want to delete this post?")) return;
     
@@ -138,22 +134,23 @@ export function PostDetailModal({
           {/* Header */}
           <div className="p-4 border-b flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-               {/* Back/Close Button */}
-               <Button variant="ghost" size="icon" onClick={onClose} className="mr-1 md:hidden">
-                 <ArrowLeft className="w-5 h-5" />
+               {/* Back Button */}
+               <Button variant="ghost" size="icon" onClick={onClose} className="mr-1 text-gray-600 hover:text-[#1D0C69]">
+                 <ArrowLeft className="w-6 h-6" />
                </Button>
                
                {/* User Info */}
                <div className="flex items-center gap-3 cursor-pointer" onClick={() => { onUserClick(post.username); onClose(); }}>
                   <Avatar className="w-8 h-8">
+                    {/* Fix: Handle both profile_pic_url and avatar props */}
                     <AvatarImage src={post.profile_pic_url || post.avatar} />
                     <AvatarFallback>{post.username?.[0]?.toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <span className="font-semibold text-sm">{post.username}</span>
+                  <span className="font-semibold text-sm text-[#1D0C69]">{post.username}</span>
                </div>
             </div>
 
-            {/* Delete Menu (Only for Owner) */}
+            {/* Delete Menu */}
             {variant === 'owner' && !isSavedPostView && (
               <div className="relative">
                 <Button variant="ghost" size="icon" onClick={() => setShowMenu(!showMenu)}>
@@ -171,7 +168,6 @@ export function PostDetailModal({
                 )}
               </div>
             )}
-            {/* Desktop Close X */}
             <Button variant="ghost" size="icon" onClick={onClose} className="hidden md:flex">
                  <X className="w-5 h-5" />
             </Button>
@@ -181,31 +177,30 @@ export function PostDetailModal({
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {/* Caption */}
             {post.caption && (
-                <div className="flex gap-3 mb-4">
+                <div className="flex gap-3 mb-4 border-b pb-4 border-gray-100">
                     <Avatar className="w-8 h-8 shrink-0">
                         <AvatarImage src={post.profile_pic_url || post.avatar} />
                         <AvatarFallback>{post.username?.[0]}</AvatarFallback>
                     </Avatar>
                     <div className="text-sm">
-                        <span className="font-semibold mr-2">{post.username}</span>
-                        {post.caption}
+                        <span className="font-semibold mr-2 text-[#1D0C69]">{post.username}</span>
+                        <span className="text-gray-800">{post.caption}</span>
                         <div className="text-xs text-gray-500 mt-1">{formatTimeAgo(post.created_at)}</div>
                     </div>
                 </div>
             )}
 
-            {/* Comments List */}
+            {/* Comments */}
             {isLoadingComments ? (
                 <div className="flex justify-center py-4"><Loader2 className="animate-spin w-6 h-6 text-gray-400" /></div>
             ) : (
                 <div className="space-y-4">
-                    {comments.length === 0 && <p className="text-center text-gray-400 text-sm mt-10">No comments yet.</p>}
+                    {comments.length === 0 && <p className="text-center text-gray-400 text-sm mt-4">No comments yet.</p>}
                     
                     {comments.map((comment, idx) => (
                         <div key={idx} className="flex gap-3">
                             <Avatar className="w-8 h-8 shrink-0 cursor-pointer" onClick={() => { onUserClick(comment.username); onClose(); }}>
-                                {/* Ensure we try both property names in case backend differs */}
-                                <AvatarImage src={comment.profile_pic_url || comment.avatar} />
+                                <AvatarImage src={comment.profile_pic_url} />
                                 <AvatarFallback>{comment.username?.[0]?.toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <div className="text-sm">
@@ -215,6 +210,7 @@ export function PostDetailModal({
                                 >
                                     {comment.username || "Unknown"}
                                 </span>
+                                {/* Fix: Prioritize comment_text from DB */}
                                 <span className="text-gray-800">{comment.comment_text || comment.text}</span>
                                 <div className="text-xs text-gray-500 mt-0.5">{formatTimeAgo(comment.created_at)}</div>
                             </div>
@@ -224,14 +220,12 @@ export function PostDetailModal({
             )}
           </div>
 
-          {/* Footer: Likes count & Input (Icons Removed) */}
+          {/* Footer: Likes count & Input */}
           <div className="border-t p-4 bg-white shrink-0">
-            {/* Likes Count Only */}
             <div className="font-bold text-sm mb-2 text-[#1D0C69]">
                 {post.like_count || 0} likes
             </div>
             
-            {/* Simple Input */}
             <div className="flex gap-2">
                 <input 
                     className="flex-1 text-sm border rounded-full px-4 py-2 focus:outline-none focus:border-[#5A0395]" 
@@ -244,7 +238,6 @@ export function PostDetailModal({
                     className="text-[#5A0395] font-semibold hover:bg-transparent px-2"
                     onClick={(e) => {
                         const input = e.target.previousSibling;
-                        // Trigger the KeyDown event logic manually for the button click
                         if(input.value) handleAddComment({ key: 'Enter', target: input });
                     }}
                 >
