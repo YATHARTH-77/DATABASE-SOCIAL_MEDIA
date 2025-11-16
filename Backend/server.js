@@ -953,6 +953,107 @@ app.get("/api/feed/stories", async (req, res) => {
   }
 });
 
+// --- STORY LIKE ROUTES ---
+
+// Like/Unlike a story
+app.post("/api/stories/:storyId/like", async (req, res) => {
+  const { storyId } = req.params;
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({
+      success: false,
+      message: "userId is required"
+    });
+  }
+
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // Check if already liked
+    const [existing] = await conn.query(
+      "SELECT * FROM STORY_LIKE WHERE story_id = ? AND user_id = ?",
+      [storyId, userId]
+    );
+
+    if (existing.length > 0) {
+      // UNLIKE
+      await conn.query(
+        "DELETE FROM STORY_LIKE WHERE story_id = ? AND user_id = ?",
+        [storyId, userId]
+      );
+      await conn.commit();
+      res.json({ success: true, action: 'unliked' });
+    } else {
+      // LIKE
+      await conn.query(
+        "INSERT INTO STORY_LIKE (story_id, user_id) VALUES (?, ?)",
+        [storyId, userId]
+      );
+      await conn.commit();
+      res.json({ success: true, action: 'liked' });
+    }
+
+  } catch (err) {
+    console.error("Story like error:", err);
+    if (conn) await conn.rollback();
+    res.status(500).json({ success: false, message: "Internal server error" });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Get likes for a story
+app.get("/api/stories/:storyId/likes", async (req, res) => {
+  const { storyId } = req.params;
+
+  try {
+    const [likes] = await db.query(
+      `SELECT u.user_id, u.username, u.profile_pic_url
+       FROM STORY_LIKE sl
+       JOIN USER u ON sl.user_id = u.user_id
+       WHERE sl.story_id = ?
+       ORDER BY u.username ASC`,
+      [storyId]
+    );
+
+    res.json({ success: true, likes });
+  } catch (err) {
+    console.error("Get story likes error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// Check if user has liked a story
+app.get("/api/stories/:storyId/liked", async (req, res) => {
+  const { storyId } = req.params;
+  const { userId } = req.query;
+
+  if (!userId) {
+    return res.status(400).json({
+      success: false,
+      message: "userId is required"
+    });
+  }
+
+  try {
+    const [result] = await db.query(
+      "SELECT 1 FROM STORY_LIKE WHERE story_id = ? AND user_id = ?",
+      [storyId, userId]
+    );
+
+    res.json({ 
+      success: true, 
+      liked: result.length > 0 
+    });
+  } catch (err) {
+    console.error("Check story liked error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
 app.get("/api/search/users", async (req, res) => {
   try {
     const q = `%${req.query.q}%`;

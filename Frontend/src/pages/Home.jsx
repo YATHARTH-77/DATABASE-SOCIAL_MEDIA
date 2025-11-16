@@ -159,11 +159,42 @@ export default function Home() {
   // --- 3. Handlers ---
   
   // Opens the viewer with a specific list of stories (either mine or a friend's)
-  const openStoryViewer = (storiesList) => {
-    setViewerStories(storiesList);
-    setInitialStoryIndex(0);
-    setShowStoryViewer(true);
-  };
+  const openStoryViewer = (startingGroup, startingStoryIndex = 0) => {
+  // Flatten all groups into a single array
+  // Start with user's own stories if they exist
+  const allStoriesFlat = [];
+  
+  // Add user's stories first if they exist
+  if (userStories.length > 0) {
+    userStories.forEach(story => allStoriesFlat.push(story));
+  }
+  
+  // Add all other users' stories
+  moments.forEach(group => {
+    group.stories.forEach(story => allStoriesFlat.push(story));
+  });
+  
+  // Find the index where we should start
+  let startIndex = 0;
+  if (startingGroup === 'user' && userStories.length > 0) {
+    startIndex = startingStoryIndex; // Start at user's specific story
+  } else if (startingGroup !== 'user') {
+    // Find where this group's stories start in the flat array
+    let currentIndex = userStories.length; // Skip user stories
+    for (const group of moments) {
+      if (group.userId === startingGroup.userId) {
+        startIndex = currentIndex + startingStoryIndex;
+        break;
+      }
+      currentIndex += group.stories.length;
+    }
+  }
+  
+  setViewerStories(allStoriesFlat);
+  setInitialStoryIndex(startIndex);
+  setShowStoryViewer(true);
+};
+
 
   const handleLike = async (postId) => {
     if (!user) return;
@@ -290,7 +321,7 @@ export default function Home() {
                   <div className="flex flex-col items-center gap-2 flex-shrink-0">
                     <div
                       className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-[#1D0C69] via-[#5A0395] to-[#3D1A8F] p-[2px] cursor-pointer"
-                      onClick={() => openStoryViewer(userStories)}
+                      onClick={() => openStoryViewer('user', 0)}
                     >
                       <div className="w-full h-full rounded-full bg-white p-[2px]">
                         <Avatar className="w-full h-full">
@@ -314,7 +345,7 @@ export default function Home() {
                   <div key={group.userId} className="flex flex-col items-center gap-2 flex-shrink-0">
                     <div
                       className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-[#1D0C69] via-[#5A0395] to-[#3D1A8F] p-[2px] cursor-pointer"
-                      onClick={() => openStoryViewer(group.stories)}
+                     onClick={() => openStoryViewer(group, 0)}
                     >
                       <div className="w-full h-full rounded-full bg-white p-[2px]">
                         <Avatar className="w-full h-full">
