@@ -698,6 +698,50 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
     if (conn) conn.release();
   }
 });
+
+// --- DELETE POST ROUTE (Missing previously) ---
+app.delete("/api/posts/:postId", isAuthenticated, async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user.user_id; // Get user ID from session
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Not authenticated" });
+  }
+
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // The query now checks for BOTH post_id AND user_id
+    // This ensures you can only delete your own posts
+    const [result] = await conn.query(
+      "DELETE FROM POST WHERE post_id = ? AND user_id = ?",
+      [postId, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      // This means either the post wasn't found OR it wasn't owned by this user
+      await conn.rollback();
+      return res.status(403).json({ success: false, message: "Post not found or you don't have permission to delete it" });
+    }
+    
+    // Note: This also automatically deletes media, likes, comments, etc.
+    // if you have `ON DELETE CASCADE` set up in your database.
+    // If not, you would need to delete those manually here.
+
+    await conn.commit();
+    res.json({ success: true, message: "Post deleted" });
+
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error("Delete post error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
 app.get("/api/posts/:postId", async (req, res) => {
   const { postId } = req.params;
   const { loggedInUserId } = req.query; // Get logged in user ID from query
@@ -752,50 +796,6 @@ app.get("/api/posts/:postId", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-// --- DELETE POST ROUTE (Missing previously) ---
-app.delete("/api/posts/:postId", isAuthenticated, async (req, res) => {
-  const { postId } = req.params;
-  const userId = req.user.user_id; // Get user ID from session
-
-  if (!userId) {
-    return res.status(401).json({ success: false, message: "Not authenticated" });
-  }
-
-  let conn;
-  try {
-    conn = await db.getConnection();
-    await conn.beginTransaction();
-
-    // The query now checks for BOTH post_id AND user_id
-    // This ensures you can only delete your own posts
-    const [result] = await conn.query(
-      "DELETE FROM POST WHERE post_id = ? AND user_id = ?",
-      [postId, userId]
-    );
-
-    if (result.affectedRows === 0) {
-      // This means either the post wasn't found OR it wasn't owned by this user
-      await conn.rollback();
-      return res.status(403).json({ success: false, message: "Post not found or you don't have permission to delete it" });
-    }
-    
-    // Note: This also automatically deletes media, likes, comments, etc.
-    // if you have `ON DELETE CASCADE` set up in your database.
-    // If not, you would need to delete those manually here.
-
-    await conn.commit();
-    res.json({ success: true, message: "Post deleted" });
-
-  } catch (err) {
-    if (conn) await conn.rollback();
-    console.error("Delete post error:", err);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  } finally {
-    if (conn) conn.release();
-  }
-});
-
-
 // --- Story Routes (UPDATED: Uses Cloudinary file.path) ---
 // --- Story Routes (UPDATED: Cloudinary + Repost Support) ---
 app.post("/api/stories/create", uploadStory.single('media'), async (req, res) => {
