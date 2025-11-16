@@ -216,6 +216,18 @@ const storyStorage = new CloudinaryStorage({
 });
 const uploadStory = multer({ storage: storyStorage });
 
+// Storage for PROFILE PICTURES
+const profilePicStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'social_media_profile_pics',
+    resource_type: 'image',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'webp'],
+    transformation: [{ width: 400, height: 400, crop: 'fill' }] // Square crop
+  },
+});
+const uploadProfilePic = multer({ storage: profilePicStorage });
+
 // =================================================================
 //         PASSPORT & SESSION
 // =================================================================
@@ -1245,6 +1257,65 @@ app.put("/api/profile/:userId", async (req, res) => {
   } catch (err) { res.status(500).json({success:false}); }
 });
 
+// --- UPDATE PROFILE PICTURE ---
+app.post("/api/profile/:userId/picture", uploadProfilePic.single('profilePic'), async (req, res) => {
+  const { userId } = req.params;
+  const file = req.file;
+  
+  if (!file) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No image file provided" 
+    });
+  }
+  
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+    
+    // Get old profile pic URL to delete from Cloudinary (optional)
+    const [oldProfile] = await conn.query(
+      "SELECT profile_pic_url FROM USER WHERE user_id = ?",
+      [userId]
+    );
+    
+    // Update with new Cloudinary URL
+    await conn.query(
+      "UPDATE USER SET profile_pic_url = ? WHERE user_id = ?",
+      [file.path, userId] // file.path is the Cloudinary URL
+    );
+    
+    // Optional: Delete old image from Cloudinary if it exists
+    if (oldProfile[0]?.profile_pic_url && oldProfile[0].profile_pic_url.includes('cloudinary')) {
+      try {
+        const publicId = oldProfile[0].profile_pic_url.split('/').pop().split('.')[0];
+        await cloudinary.uploader.destroy(`social_media_profile_pics/${publicId}`);
+      } catch (deleteErr) {
+        console.log("Could not delete old image:", deleteErr);
+        // Continue anyway - don't fail the upload
+      }
+    }
+    
+    await conn.commit();
+    
+    res.json({ 
+      success: true, 
+      message: "Profile picture updated!",
+      profile_pic_url: file.path
+    });
+    
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error("Profile pic update error:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to update profile picture" 
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+});
 app.delete("/api/profile/:userId", async (req, res) => {
   try {
     await db.query("DELETE FROM USER WHERE user_id = ?", [req.params.userId]);
