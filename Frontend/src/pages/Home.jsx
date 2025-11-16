@@ -249,69 +249,80 @@ export default function Home() {
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
         <div className="max-w-2xl mx-auto space-y-6">
           
-          {/* --- MOMENTS --- */}
-          <div className="rounded-2xl p-4 md:p-6 border border-secondary/20 overflow-hidden bg-gradient-to-br from-purple-50 to-purple-100">
-            <div>
-              <h2 className="text-white font-bold px-4 py-2 rounded-full inline-block mb-4 text-base md:text-lg bg-gradient-to-r from-[#1D0C69] to-[#5A0395]">
-                MOMENTS
-              </h2>
-              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                <style jsx>{`.scrollbar-hide::-webkit-scrollbar { display: none; } .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
-              
-              {/* 1. MY STORY (Toggle: Add vs View) */}
-              <div>
-                {userStories.length > 0 ? (
-                  // HAS STORIES: Show Avatar with Gradient Border
-                  <div className="flex flex-col items-center gap-2">
-                    <div
-                      className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1D0C69] via-[#5A0395] to-[#3D1A8F] p-1 cursor-pointer"
-                      onClick={() => openStoryViewer(userStories)}
-                    >
-                      <div className="w-full h-full rounded-full bg-background p-1">
-                        <Avatar className="w-full h-full">
-                          <AvatarImage src={user.profile_pic_url || ''} />
-                          <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                      </div>
-                    </div>
-                    <span className="text-xs text-[#5A0395] font-medium">Your Story</span>
-                  </div>
-                ) : (
-                  // NO STORIES: Show "Add (+)" Button
-                  <Link to="/create?tab=moment" className="flex flex-col items-center gap-2">
-                    <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-[#1D0C69] to-[#5A0395] cursor-pointer transition-shadow hover:shadow-xl flex items-center justify-center">
-                       <div className="w-14 h-14 rounded-full bg-white/75 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                         <div className="w-8 h-8 rounded-full bg-[#5A0395] text-white flex items-center justify-center shadow-md">
-                           <Plus className="w-5 h-5" />
-                         </div>
-                       </div>
-                    </div>
-                    <span className="text-xs text-[#5A0395] font-medium">Add Moment</span>
-                  </Link>
-                )}
-              </div>
-              
-              {/* 2. OTHER USERS' STORIES (Grouped) */}
-              {moments.map((group) => (
-                <div key={group.userId} className="flex flex-col items-center gap-2 flex-shrink-0">
-                  <div
-                    className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1D0C69] via-[#5A0395] to-[#3D1A8F] p-1 cursor-pointer"
-                    onClick={() => openStoryViewer(group.stories)}
-                  >
-                    <div className="w-full h-full rounded-full bg-background p-1">
-                      <Avatar className="w-full h-full">
-                        <AvatarImage src={group.avatar || ''} />
-                        <AvatarFallback>{group.username[0].toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                    </div>
-                  </div>
-                  <span className="text-xs text-[#5A0395] font-medium">{group.username}</span>
-                </div>
-              ))}
-              </div>
+
+{/* --- MOMENTS --- */}
+<div className="rounded-2xl p-4 md:p-6 border border-secondary/20 overflow-hidden bg-gradient-to-br from-purple-50 to-purple-100">
+  <div>
+    <h2 className="text-white font-bold px-4 py-2 rounded-full inline-block mb-4 text-base md:text-lg bg-gradient-to-r from-[#1D0C69] to-[#5A0395]">
+      MOMENTS
+    </h2>
+    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+      <style jsx>{`.scrollbar-hide::-webkit-scrollbar { display: none; } .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
+    
+      {/* 1. ADD MOMENT BUTTON (ALWAYS SHOWS) */}
+      <div>
+        <Link to="/create?tab=moment" className="flex flex-col items-center gap-2">
+          <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-[#1D0C69] to-[#5A0395] cursor-pointer transition-shadow hover:shadow-xl flex items-center justify-center">
+             <div className="w-14 h-14 rounded-full bg-white/75 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+               <div className="w-8 h-8 rounded-full bg-[#5A0395] text-white flex items-center justify-center shadow-md">
+                 <Plus className="w-5 h-5" />
+               </div>
+             </div>
+          </div>
+          <span className="text-xs text-[#5A0395] font-medium">Add Moment</span>
+        </Link>
+      </div>
+
+      {/* 2. MY STORY (ONLY IF I HAVE STORIES) */}
+      {userStories.length > 0 && (
+        <div className="flex flex-col items-center gap-2">
+          <div
+            className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1D0C69] via-[#5A0395] to-[#3D1A8F] p-[2px] cursor-pointer"
+            onClick={() => openStoryViewer(userStories)}
+          >
+            <div className="w-full h-full rounded-full bg-white p-[2px]">
+              <Avatar className="w-full h-full">
+                <AvatarImage 
+                  src={userStories[0]?.avatar || ''} 
+                  alt={userStories[0]?.username || 'Your Story'}
+                  className="object-cover"
+                />
+                <AvatarFallback className="bg-gradient-to-br from-[#1D0C69] to-[#5A0395] text-white">
+                  {userStories[0]?.username?.[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
             </div>
           </div>
-
+          <span className="text-xs text-[#5A0395] font-medium">Your Story</span>
+        </div>
+      )}
+      
+      {/* 3. OTHER USERS' STORIES (Grouped) */}
+      {moments.map((group) => (
+        <div key={group.userId} className="flex flex-col items-center gap-2 flex-shrink-0">
+          <div
+            className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1D0C69] via-[#5A0395] to-[#3D1A8F] p-[2px] cursor-pointer"
+            onClick={() => openStoryViewer(group.stories)}
+          >
+            <div className="w-full h-full rounded-full bg-white p-[2px]">
+              <Avatar className="w-full h-full">
+                <AvatarImage 
+                  src={group.avatar || ''} 
+                  alt={group.username}
+                  className="object-cover"
+                />
+                <AvatarFallback className="bg-gradient-to-br from-[#1D0C69] to-[#5A0395] text-white">
+                  {group.username[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          </div>
+          <span className="text-xs text-[#5A0395] font-medium">{group.username}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
           {/* --- FEED --- */}
           <div className="space-y-6">
             <h2 className="text-white font-bold gradient-sidebar px-4 py-1 rounded-full inline-block">
