@@ -228,6 +228,14 @@ const profilePicStorage = new CloudinaryStorage({
 });
 const uploadProfilePic = multer({ storage: profilePicStorage });
 
+const isAuthenticated = (req, res, next) => {
+  if (req.user) {
+    // req.user is set by passport from the session
+    return next();
+  }
+  res.status(401).json({ success: false, message: 'Not authenticated' });
+};
+
 // =================================================================
 //         PASSPORT & SESSION
 // =================================================================
@@ -690,18 +698,104 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
     if (conn) conn.release();
   }
 });
+app.get("/api/posts/:postId", async (req, res) => {
+  const { postId } = req.params;
+  const { loggedInUserId } = req.query; // Get logged in user ID from query
+  
+  if (!loggedInUserId) {
+    return res.status(400).json({ success: false, message: "loggedInUserId is required" });
+  }
 
-// --- DELETE POST ROUTE (Missing previously) ---
-app.delete("/api/posts/:postId", async (req, res) => {
   try {
-    const [result] = await db.query("DELETE FROM POST WHERE post_id = ?", [req.params.postId]);
-    if (result.affectedRows === 0) return res.status(404).json({ success: false, message: "Post not found" });
-    res.json({ success: true, message: "Post deleted" });
+    const [posts] = await db.query(
+      `SELECT p.*, 
+        CONVERT_TZ(p.created_at, '+00:00', '+05:30') as created_at,
+        u.username, u.profile_pic_url,
+        (SELECT COUNT(*) FROM POST_LIKE pl WHERE pl.post_id = p.post_id) AS like_count,
+        (SELECT COUNT(*) FROM COMMENT c WHERE c.post_id = p.post_id) AS comment_count,
+        EXISTS(SELECT 1 FROM POST_LIKE pl WHERE pl.post_id = p.post_id AND pl.user_id = ?) AS user_has_liked,
+        EXISTS(SELECT 1 FROM Saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?) AS user_has_saved
+       FROM POST p 
+       JOIN USER u ON p.user_id = u.user_id
+       WHERE p.post_id = ?`,
+      [loggedInUserId, loggedInUserId, postId]
+    );
+
+    if (posts.length === 0) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    const post = posts[0];
+    
+    // Also fetch media and hashtags
+    const [media] = await db.query("SELECT media_url, media_type FROM MEDIA WHERE post_id = ?", [post.post_id]);
+    const [tags] = await db.query("SELECT h.hashtag_text FROM POST_HASHTAG ph JOIN HASHTAG h ON ph.hashtag_id = h.hashtag_id WHERE ph.post_id = ?", [post.post_id]);
+    
+    const detailedPost = { 
+      ...post, 
+      media, 
+      hashtags: tags.map(t => t.hashtag_text), 
+      user_has_liked: !!post.user_has_liked, 
+      user_has_saved: !!post.user_has_saved 
+    };
+
+    // Use first media as the default `media_url` for simplicity in the modal
+    if (media.length > 0) {
+      detailedPost.media_url = media[0].media_url;
+      detailedPost.media_type = media[0].media_type;
+    }
+
+    res.json({ success: true, post: detailedPost });
+
   } catch (err) {
-    console.error("Delete error:", err);
-    res.status(500).json({ success: false });
+    console.error("Get single post error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
+// --- DELETE POST ROUTE (Missing previously) ---
+app.delete("/api/posts/:postId", isAuthenticated, async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user.user_id; // Get user ID from session
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Not authenticated" });
+  }
+
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // The query now checks for BOTH post_id AND user_id
+    // This ensures you can only delete your own posts
+    const [result] = await conn.query(
+      "DELETE FROM POST WHERE post_id = ? AND user_id = ?",
+      [postId, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      // This means either the post wasn't found OR it wasn't owned by this user
+      await conn.rollback();
+      return res.status(403).json({ success: false, message: "Post not found or you don't have permission to delete it" });
+    }
+    
+    // Note: This also automatically deletes media, likes, comments, etc.
+    // if you have `ON DELETE CASCADE` set up in your database.
+    // If not, you would need to delete those manually here.
+
+    await conn.commit();
+    res.json({ success: true, message: "Post deleted" });
+
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error("Delete post error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+
 // --- Story Routes (UPDATED: Uses Cloudinary file.path) ---
 // --- Story Routes (UPDATED: Cloudinary + Repost Support) ---
 app.post("/api/stories/create", uploadStory.single('media'), async (req, res) => {
