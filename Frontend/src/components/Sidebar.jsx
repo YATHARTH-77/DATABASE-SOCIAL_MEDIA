@@ -96,12 +96,12 @@ export const Sidebar = () => {
             <div className="flex-1"></div>
             
             {/* 3. Theme Toggle - Fixed at the very bottom */}
-            <div className="mt-4 pt-4 border-t border-white/20 flex items-center gap-3 px-2 md:justify-start md:pl-3 lg:pl-4">
+            {/* <div className="mt-4 pt-4 border-t border-white/20 flex items-center gap-3 px-2 md:justify-start md:pl-3 lg:pl-4">
               <span className="text-white font-semibold text-xs lg:text-sm truncate">THEME</span>
               <div className="rounded-xl p-1 border border-black/60 bg-white/5 shadow-sm">
                 <ThemeToggle />
               </div>
-            </div>
+            </div> */}
           </div>
         </BackgroundGradientAnimation>
       </aside>
