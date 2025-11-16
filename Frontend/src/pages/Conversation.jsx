@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import { relativeTime } from "@/lib/time";
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://backend-sm-seven.vercel.app";
 
 export default function Conversation() {
   const { chatId } = useParams();

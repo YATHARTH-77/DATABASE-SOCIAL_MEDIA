@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Search, Plus, Loader2 } from "lucide-react";
 import { relativeTime } from "@/lib/time";
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://backend-sm-seven.vercel.app";
 
 export default function Messages() {
   const navigate = useNavigate();

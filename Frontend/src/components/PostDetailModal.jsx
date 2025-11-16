@@ -5,7 +5,7 @@ import { MoreHorizontal, Trash2, Loader2, X, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // --- Base URL ---
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "https://backend-sm-seven.vercel.app";
 
 // Helper: Format timestamp
 function formatTimeAgo(dateString) {

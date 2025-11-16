@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, ArrowLeft, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://backend-sm-seven.vercel.app";
 
 export default function EditProfile() {
   const navigate = useNavigate();

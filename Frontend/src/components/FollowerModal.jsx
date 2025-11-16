@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { X, Search } from "lucide-react";
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://backend-sm-seven.vercel.app";
 
 export function FollowerModal({ type, users, onClose, onRemoveFollower, onUnfollow, onUserClick, isOwnProfile = false }) {
   const [searchQuery, setSearchQuery] = useState("");
