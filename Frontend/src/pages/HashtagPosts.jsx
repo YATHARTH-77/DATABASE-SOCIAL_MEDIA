@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { CommentSection } from "@/components/CommentSection";
 
 // --- Base URL for our API ---
-const API_URL = "https://backend-socialmedia-omega.vercel.app/";
+const API_URL = "http://localhost:5000";
 
 // --- Helper: Format timestamp ---
 function formatTimeAgo(dateString) {

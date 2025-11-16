@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const API_URL = "https://backend-socialmedia-omega.vercel.app/";
+const API_URL = "http://localhost:5000";
 
 export default function EditProfile() {
   const navigate = useNavigate();

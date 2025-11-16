@@ -20,7 +20,7 @@ export default function Login() {
     setIsLoading(true); 
 
     try {
-      const res = await fetch("https://backend-socialmedia-omega.vercel.app//api/login", {
+      const res = await fetch("http://localhost:5000/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -60,7 +60,7 @@ export default function Login() {
     // This just redirects the browser to the backend auth route.
     // The backend will then redirect to Google.
     // It's not an async fetch call.
-    window.location.href = "https://backend-socialmedia-omega.vercel.app//api/auth/google";
+    window.location.href = "http://localhost:5000/api/auth/google";
   };
 
   return (

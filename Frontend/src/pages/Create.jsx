@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Image, Film, Smile, X, Loader2 } from "lucide-react";
 
 // --- Base URL for our API ---
-const API_URL = "https://backend-socialmedia-omega.vercel.app/";
+const API_URL = "http://localhost:5000";
 
 // --- Emoji Picker Component ---
 const EMOJI_LIST = [

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X, Loader2, CheckSquare, Square } from "lucide-react";
 
-const API_URL = "https://backend-socialmedia-omega.vercel.app/";
+const API_URL = "http://localhost:5000";
 
 export function CreateHighlightModal({ onClose, onCreate, userId }) {
   const [archivedStories, setArchivedStories] = useState([]);

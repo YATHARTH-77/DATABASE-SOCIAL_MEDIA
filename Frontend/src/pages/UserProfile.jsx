@@ -11,7 +11,7 @@ import { CreateHighlightModal } from "@/components/CreateHighlightModal"; // Ens
 import { useToast } from "@/hooks/use-toast";
 
 // --- Base URL (Dynamic for Deployment) ---
-const API_URL = import.meta.env.VITE_API_URL || "https://backend-socialmedia-omega.vercel.app/";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function UserProfile() {
   const { username } = useParams();
