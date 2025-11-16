@@ -27,28 +27,26 @@ const app = express();
 // =================================================================
 //Trigger
 //Trigger
-// Replace the ABUSIVE_PATTERNS array and containsAbusiveContent function in server.js with this:
-
 const ABUSIVE_PATTERNS = [
-  /(?<![a-z])f+\W*?u+\W*?c+\W*?k+[a-z]*/i,              // fuck, fucker, fucking, fucked
-  /(?<![a-z])s+\W*?h+\W*?i+\W*?t+[a-z]*/i,              // shit, shitty, shitting
-  /(?<![a-z])b+\W*?i+\W*?t+\W*?c+\W*?h+[a-z]*/i,        // bitch, bitches, bitching
-  /(?<![a-z])a+\W*?s+\W*?s+\W*?h+\W*?o+\W*?l+\W*?e+[a-z]*/i, // asshole, assholes
-  /(?<![a-z])d+\W*?i+\W*?c+\W*?k+(?![a-z])/i,           // dick (standalone to avoid "dickens", "predict")
-  /(?<![a-z])c+\W*?o+\W*?c+\W*?k+(?![a-z])/i,           // cock (standalone to avoid "cockatoo", "peacock")
-  /(?<![a-z])p+\W*?u+\W*?s+\W*?s+\W*?y+(?![a-z])/i,     // pussy (standalone)
-  /(?<![a-z])s+\W*?l+\W*?u+\W*?t+[a-z]*/i,              // slut, sluts, slutty
-  /(?<![a-z])w+\W*?h+\W*?o+\W*?r+\W*?e+[a-z]*/i,        // whore, whores
-  /(?<![a-z])b+\W*?a+\W*?s+\W*?t+\W*?a+\W*?r+\W*?d+[a-z]*/i, // bastard, bastards
-  /(?<![a-z])f+\W*?a+\W*?g+(?![a-z])/i,                 // fag (standalone to avoid "fag*ot")
-  /(?<![a-z])c+\W*?u+\W*?m+(?![a-z])/i,                 // cum (standalone to avoid "cucumber", "document")
-  /(?<![a-z])s+\W*?e+\W*?x+(?![a-z])/i,                 // sex (standalone to avoid "assassin", "assist")
-  /(?<![a-z])s+\W*?e+\W*?x+\W*?y+(?![a-z])/i,           // sexy (standalone)
-  /(?<![a-z])p+\W*?o+\W*?r+\W*?n+[a-z]*/i,              // porn, porno, pornography
-  /(?<![a-z])h+\W*?o+\W*?r+\W*?n+\W*?y+(?![a-z])/i,     // horny (standalone)
-  /(?<![a-z])n+\W*?i+\W*?g+\W*?g+\W*?a+[a-z]*/i,        // nigga, niggas
-  /(?<![a-z])n+\W*?i+\W*?g+\W*?g+\W*?e+\W*?r+[a-z]*/i,  // nigger, niggers
-  /(?<![a-z])a+\W*?s+\W*?s+(?![a-z])/i                  // ass (standalone only to avoid "class", "pass")
+  /f+\W*?u+\W*?c+\W*?k+/i,          // fuck variations
+  /s+\W*?h+\W*?i+\W*?t+/i,          // shit variations
+  /b+\W*?i+\W*?t+\W*?c+\W*?h+/i,      // bitch variations
+  /a+\W*?s+\W*?s+\W*?h+\W*?o+\W*?l+\W*?e+/i, // asshole
+  /d+\W*?i+\W*?c+\W*?k+/i,          // dick
+  /c+\W*?o+\W*?c+\W*?k+/i,          // cock
+  /p+\W*?u+\W*?s+\W*?s+\W*?y+/i,      // pussy
+  /s+\W*?l+\W*?u+\W*?t+/i,          // slut
+  /w+\W*?h+\W*?o+\W*?r+\W*?e+/i,      // whore
+  /b+\W*?a+\W*?s+\W*?t+\W*?a+\W*?r+\W*?d+/i, // bastard
+  /f+\W*?a+\W*?g+/i,              // fag variations
+  /c+\W*?u+\W*?m+/i,              // cum
+  /s+\W*?e+\W*?x+/i,              // sex, s3x, s*x
+  /s+\W*?e+\W*?x+\W*?y+/i,          // sexy
+  /p+\W*?o+\W*?r+\W*?n+/i,          // porn
+  /h+\W*?o+\W*?r+\W*?n+/i,          // horny
+  /n+\W*?i+\W*?g+\W*?g+\W*?a+/i,      // nigga
+  /n+\W*?i+\W*?g+\W*?g+\W*?e+\W*?r+/i,  // nigger
+  /a+\W*?s+\W*?s+/i
 ];
 
 function containsAbusiveContent(text) {
@@ -61,6 +59,7 @@ function containsAbusiveContent(text) {
   }
   return false;
 }
+
 async function isSpamComment(db, userId, postId, commentText) {
   try {
     // Check for exact duplicate in last 5 minutes
