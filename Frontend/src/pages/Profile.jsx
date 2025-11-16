@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Grid, Bookmark, UserPen, LogOut, Trash2, Loader2, Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Settings, Grid, Bookmark, UserPen, LogOut, Trash2, Loader2, Plus, X, ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
 import { PostDetailModal } from "@/components/PostDetailModal";
 import { FollowerModal } from "@/components/FollowerModal";
 import { useToast } from "@/hooks/use-toast";
 
 // --- Base URL (Dynamic for Deployment) ---
-const API_URL = import.meta.env.VITE_API_URL || "https://backend-sm-seven.vercel.app";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // ⭐️ --- ViewHighlightModal Component --- ⭐️
 function ViewHighlightModal({ stories, onClose }) {
@@ -27,14 +27,14 @@ function ViewHighlightModal({ stories, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="relative w-full max-w-md h-[90vh] bg-black rounded-xl overflow-hidden shadow-lg">
-        <button onClick={onClose} className="absolute top-3 right-3 z-50 text-white bg-black/30 rounded-full p-1">
+    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-0 sm:p-4">
+      <div className="relative w-full h-full sm:h-[90vh] sm:max-w-md bg-black sm:rounded-xl overflow-hidden shadow-lg flex flex-col justify-center">
+        <button onClick={onClose} className="absolute top-4 right-4 z-50 text-white bg-black/30 rounded-full p-2">
           <X className="w-6 h-6" />
         </button>
         
         {currentStory && (
-          <div className="relative w-full h-full">
+          <div className="relative w-full h-full flex items-center justify-center">
             {/* Story Media */}
             {currentStory.media_type.startsWith('video') ? (
               <video src={currentStory.media_url} autoPlay controls className="w-full h-full object-contain" />
@@ -43,13 +43,13 @@ function ViewHighlightModal({ stories, onClose }) {
             )}
 
             {/* Header */}
-            <div className="absolute top-0 left-0 w-full p-4 bg-gradient-to-b from-black/60 to-transparent">
+            <div className="absolute top-0 left-0 w-full p-4 bg-gradient-to-b from-black/60 to-transparent pt-12 sm:pt-4">
               <div className="flex items-center gap-2">
-                <Avatar className="w-8 h-8">
+                <Avatar className="w-8 h-8 border border-white/50">
                   <AvatarImage src={currentStory.profile_pic_url} />
                   <AvatarFallback>{currentStory.username[0]}</AvatarFallback>
                 </Avatar>
-                <span className="text-white font-semibold text-sm">{currentStory.username}</span>
+                <span className="text-white font-semibold text-sm drop-shadow-md">{currentStory.username}</span>
               </div>
             </div>
           </div>
@@ -57,13 +57,13 @@ function ViewHighlightModal({ stories, onClose }) {
 
         {/* Navigation */}
         {currentIndex > 0 && (
-          <button onClick={prevStory} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/50 rounded-full p-1 text-black">
-            <ChevronLeft className="w-6 h-6" />
+          <button onClick={prevStory} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 text-white backdrop-blur-sm">
+            <ChevronLeft className="w-8 h-8" />
           </button>
         )}
         {currentIndex < stories.length - 1 && (
-          <button onClick={nextStory} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/50 rounded-full p-1 text-black">
-            <ChevronRight className="w-6 h-6" />
+          <button onClick={nextStory} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 text-white backdrop-blur-sm">
+            <ChevronRight className="w-8 h-8" />
           </button>
         )}
       </div>
@@ -90,11 +90,9 @@ function CreateHighlightModal({
     
     setSelectedIds(newIds);
 
-    // If the cover was unselected, reset it
     if (coverStoryId === id && !newIds.includes(id)) {
       setCoverStoryId(null);
     }
-    // If this is the first story selected, make it the cover
     if (!coverStoryId && newIds.length > 0) {
       setCoverStoryId(newIds[0]);
     }
@@ -106,73 +104,40 @@ function CreateHighlightModal({
     }
   };
 
-  const handleTitleChange = (e) => {
-  const inputValue = e.target.value;
-  
-  // Limit to 50 characters
-  if (inputValue.length <= 15) {
-    setTitle(inputValue);
-  } else {
-    toast({ 
-      title: "Character Limit Exceeded", 
-      description: "Title cannot exceed 15 characters.", 
-      variant: "destructive" 
-    });
-  }
-};
-
   const handleSubmit = () => {
-  if (!title || title.trim().length === 0) {
-    toast({ title: "Title Required", description: "Please enter a title.", variant: "destructive" });
-    return;
-  }
-  if (title.length > 15) {
-    toast({ title: "Character Limit Exceeded", description: "Title cannot exceed 50 characters.", variant: "destructive" });
-    return;
-  }
-  if (selectedIds.length === 0 || !coverStoryId) {
-    return;
-  }
-  onCreate({
-    title,
-    story_ids: selectedIds,
-    cover_story_id: coverStoryId,
-  });
-};
+    if (!title || selectedIds.length === 0 || !coverStoryId) {
+      return;
+    }
+    onCreate({
+      title,
+      story_ids: selectedIds,
+      cover_story_id: coverStoryId,
+    });
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="relative w-full max-w-lg h-[90vh] bg-white rounded-xl shadow-lg flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b">
+      <div className="relative w-full max-w-lg max-h-[90vh] bg-white rounded-xl shadow-lg flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b shrink-0">
           <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
             <X className="w-6 h-6" />
           </button>
           <h2 className="text-lg font-semibold text-center text-[#1D0C69]">Create Highlight</h2>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={isLoading || !title || selectedIds.length === 0} 
-            size="sm"
-            className="bg-gradient-to-r from-[#5A0395] to-[#7C3AED] hover:from-[#4A0285] hover:to-[#6C2ADD] text-white"
-          >
+          <Button onClick={handleSubmit} disabled={isLoading || !title || selectedIds.length === 0} size="sm">
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create"}
           </Button>
         </div>
 
-        {/* Title Input */}
-        <div className="p-4">
+        <div className="p-4 shrink-0">
           <Input
-            placeholder="Highlight Title (max 15 characters)..."
+            placeholder="Highlight Title..."
             value={title}
-            onChange={handleTitleChange}
+            onChange={(e) => setTitle(e.target.value)}
             className="border-purple-300 focus-visible:ring-purple-500"
           />
-          <p className="text-xs text-gray-500 mt-1">
-            {title.length}/15 characters
-          </p>
         </div>
 
-        {/* Story Selection Grid */}
-        <div className="flex-1 overflow-y-auto p-4 grid grid-cols-3 sm:grid-cols-4 gap-2">
+        <div className="flex-1 overflow-y-auto p-4 grid grid-cols-3 gap-2">
           {archivedStories.map(story => (
             <div
               key={story.story_id}
@@ -218,16 +183,15 @@ export default function Profile() {
   const [savedPosts, setSavedPosts] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
-  const [highlights, setHighlights] = useState([]);
+  const [highlights, setHighlights] = useState([]); 
   
   const [isLoading, setIsLoading] = useState(true);
-  const [isModalLoading, setIsModalLoading] = useState(false);
+  const [isModalLoading, setIsModalLoading] = useState(false); 
   const [selectedPost, setSelectedPost] = useState(null);
   const [modalType, setModalType] = useState(null);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const settingsMenuRef = useRef(null);
 
-  // --- ⭐️ Highlight Modal States ⭐️ ---
   const [isCreateHighlightModalOpen, setCreateHighlightModalOpen] = useState(false);
   const [archivedStories, setArchivedStories] = useState([]);
   const [isViewHighlightModalOpen, setViewHighlightModalOpen] = useState(false);
@@ -242,7 +206,6 @@ export default function Profile() {
     }
   }, [navigate]);
 
-  // --- Fetch All Profile Data (Highlights ⭐️ ADDED) ---
   useEffect(() => {
     if (!user) return;
 
@@ -256,7 +219,7 @@ export default function Profile() {
           setProfileData(profileJson.user);
           setPosts(profileJson.posts);
           setSavedPosts(profileJson.savedPosts);
-          setHighlights(profileJson.highlights || []);
+          setHighlights(profileJson.highlights || []); 
         } else {
           throw new Error(profileJson.message);
         }
@@ -388,7 +351,6 @@ export default function Profile() {
     }
   };
 
-  // --- ⭐️ Highlight Handlers ⭐️ ---
   const handleOpenCreateHighlightModal = async () => {
     if (!user) return;
     setIsModalLoading(true);
@@ -478,7 +440,7 @@ export default function Profile() {
 
   if (isLoading || !profileData) {
     return (
-      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
+      <main className="flex-1 p-4 md:p-8 ml-0 md:ml-[22rem] flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-primary animate-spin" />
       </main>
     );
@@ -547,77 +509,80 @@ export default function Profile() {
         />
       )}
       
-      <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
-        <div className="max-w-4xl mx-auto">
-          <Card className="p-4 sm:p-8 shadow-lg border-2 border-purple-300">
+      {/* RESPONSIVE FIX: ml-0 md:ml-[22rem] pb-24 md:pb-8 */}
+      <main className="flex-1 p-4 md:p-8 ml-0 md:ml-[22rem] pb-24 md:pb-8 transition-all duration-300 w-full max-w-[100vw] overflow-x-hidden">
+        <div className="max-w-4xl mx-auto w-full">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate(-1)} 
+            className="mb-4 hover:bg-purple-100 hover:text-[#5A0395]"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+
+          {/* Card with responsive padding/borders */}
+          <Card className="p-4 md:p-8 shadow-none md:shadow-lg border-0 md:border-2 border-purple-300 w-full">
+            
             {/* --- Profile Header --- */}
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
-                <Avatar className="w-24 h-24 flex-shrink-0">
-                  <AvatarImage src={profileData.profile_pic_url || ''} />
-                  <AvatarFallback className="gradient-sidebar text-white text-3xl">
-                    {profileData.username[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="text-center sm:text-left">
-                  <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-[#1D0C69]">{profileData.username}</h1>
-                  <div className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-8 text-sm items-baseline">
-                    <div>
-                      <span className="font-bold text-md sm:text-lg text-[#1D0C69]">{profileData.post_count}</span>{" "}
-                      <span className="text-[#5A0395]">posts</span>
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 mb-6 w-full">
+              <Avatar className="w-20 h-20 md:w-32 md:h-32 shrink-0 border-4 border-purple-100">
+                <AvatarImage src={profileData.profile_pic_url || ''} className="object-cover" />
+                <AvatarFallback className="gradient-sidebar text-white text-2xl md:text-3xl">
+                  {profileData.username[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1 text-center md:text-left w-full">
+                <div className="flex flex-col md:flex-row items-center md:justify-between gap-2 mb-4">
+                    <h1 className="text-2xl md:text-3xl font-bold text-[#1D0C69] break-all">{profileData.username}</h1>
+                    <div className="relative" ref={settingsMenuRef}>
+                        <Button variant="ghost" size="icon" onClick={() => setShowSettingsMenu(!showSettingsMenu)} className="hover:bg-purple-100 text-[#5A0395]">
+                        <Settings className="w-6 h-6" />
+                        </Button>
+                        
+                        {showSettingsMenu && (
+                        <div className="absolute right-0 mt-2 w-48 bg-background border-2 border-purple-300 rounded-lg shadow-lg py-1 z-50 overflow-hidden">
+                            <button
+                            onClick={handleEditProfile}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-purple-50 flex items-center gap-2 transition-colors text-[#1D0C69]"
+                            >
+                            <UserPen className="w-4 h-4" />
+                            Edit Profile
+                            </button>
+                            <button
+                            onClick={handleLogout}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-purple-50 flex items-center gap-2 transition-colors text-[#1D0C69]"
+                            >
+                            <LogOut className="w-4 h-4" />
+                            Logout
+                            </button>
+                            <button
+                            onClick={handleDeleteAccount}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 flex items-center gap-2 text-red-600 hover:text-red-700 transition-colors"
+                            >
+                            <Trash2 className="w-4 h-4" />
+                            Delete Account
+                            </button>
+                        </div>
+                        )}
                     </div>
-                    <button
-                      onClick={() => openFollowModal("followers")}
-                      className="hover:bg-purple-50 px-2 py-1 rounded-md transition-colors cursor-pointer"
-                    >
-                      <span className="font-bold text-md sm:text-lg text-[#1D0C69]">{profileData.follower_count}</span>{" "}
-                      <span className="text-[#5A0395] hover:text-[#1D0C69] transition-colors">followers</span>
-                    </button>
-                    <button
-                      onClick={() => openFollowModal("following")}
-                      className="hover:bg-purple-50 px-2 py-1 rounded-md transition-colors cursor-pointer"
-                    >
-                      <span className="font-bold text-md sm:text-lg text-[#1D0C69]">{profileData.following_count}</span>{" "}
-                      <span className="text-[#5A0395] hover:text-[#1D0C69] transition-colors">following</span>
-                    </button>
-                  </div>
                 </div>
-              </div>
-              <div className="relative" ref={settingsMenuRef}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-                  className="hover:bg-purple-100 hover:text-[#5A0395]"
-                >
-                  <Settings className="w-5 h-5" />
-                </Button>
-                
-                {showSettingsMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-background border-2 border-purple-300 rounded-lg shadow-lg py-1 z-50 overflow-hidden">
-                    <button
-                      onClick={handleEditProfile}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-purple-50 flex items-center gap-2 transition-colors text-[#1D0C69]"
-                    >
-                      <UserPen className="w-4 h-4" />
-                      Edit Profile
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-purple-50 flex items-center gap-2 transition-colors text-[#1D0C69]"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
-                    <button
-                      onClick={handleDeleteAccount}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 flex items-center gap-2 text-red-600 hover:text-red-700 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete Account
-                    </button>
+
+                <div className="flex flex-wrap justify-center md:justify-start gap-4 md:gap-8 text-sm items-baseline mb-4">
+                  <div className="text-center">
+                    <span className="font-bold text-md sm:text-lg text-[#1D0C69] block">{profileData.post_count}</span>
+                    <span className="text-[#5A0395]">posts</span>
                   </div>
-                )}
+                  <button onClick={() => openFollowModal("followers")} className="hover:bg-purple-50 px-2 py-1 rounded-md transition-colors cursor-pointer text-center">
+                    <span className="font-bold text-md sm:text-lg text-[#1D0C69] block">{profileData.follower_count}</span>
+                    <span className="text-[#5A0395] hover:text-[#1D0C69] transition-colors">followers</span>
+                  </button>
+                  <button onClick={() => openFollowModal("following")} className="hover:bg-purple-50 px-2 py-1 rounded-md transition-colors cursor-pointer text-center">
+                    <span className="font-bold text-md sm:text-lg text-[#1D0C69] block">{profileData.following_count}</span>
+                    <span className="text-[#5A0395] hover:text-[#1D0C69] transition-colors">following</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -675,22 +640,22 @@ export default function Profile() {
               </TabsList>
 
               <TabsContent value="posts" className="mt-0">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+                <div className="grid grid-cols-3 gap-1 md:gap-4">
                   {posts.map((post) => (
                     <div
                       key={post.post_id}
                       onClick={() => setSelectedPost(post)}
-                      className="aspect-square bg-muted rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-md relative group"
+                      className="aspect-square bg-muted md:rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-sm md:shadow-md relative group overflow-hidden"
                     >
                       {post.media_url ? (
-                        <img src={post.media_url} alt={post.caption || 'post'} className="w-full h-full object-cover rounded-xl" />
+                        <img src={post.media_url} alt={post.caption || 'post'} className="w-full h-full object-cover md:rounded-xl" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-secondary">
-                          <span className="text-muted-foreground">No Media</span>
+                          <span className="text-muted-foreground text-xs">No Media</span>
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
-                        <p className="text-white text-sm font-semibold">View Post</p>
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center md:rounded-xl">
+                        <p className="text-white text-sm font-semibold">View</p>
                       </div>
                     </div>
                   ))}
@@ -704,22 +669,22 @@ export default function Profile() {
               </TabsContent>
 
               <TabsContent value="saved" className="mt-0">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+                <div className="grid grid-cols-3 gap-1 md:gap-4">
                   {savedPosts.map((post) => (
                     <div
                       key={post.post_id}
                       onClick={() => setSelectedPost({ ...post, isSavedView: true })}
-                      className="aspect-square bg-muted rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-md relative group"
+                      className="aspect-square bg-muted md:rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-sm md:shadow-md relative group overflow-hidden"
                     >
-                       {post.media_url ? (
-                         <img src={post.media_url} alt={post.caption || 'post'} className="w-full h-full object-cover rounded-xl" />
-                       ) : (
+                        {post.media_url ? (
+                          <img src={post.media_url} alt={post.caption || 'post'} className="w-full h-full object-cover md:rounded-xl" />
+                        ) : (
                         <div className="w-full h-full flex items-center justify-center bg-secondary">
-                           <span className="text-muted-foreground">No Media</span>
+                           <span className="text-muted-foreground text-xs">No Media</span>
                         </div>
-                       )}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
-                        <p className="text-white text-sm font-semibold">View Post</p>
+                        )}
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center md:rounded-xl">
+                        <p className="text-white text-sm font-semibold">View</p>
                       </div>
                     </div>
                   ))}
