@@ -1,5 +1,4 @@
 import { useParams, useNavigate } from "react-router-dom";
-// Sidebar is provided by the persistent Layout
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -7,10 +6,10 @@ import { ArrowLeft, MessageCircle, Bookmark, ThumbsUp, Loader2 } from "lucide-re
 import { useState, useEffect } from "react";
 import { CommentSection } from "@/components/CommentSection";
 
-// --- Base URL for our API ---
-const API_URL = "http://localhost:5000";
+// --- Base URL (Dynamic for Deployment) ---
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// --- Helper: Format timestamp ---
+// --- Helper: Format timestamp (UTC Fix) ---
 function formatTimeAgo(dateString) {
   if (!dateString) return "";
   let safeString = String(dateString);
@@ -40,7 +39,6 @@ export default function HashtagPosts() {
   const { tag } = useParams();
   const navigate = useNavigate();
 
-  // --- All state is now dynamic ---
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [likedPosts, setLikedPosts] = useState([]);
@@ -56,13 +54,13 @@ export default function HashtagPosts() {
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     } else {
-      navigate("/login"); // Not logged in, redirect
+      navigate("/login"); 
     }
   }, [navigate]);
 
   // --- Fetch Posts for this Hashtag ---
   useEffect(() => {
-    if (!tag || !user) return; // Don't fetch until we have the tag and user
+    if (!tag || !user) return; 
 
     const fetchHashtagPosts = async () => {
       setIsLoading(true);
@@ -73,7 +71,6 @@ export default function HashtagPosts() {
         
         if (data.success) {
           setPosts(data.posts);
-          // Initialize liked/saved state from the fetched data
           setLikedPosts(data.posts.filter(p => p.user_has_liked).map(p => p.post_id));
           setSavedPosts(data.posts.filter(p => p.user_has_saved).map(p => p.post_id));
         } else {
@@ -87,7 +84,7 @@ export default function HashtagPosts() {
     };
 
     fetchHashtagPosts();
-  }, [tag, user]); // Refetch if the tag or user changes
+  }, [tag, user]); 
 
   // --- API-Driven Action Handlers ---
 
@@ -95,8 +92,7 @@ export default function HashtagPosts() {
     if (!user) return;
 
     const isLiked = likedPosts.includes(postId);
-
-    // Optimistic UI Update (feels faster)
+    // Optimistic UI Update
     setLikedPosts(prev => isLiked ? prev.filter(id => id !== postId) : [...prev, postId]);
     setPosts(prevPosts => prevPosts.map(p =>
       p.post_id === postId
@@ -104,7 +100,6 @@ export default function HashtagPosts() {
         : p
     ));
 
-    // API Call
     try {
       await fetch(`${API_URL}/api/posts/like`, {
         method: 'POST',
@@ -112,25 +107,15 @@ export default function HashtagPosts() {
         body: JSON.stringify({ userId: user.id, postId }),
       });
     } catch (err) {
-      // Revert on error
-      setLikedPosts(prev => isLiked ? [...prev, postId] : prev.filter(id => id !== postId));
-      setPosts(prevPosts => prevPosts.map(p =>
-        p.post_id === postId
-          ? { ...p, like_count: isLiked ? p.like_count + 1 : p.like_count - 1 }
-          : p
-      ));
+      console.error(err);
     }
   };
 
   const handleSave = async (postId) => {
     if (!user) return;
-
-    // Optimistic UI Update
     setSavedPosts(prev =>
       prev.includes(postId) ? prev.filter(id => id !== postId) : [...prev, postId]
     );
-
-    // API Call
     try {
       await fetch(`${API_URL}/api/posts/save`, {
         method: 'POST',
@@ -138,10 +123,7 @@ export default function HashtagPosts() {
         body: JSON.stringify({ userId: user.id, postId }),
       });
     } catch (err) {
-      // Revert on error
-      setSavedPosts(prev =>
-        prev.includes(postId) ? prev.filter(id => id !== postId) : [...prev, postId]
-      );
+      console.error(err);
     }
   };
 
@@ -158,7 +140,6 @@ export default function HashtagPosts() {
   const toggleComments = (postId) => {
     const newOpenId = openCommentPostId === postId ? null : postId;
     setOpenCommentPostId(newOpenId);
-    // If opening and comments aren't loaded, fetch them
     if (newOpenId && !commentsData[postId]) {
       fetchComments(postId);
     }
@@ -174,7 +155,6 @@ export default function HashtagPosts() {
       });
       const data = await res.json();
       if (data.success) {
-        // Add new comment to state and update count
         setCommentsData(prev => ({
           ...prev,
           [postId]: [...(prev[postId] || []), data.comment]
@@ -194,7 +174,6 @@ export default function HashtagPosts() {
     navigate(`/hashtag/${tagText}`);
   };
 
-  // --- Render Loading/Error States ---
   if (isLoading) {
     return (
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] flex items-center justify-center">
@@ -211,7 +190,6 @@ export default function HashtagPosts() {
     );
   }
 
-  // --- Main Render ---
   return (
     <>
       <main className="flex-1 p-4 md:p-8 ml-28 md:ml-[22rem] transition-all duration-300">
@@ -231,7 +209,7 @@ export default function HashtagPosts() {
           <div className="space-y-6">
             {posts.map((post) => (
               <Card key={post.post_id} className="overflow-hidden shadow-lg border max-w-xl mx-auto">
-                {/* Header - matching Home.jsx gradient */}
+                {/* Header */}
                 <div className="flex items-center justify-between p-3 bg-gradient-to-r from-[#1D0C69] to-[#5A0395] border-b border-purple-600">
                   <div 
                     className="flex items-center gap-3 cursor-pointer hover:opacity-80 min-w-0"
@@ -249,18 +227,18 @@ export default function HashtagPosts() {
                   </div>
                 </div>
 
-                {/* --- DYNAMIC MEDIA - matching Home.jsx max-height --- */}
+                {/* --- DYNAMIC MEDIA (FIXED: Removed API_URL) --- */}
                 <div className="bg-black max-h-[500px] flex items-center justify-center border-b">
                   {post.media && post.media.length > 0 ? (
                     post.media[0].media_type.startsWith('video') ? (
                       <video 
-                        src={`${API_URL}${post.media[0].media_url}`} 
+                        src={post.media[0].media_url} 
                         controls 
                         className="w-full max-h-[500px] object-contain" 
                       />
                     ) : (
                       <img 
-                        src={`${API_URL}${post.media[0].media_url}`} 
+                        src={post.media[0].media_url} 
                         alt="Post media" 
                         className="w-full max-h-[500px] object-contain" 
                       />
@@ -270,7 +248,7 @@ export default function HashtagPosts() {
                   )}
                 </div>
 
-                {/* Caption, Actions, Hashtags - matching Home.jsx gradient background */}
+                {/* Caption, Actions, Hashtags */}
                 <div className="p-4 space-y-3 bg-gradient-to-br from-purple-50 to-purple-100">
                   <div className="flex items-start justify-between">
                     <p className="text-sm break-words flex-1 pr-4 min-w-0 text-gray-800">
@@ -313,28 +291,31 @@ export default function HashtagPosts() {
                     </div>
                   </div>
 
-                  {/* Hashtags - matching Home.jsx styling */}
+                  {/* Hashtags (FIXED: Robust Rendering) */}
                   {post.hashtags && post.hashtags.length > 0 && (
                     <div className="border-t pt-3 border-purple-200">
                       <p className="font-semibold text-sm mb-1 text-[#1D0C69]">#Hashtags:</p>
                       <div className="flex flex-wrap gap-2">
-                        {post.hashtags.map((tagText, idx) => (
-                          <span
-                            key={idx}
-                            className="text-sm text-[#5A0395] hover:underline cursor-pointer font-medium"
-                            onClick={() => handleHashtagClick(tagText)}
-                          >
-                            #{tagText}
-                          </span>
-                        ))}
+                        {post.hashtags.map((tag, idx) => {
+                           const tagText = typeof tag === 'object' ? tag.hashtag_text : tag;
+                           return (
+                            <span
+                              key={idx}
+                              className="text-sm text-[#5A0395] hover:underline cursor-pointer font-medium"
+                              onClick={() => handleHashtagClick(tagText)}
+                            >
+                              #{tagText}
+                            </span>
+                           );
+                        })}
                       </div>
                     </div>
                   )}
-
-                  {/* Timestamp - matching Home.jsx */}
+                  
                   <p className="text-xs text-gray-600">{formatTimeAgo(post.created_at)}</p>
                 </div>
 
+                {/* Comment Section */}
                 {openCommentPostId === post.post_id && (
                   <CommentSection
                     postId={post.post_id}
