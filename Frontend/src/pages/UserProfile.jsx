@@ -217,6 +217,25 @@ export default function UserProfile() {
 
   return (
     <>
+      <style>{`
+        /* Custom Purple Scrollbar for Highlights Section */
+        .highlights-scroll::-webkit-scrollbar {
+          height: 8px;
+        }
+        .highlights-scroll::-webkit-scrollbar-track {
+          background: linear-gradient(to right, #f3e8ff, #faf5ff);
+          border-radius: 10px;
+        }
+        .highlights-scroll::-webkit-scrollbar-thumb {
+          background: linear-gradient(to right, #7C3AED, #5A0395);
+          border-radius: 10px;
+          border: 2px solid #f3e8ff;
+        }
+        .highlights-scroll::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(to right, #6C2ADD, #4A0285);
+        }
+      `}</style>
+
       {selectedPost && (
         <PostDetailModal
           post={selectedPost}
@@ -318,11 +337,11 @@ export default function UserProfile() {
               <p className="text-sm text-gray-600 break-words">{profileData.bio || "No bio available."}</p>
             </div>
             
-            {/* --- HIGHLIGHTS SECTION (FIXED) --- */}
+            {/* --- HIGHLIGHTS SECTION (WITH CUSTOM SCROLLBAR) --- */}
             {highlights.length > 0 && (
               <div className="mb-6">
                 <h2 className="text-sm font-semibold text-[#5A0395] mb-3">Highlights</h2>
-                <div className="flex gap-4 overflow-x-auto pb-2">
+                <div className="flex gap-4 overflow-x-auto pb-2 highlights-scroll">
                   {highlights.map((highlight) => (
                     <div 
                       key={highlight.highlight_id} 
