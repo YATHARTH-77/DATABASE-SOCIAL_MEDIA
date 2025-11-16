@@ -3,6 +3,22 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { X, Send } from "lucide-react";
 
+// --- Helper to format timestamp for comments ---
+function formatCommentTime(dateString) {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now - date) / 1000);
+
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
+}
+
 export function CommentSection({ postId, comments, onAddComment, onClose, onUserClick }) {
   const [commentText, setCommentText] = useState("");
 
@@ -49,15 +65,16 @@ export function CommentSection({ postId, comments, onAddComment, onClose, onUser
           <p className="text-center text-gray-500 py-8">No comments yet. Be the first to comment!</p>
         ) : (
           comments.map((comment) => (
-            <div key={comment.id} className="flex gap-3">
+            <div key={comment.comment_id || comment.id} className="flex gap-3">
               <div 
                 className="cursor-pointer hover:opacity-80 flex-shrink-0"
                 onClick={(e) => handleUsernameClick(e, comment.username)}
               >
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src={comment.avatar} />
+                  {/* Ensure we check for profile_pic_url (backend name) OR avatar (frontend name if any) */}
+                  <AvatarImage src={comment.profile_pic_url || comment.avatar} />
                   <AvatarFallback className="bg-[#5A0395] text-white text-xs">
-                    {comment.username[0].toUpperCase()}
+                    {comment.username ? comment.username[0].toUpperCase() : '?'}
                   </AvatarFallback>
                 </Avatar>
               </div>
@@ -69,9 +86,14 @@ export function CommentSection({ postId, comments, onAddComment, onClose, onUser
                   >
                     {comment.username}
                   </p>
-                  <p className="text-sm text-gray-700 break-words">{comment.text}</p>
+                  {/* FIXED: Changed comment.text to comment.comment_text */}
+                  <p className="text-sm text-gray-700 break-words mt-0.5">
+                    {comment.comment_text || comment.text}
+                  </p>
                 </div>
-                <p className="text-xs text-gray-500 mt-1 ml-3">{comment.timestamp}</p>
+                <p className="text-xs text-gray-500 mt-1 ml-3">
+                  {formatCommentTime(comment.created_at || comment.timestamp)}
+                </p>
               </div>
             </div>
           ))
@@ -83,7 +105,7 @@ export function CommentSection({ postId, comments, onAddComment, onClose, onUser
         <div className="flex gap-2">
           <Avatar className="w-8 h-8 flex-shrink-0">
             <AvatarFallback className="bg-[#5A0395] text-white text-xs">
-              U
+              You
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 flex gap-2">
