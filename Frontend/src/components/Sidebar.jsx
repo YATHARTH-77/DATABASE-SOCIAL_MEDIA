@@ -1,6 +1,6 @@
 import { Home, Search, MessageCircle, Bell, PlusCircle, User } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 // Export navItems so other components can reuse icons/paths
 export const navItems = [
   { icon: Home, label: "HOME", path: "/home" },
@@ -26,36 +26,11 @@ export const Sidebar = () => {
     setCursor({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
-  // Touch handler for mobile bottom nav to update gradient position
-  const handleTouchMove = (e) => {
-    if (!e.touches || e.touches.length === 0) return;
-    const touch = e.touches[0];
-    const rect = e.currentTarget.getBoundingClientRect();
-    setCursor({ x: touch.clientX - rect.left, y: touch.clientY - rect.top });
-  };
-
-  // Toggle a `mobile-center` class on the document body when we're on a small viewport.
-  // This lets us apply mobile-only centering styles globally without changing page markup.
-  useEffect(() => {
-    const root = document.documentElement || document.body;
-    const check = () => {
-      if (window.innerWidth < 768) {
-        root.classList.add("mobile-center");
-      } else {
-        root.classList.remove("mobile-center");
-      }
-    };
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-
   return (
-    <>
     <aside 
       onMouseMove={handleMouseMove} 
-      // Hide on small screens, show as flex from md and up. h-screen is correct, overflow-y-auto is needed for the rare case the whole bar needs to scroll
-      className="hidden md:flex fixed left-0 top-0 h-screen w-28 p-4 transition-all duration-300 md:w-[22rem] md:p-6 gradient-sidebar flex-col shadow-xl z-50 overflow-y-auto"
+      // Main container: h-screen is correct, overflow-y-auto is needed for the rare case the whole bar needs to scroll
+      className="fixed left-0 top-0 h-screen w-28 p-4 transition-all duration-300 md:w-[22rem] md:p-6 gradient-sidebar flex flex-col shadow-xl z-50 overflow-y-auto"
     >
       <BackgroundGradientAnimation containerClassName="absolute inset-0" interactive={true} cursor={cursor}>
         
@@ -104,28 +79,5 @@ export const Sidebar = () => {
         </div>
       </BackgroundGradientAnimation>
     </aside>
-
-    {/* Mobile bottom navigation - visible only on small screens. Wrapped so we can apply the same gradient animation */}
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 h-16 mobile-bottom-safe" onTouchMove={handleTouchMove}>
-      <BackgroundGradientAnimation containerClassName="absolute inset-0" interactive={true} cursor={cursor}>
-        {/* Evenly distribute icons across the full width with equal vertical spacing */}
-        <nav className="relative h-full bg-transparent border-t border-white/10 flex items-center px-0">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path + "-mobile"}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex-1 h-full flex items-center justify-center transition-colors ${
-                  isActive ? "text-white" : "text-white/70 hover:text-white"
-                }`
-              }
-            >
-              <item.icon className="w-6 h-6" />
-            </NavLink>
-          ))}
-        </nav>
-      </BackgroundGradientAnimation>
-    </div>
-    </>
   );
 };
