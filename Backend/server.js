@@ -59,12 +59,55 @@ function containsAbusiveContent(text) {
   return false;
 }
 
-async function isDuplicateComment(db, userId, postId, commentText) {
-  const [existing] = await db.query(
-    "SELECT COUNT(*) as count FROM `COMMENT` WHERE user_id = ? AND post_id = ? AND comment_text = ?",
-    [userId, postId, commentText]
-  );
-  return existing[0].count > 0;
+async function isSpamComment(db, userId, postId, commentText) {
+  try {
+    // Check for exact duplicate in last 5 minutes
+    const [recentDuplicates] = await db.query(
+      `SELECT COUNT(*) as count 
+       FROM COMMENT 
+       WHERE user_id = ? 
+       AND post_id = ? 
+       AND comment_text = ? 
+       AND created_at > NOW() - INTERVAL 5 MINUTE`,
+      [userId, postId, commentText]
+    );
+    
+    if (recentDuplicates[0].count > 0) {
+      return { isSpam: true, reason: "Duplicate comment detected" };
+    }
+    
+    // Check for rapid commenting (more than 5 comments in 1 minute)
+    const [rapidComments] = await db.query(
+      `SELECT COUNT(*) as count 
+       FROM COMMENT 
+       WHERE user_id = ? 
+       AND created_at > NOW() - INTERVAL 1 MINUTE`,
+      [userId]
+    );
+    
+    if (rapidComments[0].count >= 5) {
+      return { isSpam: true, reason: "Too many comments in short time. Please slow down." };
+    }
+    
+    // Check for repetitive characters (e.g., "aaaaaaa", "hahahaha")
+    const repeatedChars = /(.)\1{5,}/gi;
+    if (repeatedChars.test(commentText)) {
+      return { isSpam: true, reason: "Spam detected: Repetitive characters" };
+    }
+    
+    // Check for all caps (more than 70% uppercase)
+    const uppercaseCount = (commentText.match(/[A-Z]/g) || []).length;
+    const letterCount = (commentText.match(/[A-Za-z]/g) || []).length;
+    if (letterCount > 10 && (uppercaseCount / letterCount) > 0.7) {
+      return { isSpam: true, reason: "Please don't use excessive caps" };
+    }
+    
+    return { isSpam: false };
+    
+  } catch (err) {
+    console.error("Spam detection error:", err);
+    return { isSpam: false }; // Don't block on error
+  }
 }
 //Trigger ends
 // --- 1. Cloudinary Configuration ---
@@ -574,37 +617,39 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
   }
   
 
+  // 🚫 CHECK 1: Abusive Content (same as post caption)
+  if (containsAbusiveContent(commentText)) {
+    return res.status(400).json({
+      success: false,
+      message: "Comment contains inappropriate language."
+    });
+  }
+
+  // 🚫 CHECK 2: Spam Detection
+  const spamCheck = await isSpamComment(db, userId, postId, commentText);
+  if (spamCheck.isSpam) {
+    return res.status(400).json({
+      success: false,
+      message: spamCheck.reason
+    });
+  }
+
   let conn;
   try {
     conn = await db.getConnection();
     await conn.beginTransaction();
 
-    // Step 1: Check for duplicate comment
-    const [existing] = await conn.query(
-      `SELECT COUNT(*) AS count
-       FROM COMMENT
-       WHERE user_id = ? AND post_id = ? AND comment_text = ?`,
-      [userId, postId, commentText]
-    );
-
-    if (existing[0].count > 0) {
-      await conn.rollback();
-      return res.status(400).json({
-        success: false,
-        message: "Duplicate comment not allowed."
-      });
-    }
-
-    // Step 2: Insert the new comment
+    // Insert the new comment
     const [resDb] = await conn.query(
       "INSERT INTO COMMENT (user_id, post_id, comment_text) VALUES (?, ?, ?)",
       [userId, postId, commentText]
     );
 
-    // Step 3: Fetch inserted comment with user info
+    // Fetch inserted comment with user info
     const [newComment] = await conn.query(
-      `SELECT c.comment_id, c.comment_text, c.created_at,
-          u.user_id, u.username, u.profile_pic_url
+      `SELECT c.comment_id, c.comment_text, 
+              CONVERT_TZ(c.created_at, '+00:00', '+05:30') as created_at,
+              u.user_id, u.username, u.profile_pic_url
        FROM COMMENT c
        JOIN USER u ON c.user_id = u.user_id
        WHERE c.comment_id = ?`,
@@ -622,14 +667,6 @@ app.post("/api/posts/:postId/comments", async (req, res) => {
     console.error("Add Comment Error:", err);
 
     if (conn) await conn.rollback();
-
-    // Handle trigger errors (spam, abusive, etc.)
-    if (err.code === "ER_SIGNAL_EXCEPTION" || err.errno === 1644) {
-      return res.status(400).json({
-        success: false,
-        message: err.sqlMessage
-      });
-    }
 
     return res.status(500).json({
       success: false,
