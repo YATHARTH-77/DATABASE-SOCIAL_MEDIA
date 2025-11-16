@@ -207,3 +207,70 @@ All colors MUST be HSL.
     -webkit-text-fill-color: #fff !important;
   }
 }
+
+/* Mobile-only helpers: center content and respect safe areas */
+@layer utilities {
+  @media (max-width: 767px) {
+    .mobile-center {
+      /* Make content start from the top (like Instagram mobile) */
+      text-align: center;
+      padding-top: calc(env(safe-area-inset-top, 12px) + 8px);
+      /* Ensure bottom nav doesn't overlap content */
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+    }
+
+    /* Center horizontally but keep vertical alignment at top */
+    .mobile-center .flex {
+      justify-content: center !important; /* horizontal centering */
+      align-items: flex-start !important; /* keep items at the top */
+    }
+
+    /* Constrain page width and add comfortable side gutters on mobile */
+    .mobile-center > * {
+      margin-left: auto;
+      margin-right: auto;
+      width: calc(100% - 32px);
+      max-width: 680px;
+    }
+
+    /* Common page wrappers: ensure they start near the top and respect gutters */
+    main, .page, .content, .container {
+      width: 100%;
+      max-width: 680px;
+      margin: 0 auto;
+      padding-top: 8px;
+      box-sizing: border-box;
+    }
+
+    /* Remove leftover left margins (e.g., `ml-28`) used for desktop sidebar spacing */
+    .mobile-center main,
+    .mobile-center .page,
+    .mobile-center .content,
+    .mobile-center .container,
+    .mobile-center .flex-1 {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+      width: auto !important;
+      max-width: 680px !important;
+    }
+
+    /* Also ensure the top-level layout wrapper doesn't keep desktop spacing */
+    .mobile-center .flex.min-h-screen {
+      padding-left: 0 !important;
+    }
+
+    /* Add safe-area padding for iOS devices at the bottom nav */
+    .mobile-bottom-safe {
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* Nudge mobile nav icons slightly downward so top/bottom spacing is visually equal */
+    .mobile-bottom-safe nav a svg,
+    .mobile-bottom-safe nav a .lucide {
+      transform: translateY(20px);
+      display: block;
+    }
+  }
+}
